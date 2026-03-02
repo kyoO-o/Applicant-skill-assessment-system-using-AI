@@ -1,0 +1,86 @@
+This is BibTeX, Version 0.99d (TeX Live 2025)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: biblatex.bst
+A level-1 auxiliary file: FrontBackMatter/Titlepage.aux
+A level-1 auxiliary file: FrontBackMatter/Plan-Review.aux
+A level-1 auxiliary file: FrontBackMatter/Declaration.aux
+A level-1 auxiliary file: FrontBackMatter/Quotation.aux
+A level-1 auxiliary file: FrontBackMatter/Abstract.aux
+A level-1 auxiliary file: FrontBackMatter/Acknowledgments.aux
+A level-1 auxiliary file: FrontBackMatter/Abbreviations.aux
+A level-1 auxiliary file: Chapters/Introduction.aux
+A level-1 auxiliary file: Chapters/Chapter1.aux
+A level-1 auxiliary file: Chapters/Chapter2.aux
+A level-1 auxiliary file: Chapters/Chapter3.aux
+A level-1 auxiliary file: Chapters/Summary.aux
+A level-1 auxiliary file: Appendices/AppendixA.aux
+Reallocated glb_str_ptr (elt_size=4) to 20 items from 10.
+Reallocated global_strs (elt_size=200001) to 20 items from 10.
+Reallocated glb_str_end (elt_size=4) to 20 items from 10.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated wiz_functions (elt_size=4) to 6000 items from 3000.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Database file #1: main-blx.bib
+Database file #2: references.bib
+Warning--I didn't find a database entry for "iashin"
+Warning--I didn't find a database entry for "cloudsightinc"
+Warning--I didn't find a database entry for "taptapsee"
+Warning--I didn't find a database entry for "cloudsightapi"
+Warning--I didn't find a database entry for "mobilenet"
+Warning--I didn't find a database entry for "ssd"
+Warning--I didn't find a database entry for "OpenCV"
+Biblatex version: 3.20
+Reallocated wiz_functions (elt_size=4) to 9000 items from 6000.
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+You've used 4 entries,
+            6402 wiz_defined-function locations,
+            1250 strings with 10974 characters,
+and the built_in function-call counts, 29037 in all, are:
+= -- 2425
+> -- 382
+< -- 68
++ -- 759
+- -- 148
+* -- 2171
+:= -- 3568
+add.period$ -- 0
+call.type$ -- 4
+change.case$ -- 21
+chr.to.int$ -- 51
+cite$ -- 6
+duplicate$ -- 2537
+empty$ -- 2609
+format.name$ -- 203
+if$ -- 5862
+int.to.chr$ -- 0
+int.to.str$ -- 6
+missing$ -- 0
+newline$ -- 125
+num.names$ -- 114
+pop$ -- 1139
+preamble$ -- 1
+purify$ -- 42
+quote$ -- 0
+skip$ -- 554
+stack$ -- 0
+substring$ -- 5045
+swap$ -- 449
+text.length$ -- 92
+text.prefix$ -- 0
+top$ -- 1
+type$ -- 124
+warning$ -- 0
+while$ -- 409
+width$ -- 0
+write$ -- 122
+(There were 7 warnings)
