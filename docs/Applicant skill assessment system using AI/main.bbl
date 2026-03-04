@@ -17,109 +17,184 @@
 \endgroup
 
 \datalist[entry]{none/global//global/global/global}
-  \entry{medeeStatistic}{misc}{}{}
-    \name{author}{1}{}{%
-      {{hash=�i}{%
-         family={Б.Билгүүн},
-         familyi={�\bibinitperiod},
-         given={iKon.mn},
-         giveni={i\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{�i1}
-    \strng{fullhash}{�i1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{howpublished}{\url{https://ikon.mn/n/2v3g}}
-    \field{note}{[Accessed 01-04-2024]}
-    \field{title}{СТАТИСТИК: Манай улсад 10-аас дээш ам бүлтэй 7,974 өрх байна --- ikon.mn}
-    \field{year}{2023}
-  \endentry
-
-  \entry{Reference1}{article}{}{}
-    \name{author}{3}{}{%
-      {{hash=HCJ}{%
-         family={Hawthorn},
-         familyi={H\bibinitperiod},
-         given={C.\bibnamedelima J.},
-         giveni={C\bibinitperiod\bibinitdelim J\bibinitperiod},
-      }}%
-      {{hash=WKP}{%
-         family={Weber},
-         familyi={W\bibinitperiod},
-         given={K.\bibnamedelima P.},
-         giveni={K\bibinitperiod\bibinitdelim P\bibinitperiod},
-      }}%
-      {{hash=SRE}{%
-         family={Scholten},
-         familyi={S\bibinitperiod},
-         given={R.\bibnamedelima E.},
-         giveni={R\bibinitperiod\bibinitdelim E\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{HCJWKPSRE1}
-    \strng{fullhash}{HCJWKPSRE1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    We have developed an enhanced Littrow configuration extended cavity diode laser (ECDL) that can be tuned without changing the direction of the output beam. The output of a conventional Littrow ECDL is reflected from a plane mirror fixed parallel to the tuning diffraction grating. Using a free-space Michelson wavemeter to measure the laser wavelength, we can tune the laser over a range greater than 10 nm without any alteration of alignment.%
-    }
-    \field{number}{12}
-    \field{pages}{4477\bibrangedash 4479}
-    \field{title}{Littrow Configuration Tunable External Cavity Diode Laser with Fixed Direction Output Beam}
-    \verb{url}
-    \verb http://link.aip.org/link/?RSI/72/4477/1
-    \endverb
-    \field{volume}{72}
-    \field{journaltitle}{Review of Scientific Instruments}
-    \field{month}{12}
-    \field{year}{2001}
-  \endentry
-
-  \entry{Reference3}{article}{}{}
+  \entry{Chamorro2016}{article}{}{}
     \name{author}{4}{}{%
-      {{hash=AAS}{%
-         family={Arnold},
-         familyi={A\bibinitperiod},
-         given={A.\bibnamedelima S.},
-         giveni={A\bibinitperiod\bibinitdelim S\bibinitperiod},
+      {{hash=CPT}{%
+         family={Chamorro-Premuzic},
+         familyi={C\bibinithyphendelim P\bibinitperiod},
+         given={Tomas},
+         giveni={T\bibinitperiod},
       }}%
-      {{hash=WJS}{%
-         family={Wilson},
+      {{hash=WD}{%
+         family={Winsborough},
          familyi={W\bibinitperiod},
-         given={J.\bibnamedelima S.},
-         giveni={J\bibinitperiod\bibinitdelim S\bibinitperiod},
+         given={Dave},
+         giveni={D\bibinitperiod},
       }}%
-      {{hash=BMG}{%
-         family={Boshier},
-         familyi={B\bibinitperiod},
-         given={M.\bibnamedelima G.},
-         giveni={M\bibinitperiod\bibinitdelim G\bibinitperiod},
-      }}%
-      {{hash=SJ}{%
-         family={Smith},
+      {{hash=SRA}{%
+         family={Sherman},
          familyi={S\bibinitperiod},
-         given={J.},
+         given={Robert\bibnamedelima A.},
+         giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod},
+      }}%
+      {{hash=HR}{%
+         family={Hogan},
+         familyi={H\bibinitperiod},
+         given={Robert},
+         giveni={R\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{CPT+1}
+    \strng{fullhash}{CPTWDSRAHR1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \verb{doi}
+    \verb 10.1017/iop.2016.6
+    \endverb
+    \field{number}{3}
+    \field{pages}{621\bibrangedash 640}
+    \field{title}{New Talent Signals: Shiny New Objects or a Brave New World?}
+    \field{volume}{9}
+    \field{journaltitle}{Industrial and Organizational Psychology}
+    \field{year}{2016}
+  \endentry
+
+  \entry{Upadhyay2018}{article}{}{}
+    \name{author}{2}{}{%
+      {{hash=UAK}{%
+         family={Upadhyay},
+         familyi={U\bibinitperiod},
+         given={Ashish\bibnamedelima Kumar},
+         giveni={A\bibinitperiod\bibinitdelim K\bibinitperiod},
+      }}%
+      {{hash=KK}{%
+         family={Khandelwal},
+         familyi={K\bibinitperiod},
+         given={Komal},
+         giveni={K\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{UAKKK1}
+    \strng{fullhash}{UAKKK1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \verb{doi}
+    \verb 10.1108/SHR-07-2018-0051
+    \endverb
+    \field{number}{5}
+    \field{pages}{255\bibrangedash 258}
+    \field{title}{Applying Artificial Intelligence: Implications for Recruitment}
+    \field{volume}{17}
+    \field{journaltitle}{Strategic HR Review}
+    \field{year}{2018}
+  \endentry
+
+  \entry{Malinowski2006}{inproceedings}{}{}
+    \name{author}{4}{}{%
+      {{hash=MJ}{%
+         family={Malinowski},
+         familyi={M\bibinitperiod},
+         given={Jochen},
          giveni={J\bibinitperiod},
       }}%
+      {{hash=KT}{%
+         family={Keim},
+         familyi={K\bibinitperiod},
+         given={Tobias},
+         giveni={T\bibinitperiod},
+      }}%
+      {{hash=WO}{%
+         family={Wendt},
+         familyi={W\bibinitperiod},
+         given={Oliver},
+         giveni={O\bibinitperiod},
+      }}%
+      {{hash=WT}{%
+         family={Weitzel},
+         familyi={W\bibinitperiod},
+         given={Tim},
+         giveni={T\bibinitperiod},
+      }}%
     }
-    \strng{namehash}{AAS+1}
-    \strng{fullhash}{AASWJSBMGSJ1}
+    \strng{namehash}{MJ+1}
+    \strng{fullhash}{MJKTWOWT1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{abstract}{%
-    Operating a laser diode in an extended cavity which provides frequency-selective feedback is a very effective method of reducing the laser's linewidth and improving its tunability. We have developed an extremely simple laser of this type, built from inexpensive commercial components with only a few minor modifications. A 780~nm laser built to this design has an output power of 80~mW, a linewidth of 350~kHz, and it has been continuously locked to a Doppler-free rubidium transition for several days.%
-    }
-    \field{number}{3}
-    \field{pages}{1236\bibrangedash 1239}
-    \field{title}{A Simple Extended-Cavity Diode Laser}
-    \verb{url}
-    \verb http://link.aip.org/link/?RSI/69/1236/1
+    \field{booktitle}{Proceedings of the 39th Hawaii International Conference on System Sciences (HICSS)}
+    \verb{doi}
+    \verb 10.1109/HICSS.2006.381
     \endverb
-    \field{volume}{69}
-    \field{journaltitle}{Review of Scientific Instruments}
-    \field{month}{03}
-    \field{year}{1998}
+    \field{pages}{137a}
+    \field{title}{Matching People and Jobs: A Bilateral Recommendation Approach}
+    \field{year}{2006}
+  \endentry
+
+  \entry{Black2020}{article}{}{}
+    \name{author}{2}{}{%
+      {{hash=BJS}{%
+         family={Black},
+         familyi={B\bibinitperiod},
+         given={J.\bibnamedelima Stewart},
+         giveni={J\bibinitperiod\bibinitdelim S\bibinitperiod},
+      }}%
+      {{hash=vEP}{%
+         prefix={van},
+         prefixi={v\bibinitperiod},
+         family={Esch},
+         familyi={E\bibinitperiod},
+         given={Patrick},
+         giveni={P\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{BJSEPv1}
+    \strng{fullhash}{BJSEPv1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \verb{doi}
+    \verb 10.1016/j.bushor.2019.12.001
+    \endverb
+    \field{number}{2}
+    \field{pages}{215\bibrangedash 226}
+    \field{title}{AI-enabled Recruiting: What is It and How Should a Manager Use It?}
+    \field{volume}{63}
+    \field{journaltitle}{Business Horizons}
+    \field{year}{2020}
+  \endentry
+
+  \entry{Venkateshwaran2025}{article}{}{}
+    \name{author}{4}{}{%
+      {{hash=VG}{%
+         family={Venkateshwaran},
+         familyi={V\bibinitperiod},
+         given={G.},
+         giveni={G\bibinitperiod},
+      }}%
+      {{hash=KNR}{%
+         family={Kumar},
+         familyi={K\bibinitperiod},
+         given={N.\bibnamedelima Rajesh},
+         giveni={N\bibinitperiod\bibinitdelim R\bibinitperiod},
+      }}%
+      {{hash=L}{%
+         family={Luyang},
+         familyi={L\bibinitperiod},
+      }}%
+      {{hash=DVS}{%
+         family={Devarajulu},
+         familyi={D\bibinitperiod},
+         given={Vishnupriya\bibnamedelima S.},
+         giveni={V\bibinitperiod\bibinitdelim S\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{VG+1}
+    \strng{fullhash}{VGKNRLDVS1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{number}{17s}
+    \field{title}{Artificial Intelligence in HR: Transforming Recruitment and Selection in IT Industry}
+    \field{volume}{10}
+    \field{journaltitle}{Journal of Information Systems Engineering and Management}
+    \field{year}{2025}
   \endentry
 \enddatalist
 \endinput
