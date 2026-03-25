@@ -28,6 +28,20 @@
 \contentsline {section}{\numberline {1.7}Бүлгийн дүгнэлт}{13}{section.65}%
 \contentsline {paragraph}{}{13}{paragraph*.66}%
 \contentsline {paragraph}{}{14}{paragraph*.67}%
-\contentsline {chapter}{Ерөнхий дүгнэлт}{15}{section*.68}%
-\contentsline {paragraph}{}{15}{paragraph*.69}%
-\contentsline {chapter}{Ашигласан материалын жагсаалт}{17}{lstnumber.100}%
+\contentsline {chapter}{\numberline {2}Ажил горилогчийн ур чадварыг үнэлэх системийн шинжилгээ}{15}{chapter.68}%
+\contentsline {section}{\numberline {2.1}Системийн үйл ажиллагааны тухай дэлгэрэнгүй}{15}{section.69}%
+\contentsline {section}{\numberline {2.2}Системийг ашиглах хэрэглэгчид}{16}{section.70}%
+\contentsline {section}{\numberline {2.3}Функцийн шаардлага}{16}{section.73}%
+\contentsline {section}{\numberline {2.4}Функцийн бус шаардлага}{17}{section.88}%
+\contentsline {section}{\numberline {2.5}Юзкейс диаграмм}{17}{section.99}%
+\contentsline {paragraph}{}{17}{paragraph*.100}%
+\contentsline {section}{\numberline {2.6}Юзкейсийн тодорхойлолт}{18}{section.102}%
+\contentsline {section}{\numberline {2.7}Шинжилгээний класс диаграмм}{20}{section.127}%
+\contentsline {paragraph}{}{20}{paragraph*.128}%
+\contentsline {section}{\numberline {2.8}Шинжилгээний дарааллын диаграмм}{21}{section.130}%
+\contentsline {paragraph}{}{21}{paragraph*.131}%
+\contentsline {section}{\numberline {2.9}Үйл ажиллагааны диаграмм}{22}{section.134}%
+\contentsline {paragraph}{}{22}{paragraph*.135}%
+\contentsline {section}{\numberline {2.10}Бүлгийн дүгнэлт}{22}{section.137}%
+\contentsline {paragraph}{}{22}{paragraph*.138}%
+\contentsline {chapter}{Ашигласан материалын жагсаалт}{24}{paragraph*.138}%
