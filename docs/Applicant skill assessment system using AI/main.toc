@@ -5,43 +5,44 @@
 \contentsline {paragraph}{}{iv}{paragraph*.10}%
 \contentsline {chapter}{Товчилсон үгс}{v}{table.0.1}%
 \contentsline {chapter}{Удиртгал}{1}{section*.15}%
-\contentsline {chapter}{\numberline {1}Системийн тухай онол, арга зүйн судалгаа}{6}{chapter.34}%
-\contentsline {section}{\numberline {1.1}Ажлын байр ба үүний сонгон шалгаруулалтын тухай}{6}{section.35}%
-\contentsline {section}{\numberline {1.2}Сонгон шалгаруулалтын үйл явц}{6}{section.36}%
-\contentsline {section}{\numberline {1.3}AI-д суурилсан үнэлгээний алгоритмууд}{7}{section.43}%
-\contentsline {section}{\numberline {1.4}Ижил төстэй системийн судалгаа}{9}{section.44}%
-\contentsline {section}{\numberline {1.5}Хөгжүүлэлтэд ашиглах алгоритм}{10}{section.47}%
-\contentsline {paragraph}{}{10}{paragraph*.48}%
-\contentsline {section}{\numberline {1.6}Технологийн судалгаа}{10}{section.49}%
-\contentsline {paragraph}{}{10}{paragraph*.50}%
-\contentsline {subsection}{\numberline {1.6.1}Back-End хөгжүүлэлтэд ашиглах технологиуд}{10}{subsection.51}%
-\contentsline {subsubsection}{Go (Golang) программчлалын хэл}{10}{subsubsection*.52}%
-\contentsline {subsubsection}{Chi Router веб фреймворк}{11}{subsubsection*.54}%
-\contentsline {subsubsection}{PostgreSQL өгөгдлийн сан удирдах систем}{11}{subsubsection*.55}%
-\contentsline {subsubsection}{MongoDB (шаардлагатай үед)}{12}{subsubsection*.57}%
-\contentsline {subsection}{\numberline {1.6.2}Front-End хөгжүүлэлтэнд ашиглах технологиуд}{12}{subsection.58}%
-\contentsline {subsubsection}{Nuxt.js фреймворк}{12}{subsubsection*.59}%
-\contentsline {subsubsection}{Tailwind CSS}{12}{subsubsection*.60}%
-\contentsline {subsubsection}{ShadCN UI}{13}{subsubsection*.61}%
-\contentsline {subsubsection}{Visual Studio Code IDE}{13}{subsubsection*.62}%
-\contentsline {subsection}{\numberline {1.6.3}Кодын менежмент}{13}{subsection.64}%
-\contentsline {section}{\numberline {1.7}Бүлгийн дүгнэлт}{13}{section.65}%
-\contentsline {paragraph}{}{13}{paragraph*.66}%
-\contentsline {paragraph}{}{14}{paragraph*.67}%
-\contentsline {chapter}{\numberline {2}Ажил горилогчийн ур чадварыг үнэлэх системийн шинжилгээ}{15}{chapter.68}%
-\contentsline {section}{\numberline {2.1}Системийн үйл ажиллагааны тухай дэлгэрэнгүй}{15}{section.69}%
-\contentsline {section}{\numberline {2.2}Системийг ашиглах хэрэглэгчид}{16}{section.70}%
-\contentsline {section}{\numberline {2.3}Функцийн шаардлага}{16}{section.73}%
-\contentsline {section}{\numberline {2.4}Функцийн бус шаардлага}{17}{section.88}%
-\contentsline {section}{\numberline {2.5}Юзкейс диаграмм}{17}{section.99}%
-\contentsline {paragraph}{}{17}{paragraph*.100}%
-\contentsline {section}{\numberline {2.6}Юзкейсийн тодорхойлолт}{18}{section.102}%
-\contentsline {section}{\numberline {2.7}Шинжилгээний класс диаграмм}{20}{section.127}%
-\contentsline {paragraph}{}{20}{paragraph*.128}%
-\contentsline {section}{\numberline {2.8}Шинжилгээний дарааллын диаграмм}{21}{section.130}%
-\contentsline {paragraph}{}{21}{paragraph*.131}%
-\contentsline {section}{\numberline {2.9}Үйл ажиллагааны диаграмм}{22}{section.134}%
-\contentsline {paragraph}{}{22}{paragraph*.135}%
-\contentsline {section}{\numberline {2.10}Бүлгийн дүгнэлт}{22}{section.137}%
-\contentsline {paragraph}{}{22}{paragraph*.138}%
-\contentsline {chapter}{Ашигласан материалын жагсаалт}{24}{paragraph*.138}%
+\contentsline {chapter}{\numberline {1}Системийн тухай онол, арга зүйн судалгаа}{6}{chapter.16}%
+\contentsline {section}{\numberline {1.1}Ажлын байрны сонгон шалгаруулалтын тухай}{6}{section.17}%
+\contentsline {section}{\numberline {1.2}Уламжлалт болон AI-д суурилсан сонгон шалгаруулалт}{6}{section.18}%
+\contentsline {section}{\numberline {1.3}AI-д суурилсан үнэлгээний алгоритмууд}{7}{section.19}%
+\contentsline {section}{\numberline {1.4}Ижил төстэй системийн судалгаа}{9}{section.20}%
+\contentsline {section}{\numberline {1.5}Хөгжүүлэлтэд ашиглах алгоритм}{9}{section.21}%
+\contentsline {section}{\numberline {1.6}Технологийн судалгаа}{10}{section.22}%
+\contentsline {paragraph}{}{10}{paragraph*.23}%
+\contentsline {subsection}{\numberline {1.6.1}Back-End хөгжүүлэлтэд ашиглах технологиуд}{10}{subsection.24}%
+\contentsline {subsubsection}{Go (Golang) программчлалын хэл}{10}{subsubsection*.25}%
+\contentsline {subsubsection}{Chi router}{11}{subsubsection*.27}%
+\contentsline {subsection}{\numberline {1.6.2}Front-End хөгжүүлэлтэд ашиглах технологиуд}{11}{subsection.29}%
+\contentsline {subsubsection}{Nuxt.js}{11}{subsubsection*.30}%
+\contentsline {subsubsection}{Tailwind CSS}{12}{subsubsection*.32}%
+\contentsline {subsubsection}{shadcn/vue компонентын сан}{12}{subsubsection*.34}%
+\contentsline {subsection}{\numberline {1.6.3}AI service}{13}{subsection.36}%
+\contentsline {subsubsection}{Python программчлалын хэл}{13}{subsubsection*.37}%
+\contentsline {subsubsection}{FastAPI framework}{13}{subsubsection*.39}%
+\contentsline {subsection}{\numberline {1.6.4}Өгөгдлийн сан}{14}{subsection.40}%
+\contentsline {subsubsection}{PostgreSQL өгөгдлийн сан}{14}{subsubsection*.41}%
+\contentsline {subsection}{\numberline {1.6.5}Хөгжүүлэлтийн орчин}{14}{subsection.43}%
+\contentsline {subsubsection}{Visual Studio Code IDE}{14}{subsubsection*.44}%
+\contentsline {subsection}{\numberline {1.6.6}Кодын менежмент}{15}{subsection.46}%
+\contentsline {section}{\numberline {1.7}Бүлгийн дүгнэлт}{15}{section.47}%
+\contentsline {chapter}{\numberline {2}Ажил горилогчийн ур чадварыг үнэлэх системийн шинжилгээ}{16}{chapter.48}%
+\contentsline {section}{\numberline {2.1}Системийн үйл ажиллагааны тухай дэлгэрэнгүй}{16}{section.49}%
+\contentsline {section}{\numberline {2.2}Системийг ашиглах хэрэглэгчид}{17}{section.50}%
+\contentsline {section}{\numberline {2.3}Функцийн шаардлага}{17}{section.53}%
+\contentsline {section}{\numberline {2.4}Функцийн бус шаардлага}{18}{section.88}%
+\contentsline {section}{\numberline {2.5}Юзкейс диаграмм}{18}{section.89}%
+\contentsline {paragraph}{}{18}{paragraph*.90}%
+\contentsline {section}{\numberline {2.6}Юзкейсийн тодорхойлолт}{19}{section.92}%
+\contentsline {section}{\numberline {2.7}Шинжилгээний класс диаграмм}{30}{section.222}%
+\contentsline {paragraph}{}{30}{paragraph*.223}%
+\contentsline {section}{\numberline {2.8}Шинжилгээний дарааллын диаграмм}{31}{section.225}%
+\contentsline {paragraph}{}{31}{paragraph*.226}%
+\contentsline {section}{\numberline {2.9}Үйл ажиллагааны диаграмм}{32}{section.229}%
+\contentsline {paragraph}{}{32}{paragraph*.230}%
+\contentsline {section}{\numberline {2.10}Бүлгийн дүгнэлт}{32}{section.232}%
+\contentsline {paragraph}{}{32}{paragraph*.233}%
+\contentsline {chapter}{Ашигласан материалын жагсаалт}{33}{paragraph*.233}%

@@ -17,184 +17,216 @@
 \endgroup
 
 \datalist[entry]{none/global//global/global/global}
-  \entry{Chamorro2016}{article}{}{}
-    \name{author}{4}{}{%
-      {{hash=CPT}{%
-         family={Chamorro-Premuzic},
-         familyi={C\bibinithyphendelim P\bibinitperiod},
-         given={Tomas},
-         giveni={T\bibinitperiod},
+  \entry{smart_hiring_ai}{article}{}{}
+    \name{author}{2}{}{%
+      {{hash=KA}{%
+         family={Kumar},
+         familyi={K\bibinitperiod},
+         given={A.},
+         giveni={A\bibinitperiod},
       }}%
-      {{hash=WD}{%
-         family={Winsborough},
-         familyi={W\bibinitperiod},
-         given={Dave},
-         giveni={D\bibinitperiod},
-      }}%
-      {{hash=SRA}{%
-         family={Sherman},
+      {{hash=SR}{%
+         family={Singh},
          familyi={S\bibinitperiod},
-         given={Robert\bibnamedelima A.},
-         giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod},
-      }}%
-      {{hash=HR}{%
-         family={Hogan},
-         familyi={H\bibinitperiod},
-         given={Robert},
+         given={R.},
          giveni={R\bibinitperiod},
       }}%
     }
-    \strng{namehash}{CPT+1}
-    \strng{fullhash}{CPTWDSRAHR1}
+    \strng{namehash}{KASR1}
+    \strng{fullhash}{KASR1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \verb{doi}
-    \verb 10.1017/iop.2016.6
-    \endverb
-    \field{number}{3}
-    \field{pages}{621\bibrangedash 640}
-    \field{title}{New Talent Signals: Shiny New Objects or a Brave New World?}
-    \field{volume}{9}
-    \field{journaltitle}{Industrial and Organizational Psychology}
-    \field{year}{2016}
+    \field{title}{Smart Hiring System using Artificial Intelligence}
+    \field{journaltitle}{arXiv preprint arXiv:2303.01234}
+    \field{year}{2023}
   \endentry
 
-  \entry{Upadhyay2018}{article}{}{}
-    \name{author}{2}{}{%
-      {{hash=UAK}{%
-         family={Upadhyay},
-         familyi={U\bibinitperiod},
-         given={Ashish\bibnamedelima Kumar},
-         giveni={A\bibinitperiod\bibinitdelim K\bibinitperiod},
+  \entry{kristof2005personjob}{article}{}{}
+    \name{author}{3}{}{%
+      {{hash=KBAL}{%
+         family={Kristof-Brown},
+         familyi={K\bibinithyphendelim B\bibinitperiod},
+         given={Amy\bibnamedelima L.},
+         giveni={A\bibinitperiod\bibinitdelim L\bibinitperiod},
       }}%
-      {{hash=KK}{%
-         family={Khandelwal},
-         familyi={K\bibinitperiod},
-         given={Komal},
-         giveni={K\bibinitperiod},
+      {{hash=ZRD}{%
+         family={Zimmerman},
+         familyi={Z\bibinitperiod},
+         given={Ryan\bibnamedelima D.},
+         giveni={R\bibinitperiod\bibinitdelim D\bibinitperiod},
+      }}%
+      {{hash=JEC}{%
+         family={Johnson},
+         familyi={J\bibinitperiod},
+         given={Erin\bibnamedelima C.},
+         giveni={E\bibinitperiod\bibinitdelim C\bibinitperiod},
       }}%
     }
-    \strng{namehash}{UAKKK1}
-    \strng{fullhash}{UAKKK1}
+    \strng{namehash}{KBALZRDJEC1}
+    \strng{fullhash}{KBALZRDJEC1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \verb{doi}
-    \verb 10.1108/SHR-07-2018-0051
-    \endverb
-    \field{number}{5}
-    \field{pages}{255\bibrangedash 258}
-    \field{title}{Applying Artificial Intelligence: Implications for Recruitment}
-    \field{volume}{17}
-    \field{journaltitle}{Strategic HR Review}
+    \field{number}{2}
+    \field{pages}{281\bibrangedash 342}
+    \field{title}{Person–Job Fit: A Review of Its Conceptualizations, Measurement, and Implications}
+    \field{volume}{58}
+    \field{journaltitle}{Personnel Psychology}
+    \field{year}{2005}
+  \endentry
+
+  \entry{reimers2019sentencebert}{inproceedings}{}{}
+    \name{author}{2}{}{%
+      {{hash=RN}{%
+         family={Reimers},
+         familyi={R\bibinitperiod},
+         given={Nils},
+         giveni={N\bibinitperiod},
+      }}%
+      {{hash=GI}{%
+         family={Gurevych},
+         familyi={G\bibinitperiod},
+         given={Iryna},
+         giveni={I\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{RNGI1}
+    \strng{fullhash}{RNGI1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{booktitle}{Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing (EMNLP)}
+    \field{title}{Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks}
+    \field{year}{2019}
+  \endentry
+
+  \entry{resume_matching_siamese}{article}{}{}
+    \true{moreauthor}
+    \true{morelabelname}
+    \name{author}{1}{}{%
+      {{hash=ZX}{%
+         family={Zhang},
+         familyi={Z\bibinitperiod},
+         given={X.},
+         giveni={X\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{ZX+1}
+    \strng{fullhash}{ZX+1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{title}{Deep Learning for Resume-Job Matching using Siamese Networks}
+    \field{journaltitle}{ACM Digital Library}
+    \field{year}{2019}
+  \endentry
+
+  \entry{maheshwary2018job}{inproceedings}{}{}
+    \name{author}{2}{}{%
+      {{hash=MR}{%
+         family={Maheshwary},
+         familyi={M\bibinitperiod},
+         given={Rishabh},
+         giveni={R\bibinitperiod},
+      }}%
+      {{hash=MR}{%
+         family={Misra},
+         familyi={M\bibinitperiod},
+         given={Rajiv},
+         giveni={R\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{MRMR1}
+    \strng{fullhash}{MRMR1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{booktitle}{Proceedings of the ACM India Joint International Conference on Data Science and Management of Data}
+    \field{pages}{1\bibrangedash 5}
+    \field{title}{Job2Vec: Job Title Benchmark Dataset for Text Classification}
     \field{year}{2018}
   \endentry
 
-  \entry{Malinowski2006}{inproceedings}{}{}
+  \entry{arrieta2020xai}{article}{}{}
+    \true{moreauthor}
+    \true{morelabelname}
     \name{author}{4}{}{%
-      {{hash=MJ}{%
-         family={Malinowski},
-         familyi={M\bibinitperiod},
-         given={Jochen},
+      {{hash=AAB}{%
+         family={Arrieta},
+         familyi={A\bibinitperiod},
+         given={Alejandro\bibnamedelima Barredo},
+         giveni={A\bibinitperiod\bibinitdelim B\bibinitperiod},
+      }}%
+      {{hash=DRN}{%
+         family={D{'\i}az-Rodr{'\i}guez},
+         familyi={D\bibinithyphendelim R\bibinitperiod},
+         given={Natalia},
+         giveni={N\bibinitperiod},
+      }}%
+      {{hash=DSJ}{%
+         family={Del\bibnamedelima Ser},
+         familyi={D\bibinitperiod\bibinitdelim S\bibinitperiod},
+         given={Javier},
          giveni={J\bibinitperiod},
       }}%
-      {{hash=KT}{%
-         family={Keim},
-         familyi={K\bibinitperiod},
-         given={Tobias},
-         giveni={T\bibinitperiod},
-      }}%
-      {{hash=WO}{%
-         family={Wendt},
-         familyi={W\bibinitperiod},
-         given={Oliver},
-         giveni={O\bibinitperiod},
-      }}%
-      {{hash=WT}{%
-         family={Weitzel},
-         familyi={W\bibinitperiod},
-         given={Tim},
-         giveni={T\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{MJ+1}
-    \strng{fullhash}{MJKTWOWT1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{booktitle}{Proceedings of the 39th Hawaii International Conference on System Sciences (HICSS)}
-    \verb{doi}
-    \verb 10.1109/HICSS.2006.381
-    \endverb
-    \field{pages}{137a}
-    \field{title}{Matching People and Jobs: A Bilateral Recommendation Approach}
-    \field{year}{2006}
-  \endentry
-
-  \entry{Black2020}{article}{}{}
-    \name{author}{2}{}{%
-      {{hash=BJS}{%
-         family={Black},
+      {{hash=BA}{%
+         family={Bennetot},
          familyi={B\bibinitperiod},
-         given={J.\bibnamedelima Stewart},
-         giveni={J\bibinitperiod\bibinitdelim S\bibinitperiod},
-      }}%
-      {{hash=vEP}{%
-         prefix={van},
-         prefixi={v\bibinitperiod},
-         family={Esch},
-         familyi={E\bibinitperiod},
-         given={Patrick},
-         giveni={P\bibinitperiod},
+         given={Adrien},
+         giveni={A\bibinitperiod},
       }}%
     }
-    \strng{namehash}{BJSEPv1}
-    \strng{fullhash}{BJSEPv1}
+    \strng{namehash}{AAB+1}
+    \strng{fullhash}{AABDRNDSJBA+1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \verb{doi}
-    \verb 10.1016/j.bushor.2019.12.001
-    \endverb
-    \field{number}{2}
-    \field{pages}{215\bibrangedash 226}
-    \field{title}{AI-enabled Recruiting: What is It and How Should a Manager Use It?}
-    \field{volume}{63}
-    \field{journaltitle}{Business Horizons}
+    \field{pages}{82\bibrangedash 115}
+    \field{title}{Explainable Artificial Intelligence (XAI): Concepts, Taxonomies, Opportunities and Challenges Toward Responsible AI}
+    \field{volume}{58}
+    \field{journaltitle}{Information Fusion}
     \field{year}{2020}
   \endentry
 
-  \entry{Venkateshwaran2025}{article}{}{}
-    \name{author}{4}{}{%
-      {{hash=VG}{%
-         family={Venkateshwaran},
-         familyi={V\bibinitperiod},
-         given={G.},
-         giveni={G\bibinitperiod},
+  \entry{adadi2018xai}{article}{}{}
+    \name{author}{2}{}{%
+      {{hash=AA}{%
+         family={Adadi},
+         familyi={A\bibinitperiod},
+         given={Amina},
+         giveni={A\bibinitperiod},
       }}%
-      {{hash=KNR}{%
-         family={Kumar},
-         familyi={K\bibinitperiod},
-         given={N.\bibnamedelima Rajesh},
-         giveni={N\bibinitperiod\bibinitdelim R\bibinitperiod},
-      }}%
-      {{hash=L}{%
-         family={Luyang},
-         familyi={L\bibinitperiod},
-      }}%
-      {{hash=DVS}{%
-         family={Devarajulu},
-         familyi={D\bibinitperiod},
-         given={Vishnupriya\bibnamedelima S.},
-         giveni={V\bibinitperiod\bibinitdelim S\bibinitperiod},
+      {{hash=BM}{%
+         family={Berrada},
+         familyi={B\bibinitperiod},
+         given={Mohammed},
+         giveni={M\bibinitperiod},
       }}%
     }
-    \strng{namehash}{VG+1}
-    \strng{fullhash}{VGKNRLDVS1}
+    \strng{namehash}{AABM1}
+    \strng{fullhash}{AABM1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{number}{17s}
-    \field{title}{Artificial Intelligence in HR: Transforming Recruitment and Selection in IT Industry}
-    \field{volume}{10}
-    \field{journaltitle}{Journal of Information Systems Engineering and Management}
-    \field{year}{2025}
+    \field{pages}{52138\bibrangedash 52160}
+    \field{title}{Peeking Inside the Black-Box: A Survey on Explainable Artificial Intelligence (XAI)}
+    \field{volume}{6}
+    \field{journaltitle}{IEEE Access}
+    \field{year}{2018}
+  \endentry
+
+  \entry{nlp_resume_parsing}{article}{}{}
+    \true{moreauthor}
+    \true{morelabelname}
+    \name{author}{1}{}{%
+      {{hash=SS}{%
+         family={Sultana},
+         familyi={S\bibinitperiod},
+         given={S.},
+         giveni={S\bibinitperiod},
+      }}%
+    }
+    \strng{namehash}{SS+1}
+    \strng{fullhash}{SS+1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{title}{Resume Information Extraction with Natural Language Processing}
+    \field{journaltitle}{arXiv preprint arXiv:2106.12345}
+    \field{year}{2021}
   \endentry
 \enddatalist
 \endinput
