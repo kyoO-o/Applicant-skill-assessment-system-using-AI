@@ -77,7 +77,7 @@ func (s *Service) Count(filter *Filter) (int, error) {
 func (s *Service) Get(id int) (*User, error) {
 	var user *User
 
-	if err := s.DB.Preload("Subscription").First(&user, id).Error; err != nil {
+	if err := s.DB.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		} else {
@@ -90,7 +90,7 @@ func (s *Service) Get(id int) (*User, error) {
 func (s *Service) GetWithToduID(toduID int) (*User, error) {
 	var user *User
 
-	if err := s.DB.Preload("Subscription").First(&user, "todu_id=?", toduID).Error; err != nil {
+	if err := s.DB.First(&user, "todu_id=?", toduID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		} else {
@@ -104,7 +104,7 @@ func (s *Service) GetWithToduID(toduID int) (*User, error) {
 func (s *Service) GetWithEmail(email string) (*User, error) {
 	var user *User
 
-	if err := s.DB.Preload("Subscription").First(&user, "email=?", email).Error; err != nil {
+	if err := s.DB.First(&user, "email=?", email).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrNotFound
 		} else {

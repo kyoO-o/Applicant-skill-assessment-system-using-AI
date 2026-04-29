@@ -11,7 +11,7 @@ import (
 func routes() http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP, middleware.Logger, middleware.Recoverer)
-	r.Use(SecureHeaders, app.Session.Enable, Authenticate)
+	r.Use(CORS, SecureHeaders, app.Session.Enable, Authenticate)
 
 	// if app.Mode == "debug" {
 	// 	cr.Get("/api/ws", app.FrontendWS.Handler)
@@ -25,6 +25,8 @@ func routes() http.Handler {
 
 	r.Route("/pub", func(r chi.Router) {
 		r.Get("/login", Login)
+		r.Post("/login", PasswordLogin)
+		r.Post("/register", Register)
 		r.Get("/authenticate", BAuthenticate)
 	})
 

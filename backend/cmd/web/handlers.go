@@ -4,11 +4,14 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/oapi"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/ocookie"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
@@ -29,6 +32,118 @@ var ocrMutex sync.Mutex
 func Me(w http.ResponseWriter, r *http.Request) {
 	user := r.Context().Value(app.ContextKeyAuthCustomer).(*userman.User)
 	oapi.SendResp(w, user)
+}
+
+type authRequest struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
+}
+
+type authResponse struct {
+	User    *userman.User `json:"user"`
+	Message string        `json:"message"`
+}
+
+func Register(w http.ResponseWriter, r *http.Request) {
+	var req authRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Invalid request body"})
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
+	req.Role = strings.TrimSpace(strings.ToLower(req.Role))
+
+	if req.Name == "" || req.Email == "" || req.Password == "" || req.Role == "" {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Name, email, password, and role are required"})
+		return
+	}
+
+	if len(req.Password) < 8 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Password must be at least 8 characters"})
+		return
+	}
+
+	if req.Role != userman.RoleUser && req.Role != userman.RoleRecruiter {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Role must be either user or recruiter"})
+		return
+	}
+
+	_, err := app.Users.GetWithEmail(req.Email)
+	if err == nil {
+		oapi.CustomError(w, http.StatusConflict, map[string]string{"message": "An account with that email already exists"})
+		return
+	}
+	if !errors.Is(err, userman.ErrNotFound) {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	passwordHash, err := common.HashPassword(req.Password)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	user := &userman.User{
+		Email:        req.Email,
+		Name:         req.Name,
+		PasswordHash: passwordHash,
+		Role:         req.Role,
+	}
+
+	user, err = app.Users.Save(user)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	startSession(r, user, "local")
+	w.WriteHeader(http.StatusCreated)
+	oapi.SendResp(w, &authResponse{
+		User:    user,
+		Message: "Registration successful",
+	})
+}
+
+func PasswordLogin(w http.ResponseWriter, r *http.Request) {
+	var req authRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Invalid request body"})
+		return
+	}
+
+	email := strings.TrimSpace(strings.ToLower(req.Email))
+	password := req.Password
+
+	if email == "" || password == "" {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Email and password are required"})
+		return
+	}
+
+	user, err := app.Users.GetWithEmail(email)
+	if err != nil {
+		if errors.Is(err, userman.ErrNotFound) {
+			oapi.CustomError(w, http.StatusUnauthorized, map[string]string{"message": "Invalid email or password"})
+			return
+		}
+		oapi.ServerError(w, err)
+		return
+	}
+
+	if user.PasswordHash == "" || common.CheckPassword(password, user.PasswordHash) != nil {
+		oapi.CustomError(w, http.StatusUnauthorized, map[string]string{"message": "Invalid email or password"})
+		return
+	}
+
+	startSession(r, user, "local")
+	oapi.SendResp(w, &authResponse{
+		User:    user,
+		Message: "Login successful",
+	})
 }
 
 func Login(w http.ResponseWriter, r *http.Request) {
@@ -135,7 +250,16 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	app.Session.Remove(r, "email")
 	app.Session.Remove(r, "name")
 	app.Session.Remove(r, "todu_id")
+	app.Session.Remove(r, "userID")
 	app.Session.Remove(r, "accessToken")
 	ocookie.Remove(w, r, "session")
-	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+	oapi.SendResp(w, map[string]string{"message": "Logout successful"})
+}
+
+func startSession(r *http.Request, user *userman.User, accessToken string) {
+	app.Session.Put(r, "userID", user.ID)
+	app.Session.Put(r, "email", user.Email)
+	app.Session.Put(r, "name", user.Name)
+	app.Session.Put(r, "todu_id", user.ToduID)
+	app.Session.Put(r, "accessToken", accessToken)
 }

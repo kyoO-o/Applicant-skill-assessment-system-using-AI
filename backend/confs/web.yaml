@@ -1,7 +1,7 @@
 debug:
   name: localhost
   port: :4000
-  dsn: host=localhost port=5432 user=postgres password=password dbname=ocr_web sslmode=disable
+  dsn: host=localhost port=5432 user=postgres password=password dbname=hr_web sslmode=disable
   timezone_loc: Asia/Ulaanbaatar
   session_secret: secret
   todu:

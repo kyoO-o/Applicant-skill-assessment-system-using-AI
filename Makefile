@@ -15,7 +15,7 @@ else
 endif
 
 ui: 
-	cd ./frontend && yarn dev --dotenv ./env/.env --host
+	cd $(FRONTEND_DIR) && pnpm dev --dotenv ./env/.env --host
 
 # dep-web: 
 # 	cd backend && go build  -o ../builds/web ./cmd/web

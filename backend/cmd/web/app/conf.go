@@ -6,11 +6,7 @@ type conf struct {
 	TimezoneLoc   string `yaml:"timezone_loc"`
 	SessionSecret string `yaml:"session_secret"`
 	Storage_path  string `yaml:"storage_path"`
-	OCR           struct {
-		Address string `yaml:"address"`
-		Token   string `yaml:"token"`
-	} `yaml:"ocr"`
-	Todu struct {
+	Todu          struct {
 		ClientID     string   `yaml:"client_id"`
 		ClientSecret string   `yaml:"client_secret"`
 		RedirectURL  string   `yaml:"redirect_url"`

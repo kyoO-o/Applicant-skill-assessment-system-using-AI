@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"strings"
 
 	"github.com/justinas/nosurf"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
@@ -32,6 +33,45 @@ func SecureHeaders(next http.Handler) http.Handler {
 	})
 }
 
+func CORS(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if isAllowedOrigin(origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Vary", "Origin")
+		}
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func isAllowedOrigin(origin string) bool {
+	if origin == "" {
+		return false
+	}
+
+	allowedOrigins := []string{
+		"http://localhost:3000",
+		"http://127.0.0.1:3000",
+	}
+
+	for _, allowedOrigin := range allowedOrigins {
+		if strings.EqualFold(origin, allowedOrigin) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func IsAuth(r *http.Request) bool {
 	isAuth, ok := r.Context().Value(app.ContextKeyIsAuth).(bool)
 	if !ok {
@@ -54,13 +94,6 @@ func RequireAuth(next http.Handler) http.Handler {
 
 func Authenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		exists := app.Session.Exists(r, "accessToken")
-		if !exists || app.Session.GetString(r, "accessToken") == "" {
-			app.InfoLog.Println("accessToken not found")
-			next.ServeHTTP(w, r)
-			return
-		}
-
 		email := app.Session.GetString(r, "email")
 		if len(email) == 0 {
 			next.ServeHTTP(w, r)
