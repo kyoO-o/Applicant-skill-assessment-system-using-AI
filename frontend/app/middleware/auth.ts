@@ -1,7 +1,7 @@
 export default defineNuxtRouteMiddleware(async () => {
-  const { user, me } = useAuth();
+  const { user, me, initialized } = useAuth();
 
-  if (!user.value) {
+  if (!initialized.value) {
     await me();
   }
 

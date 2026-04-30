@@ -33,6 +33,20 @@ func routes() http.Handler {
 	r.With(RequireAuth).Route("/api", func(r chi.Router) {
 		r.Get("/me", Me)
 		r.Get("/logout", Logout)
+		r.Get("/company", GetCompany)
+		r.Put("/company", SaveCompany)
+		r.Route("/jobs", func(r chi.Router) {
+			r.Get("/", getJobs)
+			r.Post("/", saveJob)
+			r.With(SetChosenCompany).Route("/{CompanyID}", func(r chi.Router) {
+				r.Get("/", getCompanyJobs)
+				r.With(SetChosenJob).Route("/{JobID}", func(r chi.Router) {
+					r.Get("/", getJob)
+					r.Put("/", saveJob)
+					r.Delete("/", deleteJob)
+				})
+			})
+		})
 
 		// r.Route("/customers", func(r chi.Router) {
 		// 	r.Get("/", getCustomerList)

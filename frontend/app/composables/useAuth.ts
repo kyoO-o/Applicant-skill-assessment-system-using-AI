@@ -5,46 +5,29 @@ import type {
   LogoutResponse,
   RegisterPayload,
 } from "./types/payload";
+import { useAuthAPI } from "./api";
 
 export function useAuth() {
-  const config = useRuntimeConfig();
-  const apiBase = config.public.apiBase;
-
   const user = useState<User | null>("auth-user", () => null);
   const isLoading = useState<boolean>("auth-loading", () => false);
-
-  async function authFetch<T>(
-    path: string,
-    options: Parameters<typeof $fetch<T>>[1] = {},
-  ) {
-    const headers = new Headers(options?.headers as HeadersInit | undefined);
-
-    if (import.meta.server) {
-      const requestHeaders = useRequestHeaders(["cookie"]);
-
-      if (requestHeaders.cookie && !headers.has("cookie")) {
-        headers.set("cookie", requestHeaders.cookie);
-      }
-    }
-
-    return await $fetch<T>(`${apiBase}${path}`, {
-      ...options,
-      credentials: "include",
-      headers,
-    });
-  }
+  const initialized = useState<boolean>("auth-initialized", () => false);
+  const authAPI = useAuthAPI();
 
   async function me() {
     isLoading.value = true;
 
     try {
-      const currentUser = await authFetch<User>("/api/me");
-      user.value = currentUser;
+      const currentUser = await authAPI.me();
+      user.value = {
+        ...currentUser,
+        name: currentUser.name ?? currentUser.full_name,
+      };
       return currentUser;
     } catch {
       user.value = null;
       return null;
     } finally {
+      initialized.value = true;
       isLoading.value = false;
     }
   }
@@ -53,11 +36,11 @@ export function useAuth() {
     isLoading.value = true;
 
     try {
-      const response = await authFetch<AuthResponse>("/pub/login", {
-        method: "POST",
-        body: payload,
-      });
-      user.value = response.user;
+      const response = await authAPI.login(payload);
+      user.value = {
+        ...response.user,
+        name: response.user.name ?? response.user.full_name,
+      };
       return response;
     } finally {
       isLoading.value = false;
@@ -68,11 +51,11 @@ export function useAuth() {
     isLoading.value = true;
 
     try {
-      const response = await authFetch<AuthResponse>("/pub/register", {
-        method: "POST",
-        body: payload,
-      });
-      user.value = response.user;
+      const response = await authAPI.register(payload);
+      user.value = {
+        ...response.user,
+        name: response.user.name ?? response.user.full_name,
+      };
       return response;
     } finally {
       isLoading.value = false;
@@ -83,20 +66,23 @@ export function useAuth() {
     isLoading.value = true;
 
     try {
-      await authFetch<LogoutResponse>("/api/logout");
+      await authAPI.logout();
       user.value = null;
     } finally {
+      initialized.value = true;
       isLoading.value = false;
     }
   }
 
   function clearUser() {
     user.value = null;
+    initialized.value = true;
   }
 
   return {
     user,
     isLoading,
+    initialized,
     me,
     login,
     register,

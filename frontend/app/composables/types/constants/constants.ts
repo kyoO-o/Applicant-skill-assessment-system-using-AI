@@ -3,3 +3,9 @@ export enum UserRole {
   Admin = "admin",
   Recruiter = "recruiter",
 }
+
+export enum JobStatus {
+  Draft = "draft",
+  Posted = "posted",
+  Closed = "closed",
+}

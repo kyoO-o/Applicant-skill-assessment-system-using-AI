@@ -8,6 +8,8 @@ import (
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/companyman"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 )
 
@@ -21,7 +23,13 @@ func main() {
 	defer app.Close()
 
 	if err := app.DB.AutoMigrate(
+		new(jobman.JobPosting),
+		new(jobman.Duty),
+		new(jobman.Requirement),
+		new(jobman.Skill),
+		new(jobman.Bonus),
 		new(userman.User),
+		new(companyman.Company),
 	); err != nil {
 		app.ErrorLog.Panic(err)
 	}
@@ -32,7 +40,7 @@ func main() {
 		}
 		adminUsers := &userman.User{
 			Email:       "anujinnn.ts@gmail.com",
-			Name:        "Anujin",
+			FullName:    "Anujin",
 			PhoneNumber: "99560628",
 			ToduID:      228757,
 			Role:        "superadmin",

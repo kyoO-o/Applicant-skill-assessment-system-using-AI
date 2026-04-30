@@ -12,11 +12,13 @@ const (
 
 type User struct {
 	entities.Model
+	FirstName    string `json:"first_name"`
+	LastName     string `json:"last_name"`
+	FullName     string `json:"full_name"`
 	Email        string `json:"email" gorm:"index:idx_user_email"`
-	ProfileURL   string `json:"profile_url"`
-	Name         string `json:"name"`
+	PasswordHash string `json:"-" gorm:"column:password_hash"`
 	PhoneNumber  string `json:"phone_number"`
 	ToduID       int    `json:"todu_id"`
-	PasswordHash string `json:"-" gorm:"column:password_hash"`
 	Role         string `json:"role"`
+	CompanyID    *uint  `json:"company_id"` // Foreign key to Company, nullable
 }

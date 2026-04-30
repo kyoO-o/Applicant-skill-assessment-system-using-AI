@@ -9,6 +9,7 @@ import (
 	"github.com/golangcollege/sessions"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/apputils"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/websocket"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/mailerman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 	"golang.org/x/oauth2"
@@ -31,6 +32,7 @@ var (
 
 	// #region Services
 	Users  *userman.Service
+	Jobs   *jobman.Service
 	Mailer *mailerman.Service
 )
 
@@ -58,6 +60,7 @@ func Init(path, mode string) {
 	DB = apputils.OpenDB(Config.DSN)
 
 	Users = userman.NewService(DB, InfoLog, ErrorLog)
+	Jobs = jobman.NewService(DB, InfoLog, ErrorLog)
 	Mailer = mailerman.NewService(DB, InfoLog, ErrorLog)
 
 	FrontendWS = websocket.New()
