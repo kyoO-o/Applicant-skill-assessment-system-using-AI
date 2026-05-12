@@ -3,11 +3,21 @@ import type { JobStatus } from "../constants";
 export interface SaveJobPayload {
   title: string;
   location: string;
-  employment_type: string;
-  seniority: string;
+  additional_info: string;
+  contact_info: string;
+  type: string;
+  level: string;
+  city?: string;
+  district?: string;
+  location_x?: number;
+  location_y?: number;
+  min_salary: number;
+  max_salary: number;
   status: JobStatus;
-  description: string;
+  duties: string[];
   requirements: string[];
+  skills: string[];
+  bonuses: string[];
 }
 
 export interface DeleteJobResponse {

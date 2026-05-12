@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { JobStatus } from "../composables/types";
+import { toast } from "vue-sonner";
 
 const { user } = useAuth();
 const jobsAPI = useJobsAPI();
+const router = useRouter();
 
 const recruiterJobs = ref<Job[]>([]);
 const loading = ref(false);
@@ -41,6 +43,20 @@ const applicantHighlights = [
   },
 ];
 
+const recruiterNeedsCompany = computed(
+  () => user.value?.role === "recruiter" && !user.value?.company_id,
+);
+
+function openRecruiterJobs() {
+  if (recruiterNeedsCompany.value) {
+    toast.warning("Add your company first before managing recruiter jobs.");
+    router.push("/profile");
+    return;
+  }
+
+  router.push("/jobs");
+}
+
 async function loadRecruiterDashboard() {
   if (user.value?.role !== "recruiter") return;
 
@@ -68,8 +84,8 @@ await loadRecruiterDashboard();
             Your job posting workspace now follows the wireframe structure and is connected to live backend data.
           </p>
         </div>
-        <Button as-child class="rounded-full px-5">
-          <NuxtLink to="/jobs">Manage job posts</NuxtLink>
+        <Button class="rounded-full px-5" @click="openRecruiterJobs">
+          Manage job posts
         </Button>
       </div>
     </section>

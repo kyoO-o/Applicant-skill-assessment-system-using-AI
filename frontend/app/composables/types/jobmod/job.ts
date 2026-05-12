@@ -7,10 +7,23 @@ export interface Job extends BaseModel {
   company_name?: string;
   title: string;
   location: string;
-  employment_type: string;
-  seniority: string;
-  status: JobStatus;
+  additional_info: string;
   description: string;
+  contact_info: string;
+  type: string;
+  employment_type: string;
+  level: string;
+  seniority: string;
+  city?: string;
+  district?: string;
+  location_x?: number;
+  location_y?: number;
+  min_salary: number;
+  max_salary: number;
+  status: JobStatus;
+  duties: string[];
   requirements: string[];
+  skills: string[];
+  bonuses: string[];
   applicants_count: number;
 }

@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { toast } from "vue-sonner";
 import {
   ArrowRight,
+  Bot,
   Calendar,
   ChartNoAxesColumnIncreasing,
   BriefcaseBusiness,
+  ClipboardList,
+  FileText,
   User,
   LayoutGrid,
   Settings,
@@ -16,19 +20,22 @@ const router = useRouter();
 const route = useRoute();
 
 const menuUser = [
-  { title: "Dashboard", icon: ChartNoAxesColumnIncreasing, to: "/" },
-  { title: "Jobs", icon: BriefcaseBusiness, to: "/jobs" },
-  { title: "My Zone", icon: LayoutGrid, to: "/my-zone" },
-  { title: "Profile", icon: User, to: "/profile" },
-  { title: "Settings", icon: Settings, to: "/settings" },
+  { title: "Нүүр хуудас", icon: ChartNoAxesColumnIncreasing, to: "/" },
+  { title: "Ажлын байрууд", icon: BriefcaseBusiness, to: "/jobs" },
+  { title: "Миний анкетууд", icon: FileText, to: "/applications" },
+  { title: "Даалгаврууд", icon: ClipboardList, to: "/tasks" },
+  { title: "AI Чатбот", icon: Bot, to: "/chat" },
+  { title: "Профайл", icon: User, to: "/profile" },
+  { title: "Тохиргоо", icon: Settings, to: "/settings" },
 ];
 
 const menuRecruiter = [
-  { title: "Dashboard", icon: ChartNoAxesColumnIncreasing, to: "/" },
-  { title: "My Jobs", icon: BriefcaseBusiness, to: "/jobs" },
-  { title: "Interviews", icon: Calendar, to: "/interviews" },
-  { title: "Profile", icon: User, to: "/profile" },
-  { title: "Settings", icon: Settings, to: "/settings" },
+  { title: "Нүүр хуудас", icon: ChartNoAxesColumnIncreasing, to: "/" },
+  { title: "Ажлын байрууд", icon: BriefcaseBusiness, to: "/jobs" },
+  { title: "Даалгаврууд", icon: ClipboardList, to: "/tasks" },
+  { title: "Ярилцлага", icon: Calendar, to: "/interviews" },
+  { title: "Профайл", icon: User, to: "/profile" },
+  { title: "Тохиргоо", icon: Settings, to: "/settings" },
 ];
 
 const menu = computed(() => {
@@ -47,6 +54,30 @@ const currentSubtitle = computed(() => {
 
   return "Track your applications, discover matches, and stay ready for the next step.";
 });
+
+const recruiterNeedsCompany = computed(
+  () => user.value?.role === "recruiter" && !user.value?.company_id,
+);
+
+function handleMenuNavigation(path: string) {
+  if (path === "/jobs" && recruiterNeedsCompany.value) {
+    toast.warning("Add your company first before opening recruiter jobs.");
+    router.push("/profile");
+    return
+  }
+
+  router.push(path);
+}
+
+function openJobsWorkspace() {
+  if (recruiterNeedsCompany.value) {
+    toast.warning("Add your company first to open the recruiter job manager.");
+    router.push("/profile");
+    return;
+  }
+
+  router.push("/jobs");
+}
 
 async function handleLogout() {
   await logout();
@@ -79,7 +110,7 @@ async function handleLogout() {
             <SidebarMenu class="gap-0">
               <SidebarMenuItem v-for="item in menu" :key="item.title">
                 <SidebarMenuButton
-                  @click="$router.push(item.to)"
+                  @click="handleMenuNavigation(item.to)"
                   class="group m-0 flex w-full items-center gap-3 rounded-2xl px-3 py-5 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
                   :data-active="$route.path === item.to"
                 >
@@ -137,13 +168,15 @@ async function handleLogout() {
               </div>
             </div>
 
-            <NuxtLink
-              to="/jobs"
+            <button
+              type="button"
               class="inline-flex items-center gap-2 self-start rounded-full border border-border bg-background px-4 py-2 text-sm font-medium transition hover:bg-muted md:self-auto"
+              :class="recruiterNeedsCompany ? 'opacity-70' : ''"
+              @click="openJobsWorkspace"
             >
-              {{ user?.role === "recruiter" ? "Open job manager" : "Explore jobs" }}
+              {{ user?.role === "recruiter" ? "Ажлын байр удирдах" : "Ажлын байр харах" }}
               <ArrowRight class="h-4 w-4" />
-            </NuxtLink>
+            </button>
           </div>
         </header>
 

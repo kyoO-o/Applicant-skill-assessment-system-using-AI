@@ -4,12 +4,15 @@ import (
 	"errors"
 	"flag"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/appman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/companyman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/taskman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 )
 
@@ -30,8 +33,18 @@ func main() {
 		new(jobman.Bonus),
 		new(userman.User),
 		new(companyman.Company),
+		new(appman.Application),
+		new(taskman.Task),
+		new(taskman.TaskSubmission),
 	); err != nil {
 		app.ErrorLog.Panic(err)
+	}
+
+	// Ensure CV upload directory exists
+	if app.Config.StoragePath != "" {
+		if err := os.MkdirAll(app.Config.StoragePath+"/cvs", 0755); err != nil {
+			app.ErrorLog.Printf("warning: could not create storage dir: %v", err)
+		}
 	}
 
 	if _, err := app.Users.Get(1); err != nil {

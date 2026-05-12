@@ -29,11 +29,6 @@ async function submitRegister() {
     return;
   }
 
-  if (selectedRole.value === "recruiter" && !form.companyName.trim()) {
-    errorMessage.value = "Company name is required for recruiters.";
-    return;
-  }
-
   try {
     await register({
       name: form.fullName,
@@ -144,7 +139,7 @@ async function submitRegister() {
           class="grid gap-5 sm:grid-cols-2"
         >
           <div class="space-y-2">
-            <Label for="company-name">Компаний нэр*</Label>
+            <Label for="company-name">Компаний нэр</Label>
             <Input
               id="company-name"
               v-model="form.companyName"
@@ -152,6 +147,9 @@ async function submitRegister() {
               autocomplete="organization"
               placeholder="Your company"
             />
+            <p class="text-xs text-muted-foreground">
+              You can also add this after creating your recruiter account.
+            </p>
           </div>
 
           <div class="space-y-2">

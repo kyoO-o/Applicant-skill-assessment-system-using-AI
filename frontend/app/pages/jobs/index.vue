@@ -2,6 +2,7 @@
 import type { Job } from "../../composables/types";
 import type { SaveJobPayload } from "../../composables/types/payload";
 import { JobStatus } from "../../composables/types";
+import { toast } from "vue-sonner";
 import {
   BriefcaseBusiness,
   Eye,
@@ -27,12 +28,22 @@ const errorMessage = ref("");
 const form = reactive({
   id: 0,
   title: "",
-  location: "",
-  employment_type: "Full-time",
-  seniority: "Mid-level",
+  contact_info: "",
+  type: "Full-time",
+  level: "Mid-level",
   status: JobStatus.Draft,
-  description: "",
-  requirements_text: "",
+  city: "",
+  district: "",
+  location_x: "",
+  location_y: "",
+  maps_url: "",
+  min_salary: "",
+  max_salary: "",
+  additional_info: "",
+  duties: [""],
+  requirements: [""],
+  skills: [""],
+  bonuses: [""],
 });
 
 const isRecruiter = computed(() => user.value?.role === "recruiter");
@@ -42,7 +53,9 @@ const hasRecruiterCompany = computed(() => recruiterCompanyID.value > 0);
 
 const recruiterStats = computed(() => {
   const totalJobs = jobs.value.length;
-  const activeJobs = jobs.value.filter((job) => job.status === JobStatus.Posted).length;
+  const activeJobs = jobs.value.filter(
+    (job) => job.status === JobStatus.Posted,
+  ).length;
   const totalApplicants = jobs.value.reduce(
     (sum, job) => sum + job.applicants_count,
     0,
@@ -51,7 +64,9 @@ const recruiterStats = computed(() => {
   return { totalJobs, activeJobs, totalApplicants };
 });
 
-const applicantJobs = computed(() => jobs.value.filter((job) => job.status === JobStatus.Posted));
+const applicantJobs = computed(() =>
+  jobs.value.filter((job) => job.status === JobStatus.Posted),
+);
 
 function statusLabel(status: Job["status"]) {
   if (status === JobStatus.Posted) return "Posted";
@@ -76,18 +91,30 @@ function formatDate(value: string) {
 function resetForm() {
   form.id = 0;
   form.title = "";
-  form.location = "";
-  form.employment_type = "Full-time";
-  form.seniority = "Mid-level";
+  form.contact_info = "";
+  form.type = "Full-time";
+  form.level = "Mid-level";
   form.status = JobStatus.Draft;
-  form.description = "";
-  form.requirements_text = "";
+  form.city = "";
+  form.district = "";
+  form.location_x = "";
+  form.location_y = "";
+  form.maps_url = "";
+  form.min_salary = "";
+  form.max_salary = "";
+  form.additional_info = "";
+  form.duties = [""];
+  form.requirements = [""];
+  form.skills = [""];
+  form.bonuses = [""];
 }
 
 function openCreateDialog() {
   errorMessage.value = "";
   if (!hasRecruiterCompany.value) {
-    errorMessage.value = "Create your company profile before adding a job post.";
+    errorMessage.value =
+      "Create your company profile before adding a job post.";
+    toast.warning("Add your company first before creating a job post.");
     return;
   }
   resetForm();
@@ -98,12 +125,24 @@ function openEditDialog(job: Job) {
   errorMessage.value = "";
   form.id = job.id;
   form.title = job.title;
-  form.location = job.location;
-  form.employment_type = job.employment_type || "Full-time";
-  form.seniority = job.seniority || "Mid-level";
+  form.contact_info = job.contact_info || "";
+  form.type = job.type || job.employment_type || "Full-time";
+  form.level = job.level || job.seniority || "Mid-level";
   form.status = job.status || JobStatus.Draft;
-  form.description = job.description;
-  form.requirements_text = job.requirements.join("\n");
+  form.city = job.city || "";
+  form.district = job.district || "";
+  form.location_x =
+    typeof job.location_x === "number" ? String(job.location_x) : "";
+  form.location_y =
+    typeof job.location_y === "number" ? String(job.location_y) : "";
+  form.maps_url = "";
+  form.min_salary = job.min_salary ? String(job.min_salary) : "";
+  form.max_salary = job.max_salary ? String(job.max_salary) : "";
+  form.additional_info = job.additional_info || job.description || "";
+  form.duties = job.duties.length ? [...job.duties] : [""];
+  form.requirements = job.requirements.length ? [...job.requirements] : [""];
+  form.skills = job.skills.length ? [...job.skills] : [""];
+  form.bonuses = job.bonuses.length ? [...job.bonuses] : [""];
   dialogOpen.value = true;
 }
 
@@ -118,17 +157,35 @@ function openDeleteDialog(job: Job) {
 }
 
 function buildPayload(): SaveJobPayload {
+  const city = form.city.trim();
+  const district = form.district.trim();
+  const location = [district, city].filter(Boolean).join(", ");
+
+  const toList = (value: string[]) =>
+    value.map((item) => item.trim()).filter(Boolean);
+
   return {
     title: form.title.trim(),
-    location: form.location.trim(),
-    employment_type: form.employment_type.trim(),
-    seniority: form.seniority.trim(),
+    location,
+    additional_info: form.additional_info.trim(),
+    contact_info: form.contact_info.trim(),
+    type: form.type.trim(),
+    level: form.level.trim(),
+    city: city || undefined,
+    district: district || undefined,
+    location_x: form.location_x.trim()
+      ? Number(form.location_x.trim())
+      : undefined,
+    location_y: form.location_y.trim()
+      ? Number(form.location_y.trim())
+      : undefined,
+    min_salary: form.min_salary ? Number(form.min_salary.trim()) : 0,
+    max_salary: form.max_salary ? Number(form.max_salary.trim()) : 0,
     status: form.status,
-    description: form.description.trim(),
-    requirements: form.requirements_text
-      .split("\n")
-      .map((item) => item.trim())
-      .filter(Boolean),
+    duties: toList(form.duties),
+    requirements: toList(form.requirements),
+    skills: toList(form.skills),
+    bonuses: toList(form.bonuses),
   };
 }
 
@@ -198,10 +255,16 @@ await loadJobs();
 
 <template>
   <div v-if="isRecruiter" class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
-      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+    <section
+      class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm"
+    >
+      <div
+        class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"
+      >
         <div>
-          <p class="text-sm font-medium text-muted-foreground">Recruiter jobs</p>
+          <p class="text-sm font-medium text-muted-foreground">
+            Recruiter jobs
+          </p>
           <h2 class="mt-2 text-3xl font-semibold tracking-tight">
             Job management
           </h2>
@@ -210,11 +273,7 @@ await loadJobs();
             to your backend CRUD instead of static data.
           </p>
         </div>
-        <Button
-          class="rounded-full px-5"
-          :disabled="!hasRecruiterCompany"
-          @click="openCreateDialog"
-        >
+        <Button class="rounded-full px-5" @click="openCreateDialog">
           <Plus class="mr-2 h-4 w-4" />
           Create Job
         </Button>
@@ -225,7 +284,8 @@ await loadJobs();
       v-if="!hasRecruiterCompany"
       class="rounded-3xl border border-dashed border-border bg-muted/20 px-6 py-4 text-sm text-muted-foreground"
     >
-      Add your company profile first from the company section before creating or managing job posts.
+      Add your company profile first from the company section before creating or
+      managing job posts.
     </div>
 
     <section class="grid gap-4 md:grid-cols-3">
@@ -238,23 +298,33 @@ await loadJobs();
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
           <CardDescription>Active jobs</CardDescription>
-          <CardTitle class="text-4xl">{{ recruiterStats.activeJobs }}</CardTitle>
+          <CardTitle class="text-4xl">{{
+            recruiterStats.activeJobs
+          }}</CardTitle>
         </CardHeader>
       </Card>
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
           <CardDescription>Total applicants</CardDescription>
-          <CardTitle class="text-4xl">{{ recruiterStats.totalApplicants }}</CardTitle>
+          <CardTitle class="text-4xl">{{
+            recruiterStats.totalApplicants
+          }}</CardTitle>
         </CardHeader>
       </Card>
     </section>
 
     <Card class="rounded-3xl border-border shadow-sm">
-      <CardHeader class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <CardHeader
+        class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+      >
         <div>
           <CardTitle>Your job posts</CardTitle>
           <CardDescription>
-            {{ loading ? "Loading recruiter jobs..." : `${jobs.length} jobs connected from the backend.` }}
+            {{
+              loading
+                ? "Loading recruiter jobs..."
+                : `${jobs.length} jobs connected from the backend.`
+            }}
           </CardDescription>
         </div>
       </CardHeader>
@@ -272,7 +342,12 @@ await loadJobs();
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow v-for="job in jobs" :key="job.id" class="cursor-pointer" @click="openDetails(job)">
+              <TableRow
+                v-for="job in jobs"
+                :key="job.id"
+                class="cursor-pointer"
+                @click="openDetails(job)"
+              >
                 <TableCell class="font-medium">{{ job.title }}</TableCell>
                 <TableCell>
                   <Badge
@@ -291,6 +366,11 @@ await loadJobs();
                 </TableCell>
                 <TableCell class="text-right">
                   <div class="flex justify-end gap-2">
+                    <NuxtLink :to="`/jobs/${job.id}/applications`" @click.stop>
+                      <Button variant="outline" size="icon" class="rounded-xl" title="Ирсэн анкетууд">
+                        <Users class="h-4 w-4" />
+                      </Button>
+                    </NuxtLink>
                     <Button
                       variant="outline"
                       size="icon"
@@ -331,174 +411,32 @@ await loadJobs();
           <p class="mt-2 text-sm text-muted-foreground">
             Create your first role to start using the recruiter pipeline.
           </p>
-          <Button
-            class="mt-6 rounded-full px-5"
-            :disabled="!hasRecruiterCompany"
-            @click="openCreateDialog"
-          >
+          <Button class="mt-6 rounded-full px-5" @click="openCreateDialog">
             <Plus class="mr-2 h-4 w-4" />
             Create Job
           </Button>
         </div>
       </CardContent>
     </Card>
-
-    <Dialog v-model:open="dialogOpen">
-      <DialogContent class="max-w-3xl rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            {{ isEditing ? "Edit job post" : "Create a new job post" }}
-          </DialogTitle>
-          <DialogDescription>
-            Keep the structure from the wireframe and save directly to the backend.
-          </DialogDescription>
-        </DialogHeader>
-
-        <form class="grid gap-4 py-2" @submit.prevent="submitJob">
-          <div
-            v-if="errorMessage"
-            class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-          >
-            {{ errorMessage }}
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-              <Label for="job-title">Job title</Label>
-              <Input id="job-title" v-model="form.title" placeholder="Frontend Developer" />
-            </div>
-            <div class="space-y-2">
-              <Label for="job-location">Location</Label>
-              <Input id="job-location" v-model="form.location" placeholder="Ulaanbaatar, MN" />
-            </div>
-          </div>
-
-          <div class="grid gap-4 sm:grid-cols-3">
-            <div class="space-y-2">
-              <Label for="job-type">Employment type</Label>
-              <Input id="job-type" v-model="form.employment_type" placeholder="Full-time" />
-            </div>
-            <div class="space-y-2">
-              <Label for="job-level">Seniority</Label>
-              <Input id="job-level" v-model="form.seniority" placeholder="Mid-level" />
-            </div>
-            <div class="space-y-2">
-              <Label for="job-status">Status</Label>
-              <Select v-model="form.status">
-                <SelectTrigger id="job-status" class="w-full">
-                  <SelectValue placeholder="Select status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem :value="JobStatus.Draft">Draft</SelectItem>
-                  <SelectItem :value="JobStatus.Posted">Posted</SelectItem>
-                  <SelectItem :value="JobStatus.Closed">Closed</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <Label for="job-description">Job description</Label>
-            <Textarea
-              id="job-description"
-              v-model="form.description"
-              rows="5"
-              placeholder="Describe the role, scope, and outcomes."
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="job-requirements">Requirements</Label>
-            <Textarea
-              id="job-requirements"
-              v-model="form.requirements_text"
-              rows="6"
-              placeholder="One requirement per line"
-            />
-          </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" @click="dialogOpen = false">
-              Cancel
-            </Button>
-            <Button type="submit" :disabled="isSubmitting">
-              {{ isSubmitting ? "Saving..." : isEditing ? "Update Job" : "Create Job" }}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-
-    <Dialog v-model:open="detailsOpen">
-      <DialogContent class="max-w-3xl rounded-3xl">
-        <DialogHeader>
-          <DialogTitle>{{ selectedJob?.title }}</DialogTitle>
-          <DialogDescription>
-            {{ selectedJob?.company_name || user?.company_name || "Your company" }}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div v-if="selectedJob" class="space-y-6 py-2">
-          <div class="flex flex-wrap gap-2">
-            <Badge class="rounded-full px-3 py-1 capitalize">
-              {{ statusLabel(selectedJob.status) }}
-            </Badge>
-            <Badge variant="outline" class="rounded-full px-3 py-1">
-              <MapPin class="mr-1 h-3.5 w-3.5" />
-              {{ selectedJob.location }}
-            </Badge>
-            <Badge variant="outline" class="rounded-full px-3 py-1">
-              {{ selectedJob.employment_type || "Not set" }}
-            </Badge>
-            <Badge variant="outline" class="rounded-full px-3 py-1">
-              {{ selectedJob.seniority || "Not set" }}
-            </Badge>
-            <Badge variant="outline" class="rounded-full px-3 py-1">
-              <Users class="mr-1 h-3.5 w-3.5" />
-              {{ selectedJob.applicants_count }} applicants
-            </Badge>
-          </div>
-
-          <div class="rounded-2xl border border-border bg-muted/20 p-4">
-            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Description
-            </p>
-            <p class="mt-3 whitespace-pre-line text-sm leading-6">
-              {{ selectedJob.description }}
-            </p>
-          </div>
-
-          <div class="rounded-2xl border border-border bg-muted/20 p-4">
-            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">
-              Requirements
-            </p>
-            <ul class="mt-3 space-y-2 text-sm leading-6">
-              <li v-for="requirement in selectedJob.requirements" :key="requirement">
-                {{ requirement }}
-              </li>
-            </ul>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" @click="openEditDialog(selectedJob)">
-              <Pencil class="mr-2 h-4 w-4" />
-              Edit Job
-            </Button>
-            <Button variant="outline" @click="openDeleteDialog(selectedJob)">
-              <Trash2 class="mr-2 h-4 w-4" />
-              Delete Job
-            </Button>
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <JobSaveDialog
+      :open="dialogOpen"
+      :is-editing="isEditing"
+      :is-submitting="isSubmitting"
+      :error-message="errorMessage"
+      :form="form"
+      @update:open="dialogOpen = $event"
+      @submit="submitJob"
+    />
 
     <AlertDialog v-model:open="deleteDialogOpen">
       <AlertDialogContent class="rounded-3xl">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete this job?</AlertDialogTitle>
           <AlertDialogDescription>
-            This removes <span class="font-medium text-foreground">{{ selectedJob?.title }}</span>
+            This removes
+            <span class="font-medium text-foreground">{{
+              selectedJob?.title
+            }}</span>
             from your recruiter workspace.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -513,7 +451,9 @@ await loadJobs();
   </div>
 
   <div v-else class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
+    <section
+      class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm"
+    >
       <p class="text-sm font-medium text-muted-foreground">Job matches</p>
       <h2 class="mt-2 text-3xl font-semibold tracking-tight">
         Browse open roles
@@ -554,10 +494,13 @@ await loadJobs();
             </Badge>
           </div>
         </CardHeader>
-        <CardContent>
-          <p class="text-sm leading-6 text-muted-foreground">
+        <CardContent class="space-y-3">
+          <p class="text-sm leading-6 text-muted-foreground line-clamp-3">
             {{ job.description }}
           </p>
+          <NuxtLink :to="`/jobs/${job.id}`">
+            <Button class="w-full rounded-full" variant="outline">Дэлгэрэнгүй харах</Button>
+          </NuxtLink>
         </CardContent>
       </Card>
 
@@ -565,7 +508,7 @@ await loadJobs();
         v-if="!applicantJobs.length && !loading"
         class="rounded-3xl border border-dashed border-border px-6 py-16 text-center text-sm text-muted-foreground lg:col-span-2"
       >
-        No active jobs are available yet.
+        Идэвхтэй ажлын байр байхгүй байна.
       </div>
     </section>
   </div>

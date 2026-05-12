@@ -4,6 +4,8 @@ debug:
   dsn: host=localhost port=5432 user=postgres password=password dbname=hr_web sslmode=disable
   timezone_loc: Asia/Ulaanbaatar
   session_secret: secret
+  storage_path: ./storage
+  anthropic_api_key: anthropic_api_key
   todu:
     client_id: eolWDo5N5Sxr8iMfQbaeJyOhCnKit9Sc0wQFEEndyBmDgJPrmbIGghVmYoDBEglB
     client_secret: <b#2SgA>$EQdfe9!Q!@ugeH8#!8ixCYj3JuVUh#*>X^h@6M&$2L^e@^F*DqJsc*z

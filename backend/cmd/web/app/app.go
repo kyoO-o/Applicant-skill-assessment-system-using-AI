@@ -9,8 +9,11 @@ import (
 	"github.com/golangcollege/sessions"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/apputils"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/websocket"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/aiman"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/appman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/mailerman"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/taskman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 	"golang.org/x/oauth2"
 	"gorm.io/gorm"
@@ -28,12 +31,14 @@ var (
 	CustomerConnectionMutex = new(sync.RWMutex)
 	Todu                    *oauth2.Config
 	DB                      *gorm.DB
-	// OCRQueue                chan *documentman.Document
 
-	// #region Services
-	Users  *userman.Service
-	Jobs   *jobman.Service
-	Mailer *mailerman.Service
+	// Services
+	Users        *userman.Service
+	Jobs         *jobman.Service
+	Mailer       *mailerman.Service
+	Applications *appman.Service
+	Tasks        *taskman.Service
+	AI           *aiman.Client
 )
 
 const (
@@ -41,8 +46,6 @@ const (
 	MB = 1 << 20
 	KB = 1 << 10
 )
-
-//#region Init
 
 func Init(path, mode string) {
 	InfoLog = log.New(os.Stdout, "INFO\t", log.Ldate|log.Ltime)
@@ -62,6 +65,9 @@ func Init(path, mode string) {
 	Users = userman.NewService(DB, InfoLog, ErrorLog)
 	Jobs = jobman.NewService(DB, InfoLog, ErrorLog)
 	Mailer = mailerman.NewService(DB, InfoLog, ErrorLog)
+	Applications = appman.NewService(DB, InfoLog, ErrorLog)
+	Tasks = taskman.NewService(DB, InfoLog, ErrorLog)
+	AI = aiman.NewClient(Config.AnthropicAPIKey)
 
 	FrontendWS = websocket.New()
 
@@ -78,12 +84,11 @@ func Init(path, mode string) {
 			TokenURL: Config.Todu.Endpoint.TokenURL,
 		},
 	}
-
 }
+
 func Close() {
 }
 
-// #region use with caution
 func PanicOnError(err error) {
 	if err != nil {
 		panic(err)

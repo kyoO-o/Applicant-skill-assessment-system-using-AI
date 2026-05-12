@@ -13,11 +13,7 @@ func routes() http.Handler {
 	r.Use(middleware.RealIP, middleware.Logger, middleware.Recoverer)
 	r.Use(CORS, SecureHeaders, app.Session.Enable, Authenticate)
 
-	// if app.Mode == "debug" {
-	// 	cr.Get("/api/ws", app.FrontendWS.Handler)
-	// } else {
 	r.With(RequireAuth).Get("/api/ws", app.FrontendWS.Handler)
-	// }
 
 	r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("pong"))
@@ -35,6 +31,8 @@ func routes() http.Handler {
 		r.Get("/logout", Logout)
 		r.Get("/company", GetCompany)
 		r.Put("/company", SaveCompany)
+
+		// Job routes
 		r.Route("/jobs", func(r chi.Router) {
 			r.Get("/", getJobs)
 			r.Post("/", saveJob)
@@ -48,13 +46,24 @@ func routes() http.Handler {
 			})
 		})
 
-		// r.Route("/customers", func(r chi.Router) {
-		// 	r.Get("/", getCustomerList)
-		// 	r.Post("/add", addCustomer)
-		// 	r.Get("/{id}", getCustomer)
-		// 	r.Put("/{id}", updateCustomer)
-		// 	r.Delete("/{id}", deleteCustomer)
-		// })
+		// CV application routes
+		r.Post("/jobs/{JobID}/apply", applyToJob)
+		r.Get("/jobs/{JobID}/applications", listJobApplications)
+		r.Get("/applications", listMyApplications)
+		r.Get("/applications/{id}", getApplication)
+		r.Put("/applications/{id}/status", updateApplicationStatus)
+
+		// Chatbot
+		r.Post("/chat", chat)
+
+		// Task routes
+		r.Get("/tasks", listTasks)
+		r.Post("/tasks", createTask)
+		r.Post("/tasks/generate", generateTask)
+		r.Get("/tasks/{id}", getTask)
+		r.Put("/tasks/{id}/send", sendTask)
+		r.Post("/tasks/{id}/submit", submitTask)
+		r.Put("/tasks/submissions/{id}/grade", gradeSubmission)
 	})
 
 	return r
