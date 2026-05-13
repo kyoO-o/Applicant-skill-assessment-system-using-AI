@@ -23,29 +23,29 @@
     <main class="mx-auto flex min-h-[calc(100vh-5.5rem)] max-w-7xl items-center px-4 pb-10 sm:px-6 lg:px-8">
       <div class="grid w-full gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
         <section class="hidden space-y-6 lg:block">
-          <Badge class="rounded-full px-3 py-1">HR Tech Platform</Badge>
+          <Badge class="rounded-full px-3 py-1">HR Технологийн Платформ</Badge>
           <div class="space-y-4">
             <h1 class="max-w-xl text-5xl font-semibold tracking-tight text-slate-950">
-              Hire smarter with structured AI skill assessment
+              AI-д суурилсан ур чадварын үнэлгээгээр илүү оновчтой ажилд авах
             </h1>
             <p class="max-w-2xl text-base leading-7 text-slate-600">
-              A modern workspace for applicant evaluation, job matching, and
-              explainable decision support for recruiters and candidates.
+              Нэр дэвшигчийн үнэлгээ, ажлын байрны тохирол, ойлгомжтой шийдвэр дэмжлэгт
+              зориулсан орчин үеийн ажлын орчин.
             </p>
           </div>
 
           <div class="grid max-w-2xl gap-4 sm:grid-cols-3">
             <div class="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-sm backdrop-blur">
-              <p class="text-sm text-slate-500">Assessment</p>
-              <p class="mt-2 text-lg font-semibold text-slate-950">CV analysis</p>
+              <p class="text-sm text-slate-500">Үнэлгээ</p>
+              <p class="mt-2 text-lg font-semibold text-slate-950">CV шинжилгээ</p>
             </div>
             <div class="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-sm backdrop-blur">
-              <p class="text-sm text-slate-500">Matching</p>
-              <p class="mt-2 text-lg font-semibold text-slate-950">Role-fit insights</p>
+              <p class="text-sm text-slate-500">Тохирол</p>
+              <p class="mt-2 text-lg font-semibold text-slate-950">Үүрэгт тохирох шинжилгээ</p>
             </div>
             <div class="rounded-3xl border border-white/80 bg-white/80 p-5 shadow-sm backdrop-blur">
-              <p class="text-sm text-slate-500">Workflow</p>
-              <p class="mt-2 text-lg font-semibold text-slate-950">Recruiter-ready</p>
+              <p class="text-sm text-slate-500">Ажлын урсгал</p>
+              <p class="mt-2 text-lg font-semibold text-slate-950">Ажил олгогчид тохирсон</p>
             </div>
           </div>
         </section>

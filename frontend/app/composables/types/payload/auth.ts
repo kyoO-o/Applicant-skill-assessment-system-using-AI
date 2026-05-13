@@ -7,7 +7,8 @@ export interface LoginPayload {
 }
 
 export interface RegisterPayload {
-  name: string;
+  first_name: string;
+  last_name: string;
   company_name?: string;
   position?: string;
   email: string;
@@ -17,6 +18,15 @@ export interface RegisterPayload {
 
 export interface AuthResponse {
   user: User;
+  message: string;
+}
+
+export interface RegisterResponse {
+  message: string;
+  email: string;
+}
+
+export interface MessageResponse {
   message: string;
 }
 

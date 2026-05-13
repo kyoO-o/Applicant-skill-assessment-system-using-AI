@@ -69,6 +69,10 @@ func (s *Service) GetForApplicantAndJob(applicantID, jobID int) (*Application, e
 	return &app, nil
 }
 
+func (s *Service) Delete(id int) error {
+	return s.db.Delete(&Application{}, id).Error
+}
+
 func (s *Service) UpdateStatus(id int, status string) error {
 	return s.db.Model(&Application{}).Where("id = ?", id).Update("status", status).Error
 }

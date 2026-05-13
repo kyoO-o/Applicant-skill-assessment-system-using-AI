@@ -16,10 +16,12 @@ type companyRequest struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description"`
 	RegisterID  string   `json:"register_id"`
+	ContactInfo string   `json:"contact_info"`
 	City        string   `json:"city"`
 	District    string   `json:"district"`
 	LocationX   *float64 `json:"location_x"`
 	LocationY   *float64 `json:"location_y"`
+	Benefits    []string `json:"benefits"`
 }
 
 func chosenCompany(r *http.Request) (*companyman.Company, bool) {
@@ -35,7 +37,7 @@ func GetCompany(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var company companyman.Company
-	if err := app.DB.First(&company, *user.CompanyID).Error; err != nil {
+	if err := app.DB.Preload("Benefits").First(&company, *user.CompanyID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Company not found"})
 			return
@@ -63,6 +65,7 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 	req.Name = strings.TrimSpace(req.Name)
 	req.Description = strings.TrimSpace(req.Description)
 	req.RegisterID = strings.TrimSpace(req.RegisterID)
+	req.ContactInfo = strings.TrimSpace(req.ContactInfo)
 	req.City = strings.TrimSpace(req.City)
 	req.District = strings.TrimSpace(req.District)
 
@@ -87,6 +90,7 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 	company.Name = req.Name
 	company.Description = req.Description
 	company.RegisterID = req.RegisterID
+	company.ContactInfo = req.ContactInfo
 	company.City = req.City
 	company.District = req.District
 	if req.LocationX != nil {
@@ -100,6 +104,17 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 		oapi.ServerError(w, err)
 		return
 	}
+
+	// Replace benefits
+	app.DB.Where("company_id = ?", company.ID).Delete(&companyman.CompanyBenefit{})
+	for _, desc := range req.Benefits {
+		desc = strings.TrimSpace(desc)
+		if desc == "" {
+			continue
+		}
+		app.DB.Create(&companyman.CompanyBenefit{CompanyID: uint(company.ID), Description: desc})
+	}
+	app.DB.Preload("Benefits").First(&company, company.ID)
 
 	if user.CompanyID == nil || *user.CompanyID != uint(company.ID) {
 		companyID := uint(company.ID)

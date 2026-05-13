@@ -14,9 +14,9 @@ interface Props {
 withDefaults(defineProps<Props>(), {
   badge: "SkillMatch AI",
   highlights: () => [
-    { label: "Assessment", value: "AI-powered skill review" },
-    { label: "Workflow", value: "Built for recruiters and applicants" },
-    { label: "Access", value: "One secure workspace" },
+    { label: "Үнэлгээ", value: "AI-д суурилсан ур чадварын шинжилгээ" },
+    { label: "Ажлын урсгал", value: "Ажил олгогч болон горилогчдод" },
+    { label: "Хандалт", value: "Нэг аюулгүй ажлын орчин" },
   ],
 });
 </script>
@@ -46,7 +46,7 @@ withDefaults(defineProps<Props>(), {
 
           <div class="space-y-4">
             <p class="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-700">
-              Modern hiring workspace
+              Орчин үеийн ажилд авах платформ
             </p>
             <h1 class="max-w-xl text-5xl font-semibold tracking-tight text-slate-950">
               {{ title }}

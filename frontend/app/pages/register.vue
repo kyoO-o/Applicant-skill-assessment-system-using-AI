@@ -11,7 +11,8 @@ const { register, isLoading } = useAuth();
 const router = useRouter();
 
 const form = reactive({
-  fullName: "",
+  firstName: "",
+  lastName: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -25,13 +26,14 @@ async function submitRegister() {
   errorMessage.value = "";
 
   if (form.password !== form.confirmPassword) {
-    errorMessage.value = "Passwords do not match.";
+    errorMessage.value = "Нууц үг таарахгүй байна.";
     return;
   }
 
   try {
-    await register({
-      name: form.fullName,
+    const res = await register({
+      first_name: form.firstName.trim(),
+      last_name: form.lastName.trim(),
       company_name:
         selectedRole.value === "recruiter"
           ? form.companyName.trim()
@@ -43,31 +45,31 @@ async function submitRegister() {
         selectedRole.value === "recruiter" ? UserRole.Recruiter : UserRole.User,
     });
 
-    await router.push("/");
+    await router.push(`/verify-email?email=${encodeURIComponent(res.email)}`);
   } catch (error: any) {
     errorMessage.value =
       error?.data?.message ||
       error?.message ||
-      "Registration failed. Please try again.";
+      "Бүртгэл амжилтгүй болов. Дахин оролдоно уу.";
   }
 }
 </script>
 
 <template>
   <AuthShell
-    title="Create your account"
-    description="Set up an applicant or recruiter profile and get into the platform without using the main app layout."
+    title="Бүртгэл үүсгэх"
+    description="Ажил горилогч эсвэл ажил олгогч профайл тохируулж платформд нэвтэрнэ үү."
     :highlights="[
-      { label: 'Onboarding', value: 'Fast setup for both roles' },
-      { label: 'Profile', value: 'Role-based account creation' },
-      { label: 'Hiring', value: 'Start assessments in minutes' },
+      { label: 'Бүртгэл', value: 'Хоёр үүрэгт хурдан бүртгэл' },
+      { label: 'Профайл', value: 'Үүрэгт суурилсан бүртгэл үүсгэлт' },
+      { label: 'Ажилд авах', value: 'Минутын дотор үнэлгээ эхлүүлэх' },
     ]"
   >
     <AuthCard
-      title="Create your account"
-      description="Choose your role and fill in the details to begin using the platform."
-      footer-text="Already have an account?"
-      footer-link-text="Login"
+      title="Бүртгэл үүсгэх"
+      description="Үүрэгээ сонгоод платформыг ашиглаж эхлэхийн тулд мэдээллийг бөглөнө үү."
+      footer-text="Бүртгэл байна уу?"
+      footer-link-text="Нэвтрэх"
       footer-link-to="/login"
     >
       <form class="space-y-5" @submit.prevent="submitRegister">
@@ -79,7 +81,7 @@ async function submitRegister() {
         </div>
 
         <div class="space-y-3">
-          <Label>Choose your role</Label>
+          <Label>Үүрэгээ сонгоно уу</Label>
           <Tabs v-model="selectedRole" class="w-full">
             <TabsList class="grid w-full grid-cols-2">
               <TabsTrigger value="user">Ажил горилогч</TabsTrigger>
@@ -88,15 +90,27 @@ async function submitRegister() {
           </Tabs>
         </div>
 
-        <div class="space-y-2">
-          <Label for="full-name">Овог нэр*</Label>
-          <Input
-            id="full-name"
-            v-model="form.fullName"
-            type="text"
-            autocomplete="name"
-            placeholder="Your full name"
-          />
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div class="space-y-2">
+            <Label for="first-name">Нэр*</Label>
+            <Input
+              id="first-name"
+              v-model="form.firstName"
+              type="text"
+              autocomplete="given-name"
+              placeholder="Нэр"
+            />
+          </div>
+          <div class="space-y-2">
+            <Label for="last-name">Овог*</Label>
+            <Input
+              id="last-name"
+              v-model="form.lastName"
+              type="text"
+              autocomplete="family-name"
+              placeholder="Овог"
+            />
+          </div>
         </div>
 
         <div class="space-y-2">
@@ -113,21 +127,19 @@ async function submitRegister() {
         <div class="grid gap-5 sm:grid-cols-2">
           <div class="space-y-2">
             <Label for="register-password">Нууц үг*</Label>
-            <Input
+            <PasswordInput
               id="register-password"
               v-model="form.password"
-              type="password"
               autocomplete="new-password"
               placeholder="Нууц үгээ оруулна уу"
             />
           </div>
 
           <div class="space-y-2">
-            <Label for="confirm-password"></Label>
-            <Input
+            <Label for="confirm-password">Нууц үг давтах*</Label>
+            <PasswordInput
               id="confirm-password"
               v-model="form.confirmPassword"
-              type="password"
               autocomplete="new-password"
               placeholder="Нууц үгээ дахин оруулна уу"
             />
@@ -145,10 +157,10 @@ async function submitRegister() {
               v-model="form.companyName"
               type="text"
               autocomplete="organization"
-              placeholder="Your company"
+              placeholder="Таны компани"
             />
             <p class="text-xs text-muted-foreground">
-              You can also add this after creating your recruiter account.
+              Ажил олгогчийн бүртгэл үүсгэсний дараа нэмж болно.
             </p>
           </div>
 
@@ -165,7 +177,7 @@ async function submitRegister() {
         </div>
 
         <Button class="w-full" type="submit" :disabled="isLoading">
-          {{ isLoading ? "Creating account..." : "Create account" }}
+          {{ isLoading ? "Бүртгэл үүсгэж байна..." : "Бүртгүүлэх" }}
         </Button>
       </form>
     </AuthCard>

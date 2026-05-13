@@ -4,6 +4,7 @@ import type {
   LoginPayload,
   LogoutResponse,
   RegisterPayload,
+  RegisterResponse,
 } from "./types/payload";
 import { useAuthAPI } from "./api";
 
@@ -15,13 +16,9 @@ export function useAuth() {
 
   async function me() {
     isLoading.value = true;
-
     try {
       const currentUser = await authAPI.me();
-      user.value = {
-        ...currentUser,
-        name: currentUser.name ?? currentUser.full_name,
-      };
+      user.value = { ...currentUser, name: currentUser.name ?? currentUser.full_name };
       return currentUser;
     } catch {
       user.value = null;
@@ -34,37 +31,31 @@ export function useAuth() {
 
   async function login(payload: LoginPayload) {
     isLoading.value = true;
-
     try {
       const response = await authAPI.login(payload);
-      user.value = {
-        ...response.user,
-        name: response.user.name ?? response.user.full_name,
-      };
+      user.value = { ...response.user, name: response.user.name ?? response.user.full_name };
       return response;
     } finally {
       isLoading.value = false;
     }
   }
 
-  async function register(payload: RegisterPayload) {
+  // register no longer creates a session — user must verify email first
+  async function register(payload: RegisterPayload): Promise<RegisterResponse> {
     isLoading.value = true;
-
     try {
-      const response = await authAPI.register(payload);
-      user.value = {
-        ...response.user,
-        name: response.user.name ?? response.user.full_name,
-      };
-      return response;
+      return await authAPI.register(payload);
     } finally {
       isLoading.value = false;
     }
+  }
+
+  async function setUserFromAuthResponse(response: AuthResponse) {
+    user.value = { ...response.user, name: response.user.name ?? response.user.full_name };
   }
 
   async function logout() {
     isLoading.value = true;
-
     try {
       await authAPI.logout();
       user.value = null;
@@ -86,6 +77,7 @@ export function useAuth() {
     me,
     login,
     register,
+    setUserFromAuthResponse,
     logout,
     clearUser,
   };

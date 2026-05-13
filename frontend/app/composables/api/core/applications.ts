@@ -1,4 +1,4 @@
-import type { Application } from "../../types";
+import type { Application, AssessmentResult } from "../../types";
 
 export class ApplicationsAPI {
   baseURL: string;
@@ -27,6 +27,15 @@ export class ApplicationsAPI {
     });
   }
 
+  analyzeJob(jobID: number, cvFile: File) {
+    const form = new FormData();
+    form.append("cv", cvFile);
+    return this.fetch<AssessmentResult>(`/api/jobs/${jobID}/analyze`, {
+      method: "POST",
+      body: form,
+    });
+  }
+
   listMine() {
     return this.fetch<Application[]>("/api/applications");
   }
@@ -43,6 +52,13 @@ export class ApplicationsAPI {
     return this.fetch<{ message: string }>(`/api/applications/${id}/status`, {
       method: "PUT",
       body: { status },
+    });
+  }
+
+  scheduleInterview(id: number, interviewAt: string) {
+    return this.fetch<Application>(`/api/applications/${id}/interview`, {
+      method: "PUT",
+      body: { interview_at: interviewAt },
     });
   }
 }

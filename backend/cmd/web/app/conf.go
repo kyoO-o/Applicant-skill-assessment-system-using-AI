@@ -1,13 +1,20 @@
 package app
 
 type conf struct {
-	Port             string `yaml:"port"`
-	DSN              string `yaml:"dsn"`
-	TimezoneLoc      string `yaml:"timezone_loc"`
-	SessionSecret    string `yaml:"session_secret"`
-	StoragePath      string `yaml:"storage_path"`
-	AnthropicAPIKey  string `yaml:"anthropic_api_key"`
-	Todu             struct {
+	Port            string `yaml:"port"`
+	DSN             string `yaml:"dsn"`
+	TimezoneLoc     string `yaml:"timezone_loc"`
+	SessionSecret   string `yaml:"session_secret"`
+	StoragePath     string `yaml:"storage_path"`
+	AnthropicAPIKey string `yaml:"anthropic_api_key"`
+	SMTP            struct {
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		From     string `yaml:"from"`
+	} `yaml:"smtp"`
+	Todu struct {
 		ClientID     string   `yaml:"client_id"`
 		ClientSecret string   `yaml:"client_secret"`
 		RedirectURL  string   `yaml:"redirect_url"`

@@ -30,16 +30,16 @@ const recruiterActivity = computed(() => {
 
 const applicantHighlights = [
   {
-    title: "Browse matched roles",
-    description: "See recruiter posts in a cleaner workspace without changing your auth flow.",
+    title: "Тохирох ажлыг олоорой",
+    description: "Ажил олгогчдийн зарласан нээлттэй байр дундаас өөрт тохирохыг нь олоорой.",
   },
   {
-    title: "Track your readiness",
-    description: "Keep assessments, profile details, and job discovery grouped in one shell.",
+    title: "Бэлэн байдлаа хянаарай",
+    description: "Үнэлгээ, профайл мэдээлэл болон ажлын нээлтийг нэг дор хадгалаарай.",
   },
   {
-    title: "Stay interview-ready",
-    description: "Move from application to review with a simpler page structure.",
+    title: "Ярилцлагад бэлэн байгаарай",
+    description: "Анкетаас эхлээд дүгнэлт хүртэлх бүх шатыг энэ платформоор дамжуулан хянаарай.",
   },
 ];
 
@@ -49,7 +49,7 @@ const recruiterNeedsCompany = computed(
 
 function openRecruiterJobs() {
   if (recruiterNeedsCompany.value) {
-    toast.warning("Add your company first before managing recruiter jobs.");
+    toast.warning("Ажлын байр удирдахаас өмнө компанийн мэдээллээ бүртгэнэ үү.");
     router.push("/profile");
     return;
   }
@@ -76,16 +76,16 @@ await loadRecruiterDashboard();
     <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
       <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p class="text-sm font-medium text-muted-foreground">Recruiter dashboard</p>
+          <p class="text-sm font-medium text-muted-foreground">Ажил олгогчийн самбар</p>
           <h2 class="mt-2 text-3xl font-semibold tracking-tight">
-            Welcome back, {{ user?.name }}
+            Тавтай морилно уу, {{ user?.name }}
           </h2>
           <p class="mt-2 text-sm leading-6 text-muted-foreground">
-            Your job posting workspace now follows the wireframe structure and is connected to live backend data.
+            Ажлын байрны зарыг удирдах, нэр дэвшигчидтэй ажиллах ажлын орчин.
           </p>
         </div>
         <Button class="rounded-full px-5" @click="openRecruiterJobs">
-          Manage job posts
+          Ажлын байр удирдах
         </Button>
       </div>
     </section>
@@ -93,19 +93,19 @@ await loadRecruiterDashboard();
     <section class="grid gap-4 md:grid-cols-3">
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
-          <CardDescription>Total jobs posted</CardDescription>
+          <CardDescription>Нийт ажлын байр</CardDescription>
           <CardTitle class="text-4xl">{{ recruiterStats.totalJobs }}</CardTitle>
         </CardHeader>
       </Card>
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
-          <CardDescription>Active listings</CardDescription>
+          <CardDescription>Идэвхтэй зар</CardDescription>
           <CardTitle class="text-4xl">{{ recruiterStats.activeJobs }}</CardTitle>
         </CardHeader>
       </Card>
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
-          <CardDescription>Applicants tracked</CardDescription>
+          <CardDescription>Бүртгэгдсэн горилогч</CardDescription>
           <CardTitle class="text-4xl">{{ recruiterStats.totalApplicants }}</CardTitle>
         </CardHeader>
       </Card>
@@ -114,9 +114,9 @@ await loadRecruiterDashboard();
     <section class="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
-          <CardTitle>Job momentum</CardTitle>
+          <CardTitle>Ажлын байрны хөдөлгөөн</CardTitle>
           <CardDescription>
-            {{ loading ? "Refreshing recruiter jobs..." : "Latest recruiter-owned postings from the backend." }}
+            {{ loading ? "Ачааллаж байна..." : "Таны сүүлийн ажлын байрны зарууд." }}
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-3">
@@ -129,7 +129,7 @@ await loadRecruiterDashboard();
               <div>
                 <p class="text-sm font-semibold">{{ job.title }}</p>
                 <p class="mt-1 text-sm text-muted-foreground">
-                  {{ job.location }} · {{ job.employment_type || "Not set" }}
+                  {{ job.location }} · {{ job.employment_type || "Тогтоогдоогүй" }}
                 </p>
               </div>
               <Badge variant="secondary" class="rounded-full px-3 py-1 capitalize">
@@ -141,15 +141,15 @@ await loadRecruiterDashboard();
             v-if="!recruiterJobs.length && !loading"
             class="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground"
           >
-            Create your first job post to populate the recruiter dashboard.
+            Самбарыг дүүргэхийн тулд эхний ажлын зараа оруулна уу.
           </div>
         </CardContent>
       </Card>
 
       <Card class="rounded-3xl border-border shadow-sm">
         <CardHeader>
-          <CardTitle>Recent activity</CardTitle>
-          <CardDescription>Wireframe-style summary without inbox pages.</CardDescription>
+          <CardTitle>Сүүлийн үйл ажиллагаа</CardTitle>
+          <CardDescription>Ажлын байрны сүүлийн хөдөлгөөний товч тойм.</CardDescription>
         </CardHeader>
         <CardContent class="space-y-3">
           <div
@@ -167,7 +167,7 @@ await loadRecruiterDashboard();
             v-if="!recruiterActivity.length && !loading"
             class="rounded-2xl border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground"
           >
-            Recent activity appears here once jobs are created.
+            Ажлын байр үүсгэсний дараа энд үйл ажиллагаа харагдана.
           </div>
         </CardContent>
       </Card>
@@ -176,12 +176,12 @@ await loadRecruiterDashboard();
 
   <div v-else class="space-y-6">
     <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
-      <p class="text-sm font-medium text-muted-foreground">Applicant dashboard</p>
+      <p class="text-sm font-medium text-muted-foreground">Ажил горилогчийн самбар</p>
       <h2 class="mt-2 text-3xl font-semibold tracking-tight">
-        Welcome back, {{ user?.name }}
+        Тавтай морилно уу, {{ user?.name }}
       </h2>
       <p class="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-        The main workspace now follows the wireframe direction while leaving your core applicant logic ready for future integrations.
+        Анкетуудаа хянаж, тохирох ажлыг олж, дараагийн алхамдаа бэлэн байгаарай.
       </p>
     </section>
 

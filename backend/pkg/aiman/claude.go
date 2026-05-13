@@ -16,15 +16,29 @@ const (
 
 // AssessmentResult is the structured JSON returned by Claude for CV scoring.
 type AssessmentResult struct {
-	OverallScore    int           `json:"overall_score"`
-	Summary         string        `json:"summary"`
-	MatchedSkills   []SkillResult `json:"matched_skills"`
-	MissingSkills   []SkillResult `json:"missing_skills"`
-	Recommendations []string      `json:"recommendations"`
+	OverallScore           int                      `json:"overall_score"`
+	Summary                string                   `json:"summary"`
+	MatchedSkills          []SkillResult            `json:"matched_skills"`
+	MissingSkills          []SkillResult            `json:"missing_skills"`
+	Recommendations        []string                 `json:"recommendations"`
+	DutyAssessments        []DutyAssessment         `json:"duty_assessments"`
+	RequirementAssessments []RequirementAssessment  `json:"requirement_assessments"`
 }
 
 type SkillResult struct {
 	Skill       string `json:"skill"`
+	Explanation string `json:"explanation"`
+}
+
+type DutyAssessment struct {
+	Duty        string `json:"duty"`
+	Status      string `json:"status"` // "met", "partial", "not_met"
+	Explanation string `json:"explanation"`
+}
+
+type RequirementAssessment struct {
+	Requirement string `json:"requirement"`
+	Status      string `json:"status"` // "met", "partial", "not_met"
 	Explanation string `json:"explanation"`
 }
 
@@ -61,7 +75,7 @@ type claudeResponse struct {
 func (c *Client) call(system, userMsg string) (string, error) {
 	reqBody := claudeRequest{
 		Model:     claudeModel,
-		MaxTokens: 1024,
+		MaxTokens: 4096,
 		System:    system,
 		Messages:  []claudeMessage{{Role: "user", Content: userMsg}},
 	}
@@ -116,6 +130,8 @@ func (c *Client) AssessCV(cvText, jobTitle string, requirements, skills, duties 
 {
   "overall_score": <0-100 хооронд бүхэл тоо>,
   "summary": "<Монгол хэл дээр 2-3 өгүүлбэрийн дүгнэлт>",
+  "duty_assessments": [{"duty": "<үүрэг хариуцлагын текст>", "status": "<met|partial|not_met>", "explanation": "<CV-д энэ үүргийг хэрхэн биелүүлсэн тайлбар>"}, ...],
+  "requirement_assessments": [{"requirement": "<шаардлагын текст>", "status": "<met|partial|not_met>", "explanation": "<CV-д энэ шаардлагыг хэрхэн хангасан тайлбар>"}, ...],
   "matched_skills": [{"skill": "<ур чадвар>", "explanation": "<тайлбар>"}, ...],
   "missing_skills": [{"skill": "<дутуу ур чадвар>", "explanation": "<тайлбар>"}, ...],
   "recommendations": ["<зөвлөмж 1>", "<зөвлөмж 2>", ...]

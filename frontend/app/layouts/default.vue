@@ -44,15 +44,17 @@ const menu = computed(() => {
 });
 
 const currentPage = computed(() => {
-  return menu.value.find((item) => item.to === route.path)?.title || "Workspace";
+  return (
+    menu.value.find((item) => item.to === route.path)?.title || "Ажлын орчин"
+  );
 });
 
 const currentSubtitle = computed(() => {
   if (user.value?.role === "recruiter") {
-    return "Review your hiring pipeline, manage postings, and keep interviews moving.";
+    return "Ажилд авах урсгалаа хянаж, зарыг удирдаж, ярилцлагыг зохион байгуулна уу.";
   }
 
-  return "Track your applications, discover matches, and stay ready for the next step.";
+  return "Анкетуудаа хянаж, тохирох ажлыг олж, дараагийн алхамдаа бэлэн байгаарай.";
 });
 
 const recruiterNeedsCompany = computed(
@@ -61,9 +63,9 @@ const recruiterNeedsCompany = computed(
 
 function handleMenuNavigation(path: string) {
   if (path === "/jobs" && recruiterNeedsCompany.value) {
-    toast.warning("Add your company first before opening recruiter jobs.");
+    toast.warning("Ажлын байр нээхийн өмнө компанийн мэдээллээ нэмнэ үү.");
     router.push("/profile");
-    return
+    return;
   }
 
   router.push(path);
@@ -71,7 +73,9 @@ function handleMenuNavigation(path: string) {
 
 function openJobsWorkspace() {
   if (recruiterNeedsCompany.value) {
-    toast.warning("Add your company first to open the recruiter job manager.");
+    toast.warning(
+      "Ажлын байрны менежерийг нээхийн өмнө компанийн мэдээллээ нэмнэ үү.",
+    );
     router.push("/profile");
     return;
   }
@@ -90,16 +94,14 @@ async function handleLogout() {
       <Sidebar class="border-r border-border bg-card">
         <SidebarHeader class="border-b border-border px-4 py-5">
           <div class="flex items-center gap-3">
-            <div
-              class="flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-foreground text-background shadow-sm"
-            >
-              <span class="text-sm font-semibold">MH</span>
+            <div class="h-10 w-10 items-center justify-center rounded-2xl">
+              <img src="/icons/logo.svg" alt="" />
             </div>
 
             <div>
               <h1 class="text-base font-semibold leading-none">MatchHire</h1>
               <p class="mt-1 text-xs text-muted-foreground">
-                Applicant skill assessment
+                Ур чадварын үнэлгээний систем
               </p>
             </div>
           </div>
@@ -127,10 +129,12 @@ async function handleLogout() {
 
         <SidebarFooter class="mt-auto border-t px-4 py-4">
           <div class="rounded-2xl border border-border bg-muted/40 px-3 py-3">
-            <p class="text-xs font-medium text-muted-foreground">Logged in as</p>
+            <p class="text-xs font-medium text-muted-foreground">
+              Нэвтэрсэн хэрэглэгч
+            </p>
             <p class="mt-1 text-sm font-semibold">{{ user?.name }}</p>
             <p class="mt-1 text-xs capitalize text-muted-foreground">
-              {{ user?.role }}
+              {{ user?.role === "recruiter" ? "Ажил олгогч" : "Ажил горилогч" }}
             </p>
           </div>
 
@@ -141,13 +145,15 @@ async function handleLogout() {
             @click="handleLogout"
           >
             <LogOut class="h-4 w-4" />
-            {{ isLoading ? "Logging out..." : "Log out" }}
+            {{ isLoading ? "Гарж байна..." : "Гарах" }}
           </Button>
         </SidebarFooter>
       </Sidebar>
 
       <div class="flex min-h-screen flex-1 flex-col bg-background">
-        <header class="border-b border-border bg-card/80 px-5 py-4 backdrop-blur">
+        <header
+          class="border-b border-border bg-card/80 px-5 py-4 backdrop-blur"
+        >
           <div
             class="mx-auto flex w-full max-w-7xl flex-col gap-4 md:flex-row md:items-center md:justify-between"
           >
@@ -156,8 +162,14 @@ async function handleLogout() {
                 <PanelLeft class="h-4 w-4" />
               </div>
               <div>
-                <p class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {{ user?.role === "recruiter" ? "Recruiter Workspace" : "Applicant Workspace" }}
+                <p
+                  class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+                >
+                  {{
+                    user?.role === "recruiter"
+                      ? "Ажил олгогчийн ажлын орчин"
+                      : "Ажил горилогчийн ажлын орчин"
+                  }}
                 </p>
                 <h1 class="mt-1 text-2xl font-semibold tracking-tight">
                   {{ currentPage }}
@@ -174,7 +186,11 @@ async function handleLogout() {
               :class="recruiterNeedsCompany ? 'opacity-70' : ''"
               @click="openJobsWorkspace"
             >
-              {{ user?.role === "recruiter" ? "Ажлын байр удирдах" : "Ажлын байр харах" }}
+              {{
+                user?.role === "recruiter"
+                  ? "Ажлын байр удирдах"
+                  : "Ажлын байр харах"
+              }}
               <ArrowRight class="h-4 w-4" />
             </button>
           </div>

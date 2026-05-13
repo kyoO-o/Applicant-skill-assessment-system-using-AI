@@ -1,4 +1,4 @@
-const GUEST_ONLY_PATHS = new Set(["/login", "/register"]);
+const GUEST_ONLY_PATHS = new Set(["/login", "/register", "/verify-email", "/forgot-password"]);
 
 export default defineNuxtRouteMiddleware(async (to) => {
   const { user, me, initialized } = useAuth();

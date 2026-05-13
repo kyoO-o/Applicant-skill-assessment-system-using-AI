@@ -3,22 +3,22 @@ const { user } = useAuth();
 
 const recruiterItems = [
   {
-    title: "Frontend Developer - Technical Screen",
-    subtitle: "Tomorrow at 10:00",
-    status: "Scheduled",
+    title: "Frontend Developer - Техникийн дэлгэрэнгүй шалгалт",
+    subtitle: "Маргааш 10:00 цагт",
+    status: "Товлогдсон",
   },
   {
-    title: "UI/UX Designer - Portfolio Review",
-    subtitle: "Friday at 14:30",
-    status: "Pending confirmation",
+    title: "UI/UX Designer - Портфолио хянах",
+    subtitle: "Баасан 14:30 цагт",
+    status: "Баталгаажуулалт хүлээгдэж байна",
   },
 ];
 
 const applicantItems = [
   {
-    title: "Tech screening with MatchHire recruiter",
-    subtitle: "Awaiting invitation",
-    status: "No upcoming interviews",
+    title: "MatchHire-ийн ажил олгогчтой техникийн ярилцлага",
+    subtitle: "Урилга хүлээгдэж байна",
+    status: "Удахгүй болох ярилцлага байхгүй",
   },
 ];
 </script>
@@ -30,14 +30,12 @@ const applicantItems = [
     >
       <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div class="space-y-2">
-          <p class="text-sm font-medium text-muted-foreground">Interviews</p>
+          <p class="text-sm font-medium text-muted-foreground">Ярилцлага</p>
           <h1 class="text-3xl font-semibold tracking-tight">
-            {{ user?.role === "recruiter" ? "Interview pipeline" : "Interview updates" }}
+            {{ user?.role === "recruiter" ? "Ярилцлагын урсгал" : "Ярилцлагын мэдээлэл" }}
           </h1>
           <p class="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Wireframe-inspired scheduling space is connected into the app shell.
-            The actions are intentionally lightweight here so we do not alter your
-            existing hiring flow.
+            Ярилцлагын хуваарь болон шинэчлэлийг энд харна уу.
           </p>
         </div>
       </div>

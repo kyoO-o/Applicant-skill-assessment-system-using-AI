@@ -24,10 +24,18 @@ func routes() http.Handler {
 		r.Post("/login", PasswordLogin)
 		r.Post("/register", Register)
 		r.Get("/authenticate", BAuthenticate)
+		r.Post("/verify-email", verifyEmailHandler)
+		r.Post("/resend-verification", resendVerificationHandler)
+		r.Post("/forgot-password", forgotPasswordHandler)
+		r.Post("/reset-password", resetPasswordHandler)
 	})
 
 	r.With(RequireAuth).Route("/api", func(r chi.Router) {
 		r.Get("/me", Me)
+		r.Put("/me", UpdateMe)
+		r.Put("/me/email", initiateEmailChangeHandler)
+		r.Post("/me/verify-email-change", verifyEmailChangeHandler)
+		r.Put("/me/password", changePasswordHandler)
 		r.Get("/logout", Logout)
 		r.Get("/company", GetCompany)
 		r.Put("/company", SaveCompany)
@@ -40,7 +48,7 @@ func routes() http.Handler {
 				r.Get("/", getCompanyJobs)
 				r.With(SetChosenJob).Route("/{JobID}", func(r chi.Router) {
 					r.Get("/", getJob)
-					r.Put("/", saveJob)
+					r.Put("/", saveCompanyJob)
 					r.Delete("/", deleteJob)
 				})
 			})
@@ -48,10 +56,12 @@ func routes() http.Handler {
 
 		// CV application routes
 		r.Post("/jobs/{JobID}/apply", applyToJob)
+		r.Post("/jobs/{JobID}/analyze", analyzeCV)
 		r.Get("/jobs/{JobID}/applications", listJobApplications)
 		r.Get("/applications", listMyApplications)
 		r.Get("/applications/{id}", getApplication)
 		r.Put("/applications/{id}/status", updateApplicationStatus)
+		r.Put("/applications/{id}/interview", scheduleInterview)
 
 		// Chatbot
 		r.Post("/chat", chat)

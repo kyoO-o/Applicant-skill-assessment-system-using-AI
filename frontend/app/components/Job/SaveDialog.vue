@@ -92,11 +92,10 @@ function removeItem(list: string[], index: number) {
       <div class="flex max-h-[90vh] flex-col">
       <DialogHeader class="border-b border-border px-6 py-5">
         <DialogTitle>
-          {{ isEditing ? "Edit job post" : "Create a new job post" }}
+          {{ isEditing ? "Ажлын байр засах" : "Шинэ ажлын байр нэмэх" }}
         </DialogTitle>
         <DialogDescription>
-          Keep the structure from the wireframe and save directly to the
-          backend.
+          Ажлын байрны мэдээллийг бөглөж хадгална уу.
         </DialogDescription>
       </DialogHeader>
 
@@ -112,7 +111,7 @@ function removeItem(list: string[], index: number) {
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
-            <Label for="job-title">Job title</Label>
+            <Label for="job-title">Ажлын байрны нэр</Label>
             <Input
               id="job-title"
               v-model="form.title"
@@ -120,7 +119,7 @@ function removeItem(list: string[], index: number) {
             />
           </div>
           <div class="space-y-2">
-            <Label for="job-contact">Contact info</Label>
+            <Label for="job-contact">Холбоо барих мэдээлэл</Label>
             <Input
               id="job-contact"
               v-model="form.contact_info"
@@ -131,7 +130,7 @@ function removeItem(list: string[], index: number) {
 
         <div class="grid gap-4 sm:grid-cols-3">
           <div class="space-y-2">
-            <Label for="job-type">Employment type</Label>
+            <Label for="job-type">Хөдөлмөрийн гэрээний хэлбэр</Label>
             <Input
               id="job-type"
               v-model="form.type"
@@ -139,7 +138,7 @@ function removeItem(list: string[], index: number) {
             />
           </div>
           <div class="space-y-2">
-            <Label for="job-level">Seniority</Label>
+            <Label for="job-level">Мэргэжлийн түвшин</Label>
             <Input
               id="job-level"
               v-model="form.level"
@@ -147,15 +146,15 @@ function removeItem(list: string[], index: number) {
             />
           </div>
           <div class="space-y-2">
-            <Label for="job-status">Status</Label>
+            <Label for="job-status">Төлөв</Label>
             <Select v-model="form.status">
               <SelectTrigger id="job-status" class="w-full">
-                <SelectValue placeholder="Select status" />
+                <SelectValue placeholder="Төлөв сонгох" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem :value="JobStatus.Draft">Draft</SelectItem>
-                <SelectItem :value="JobStatus.Posted">Posted</SelectItem>
-                <SelectItem :value="JobStatus.Closed">Closed</SelectItem>
+                <SelectItem :value="JobStatus.Draft">Ноорог</SelectItem>
+                <SelectItem :value="JobStatus.Posted">Нийтлэгдсэн</SelectItem>
+                <SelectItem :value="JobStatus.Closed">Хаагдсан</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -163,10 +162,10 @@ function removeItem(list: string[], index: number) {
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
-            <Label for="job-city">Hot / Aimag</Label>
+            <Label for="job-city">Хот / Аймаг</Label>
             <Select v-model="form.city">
               <SelectTrigger id="job-city" class="w-full">
-                <SelectValue placeholder="Select city or aimag" />
+                <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="city in cities" :key="city" :value="city">
@@ -176,10 +175,10 @@ function removeItem(list: string[], index: number) {
             </Select>
           </div>
           <div class="space-y-2">
-            <Label for="job-district">Duureg / Sum</Label>
+            <Label for="job-district">Дүүрэг / Сум</Label>
             <Select v-model="form.district" :disabled="!form.city">
               <SelectTrigger id="job-district" class="w-full">
-                <SelectValue placeholder="Select district or sum" />
+                <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem
@@ -199,12 +198,12 @@ function removeItem(list: string[], index: number) {
             <div>
               <p class="text-sm font-medium">Google Maps</p>
               <p class="mt-1 text-xs text-muted-foreground">
-                Open Google Maps, choose the location, then paste the shared link to import coordinates.
+                Google Maps-ийг нээж байршлыг сонгоод хуваалцах холбоосыг буулган координатыг импортлоно уу.
               </p>
             </div>
             <Button type="button" variant="outline" as-child>
               <a :href="googleMapsUrl" target="_blank" rel="noreferrer">
-                Open Maps
+                Газрын зураг нээх
               </a>
             </Button>
           </div>
@@ -212,16 +211,16 @@ function removeItem(list: string[], index: number) {
           <div class="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
             <Input
               v-model="form.maps_url"
-              placeholder="Paste Google Maps share link"
+              placeholder="Google Maps холбоос буулгах"
             />
             <Button type="button" variant="outline" @click="applyMapsUrl">
-              Use Link
+              Ашиглах
             </Button>
           </div>
 
           <div class="mt-4 grid gap-4 sm:grid-cols-2">
             <div class="space-y-2">
-              <Label for="job-location-x">Latitude</Label>
+              <Label for="job-location-x">Өргөрөг</Label>
               <Input
                 id="job-location-x"
                 v-model="form.location_x"
@@ -229,7 +228,7 @@ function removeItem(list: string[], index: number) {
               />
             </div>
             <div class="space-y-2">
-              <Label for="job-location-y">Longitude</Label>
+              <Label for="job-location-y">Уртраг</Label>
               <Input
                 id="job-location-y"
                 v-model="form.location_y"
@@ -241,7 +240,7 @@ function removeItem(list: string[], index: number) {
 
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
-            <Label for="job-min-salary">Min salary</Label>
+            <Label for="job-min-salary">Хамгийн бага цалин</Label>
             <Input
               id="job-min-salary"
               v-model="form.min_salary"
@@ -251,7 +250,7 @@ function removeItem(list: string[], index: number) {
             />
           </div>
           <div class="space-y-2">
-            <Label for="job-max-salary">Max salary</Label>
+            <Label for="job-max-salary">Хамгийн их цалин</Label>
             <Input
               id="job-max-salary"
               v-model="form.max_salary"
@@ -263,27 +262,27 @@ function removeItem(list: string[], index: number) {
         </div>
 
         <div class="space-y-2">
-          <Label for="job-description">Additional info</Label>
+          <Label for="job-description">Нэмэлт мэдээлэл</Label>
           <Textarea
             id="job-description"
             v-model="form.additional_info"
             rows="5"
-            placeholder="Describe the role, scope, and outcomes."
+            placeholder="Ажлын байрны тайлбар, хамрах хүрээ болон хүлээгдэж буй үр дүнг бичнэ үү."
           />
         </div>
 
         <div class="grid gap-4 lg:grid-cols-2">
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
-              <Label>Duties</Label>
+              <Label>Үүрэг хариуцлага</Label>
               <Button type="button" variant="outline" size="sm" @click="addItem(form.duties)">
                 <Plus class="mr-1 h-4 w-4" />
-                Add
+                Нэмэх
               </Button>
             </div>
             <div class="space-y-2">
               <div v-for="(_, index) in form.duties" :key="`duty-${index}`" class="flex items-center gap-2">
-                <Input v-model="form.duties[index]" placeholder="Write one duty" />
+                <Input v-model="form.duties[index]" placeholder="Нэг үүрэг бичнэ үү" />
                 <Button type="button" variant="outline" size="icon" @click="removeItem(form.duties, index)">
                   <X class="h-4 w-4" />
                 </Button>
@@ -292,15 +291,15 @@ function removeItem(list: string[], index: number) {
           </div>
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
-              <Label>Requirements</Label>
+              <Label>Шаардлагууд</Label>
               <Button type="button" variant="outline" size="sm" @click="addItem(form.requirements)">
                 <Plus class="mr-1 h-4 w-4" />
-                Add
+                Нэмэх
               </Button>
             </div>
             <div class="space-y-2">
               <div v-for="(_, index) in form.requirements" :key="`requirement-${index}`" class="flex items-center gap-2">
-                <Input v-model="form.requirements[index]" placeholder="Write one requirement" />
+                <Input v-model="form.requirements[index]" placeholder="Нэг шаардлага бичнэ үү" />
                 <Button type="button" variant="outline" size="icon" @click="removeItem(form.requirements, index)">
                   <X class="h-4 w-4" />
                 </Button>
@@ -312,15 +311,15 @@ function removeItem(list: string[], index: number) {
         <div class="grid gap-4 lg:grid-cols-2">
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
-              <Label>Skills</Label>
+              <Label>Ур чадвар</Label>
               <Button type="button" variant="outline" size="sm" @click="addItem(form.skills)">
                 <Plus class="mr-1 h-4 w-4" />
-                Add
+                Нэмэх
               </Button>
             </div>
             <div class="space-y-2">
               <div v-for="(_, index) in form.skills" :key="`skill-${index}`" class="flex items-center gap-2">
-                <Input v-model="form.skills[index]" placeholder="Write one skill" />
+                <Input v-model="form.skills[index]" placeholder="Нэг ур чадвар бичнэ үү" />
                 <Button type="button" variant="outline" size="icon" @click="removeItem(form.skills, index)">
                   <X class="h-4 w-4" />
                 </Button>
@@ -329,15 +328,15 @@ function removeItem(list: string[], index: number) {
           </div>
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-3">
-              <Label>Bonuses</Label>
+              <Label>Нэмэлт давуу тал</Label>
               <Button type="button" variant="outline" size="sm" @click="addItem(form.bonuses)">
                 <Plus class="mr-1 h-4 w-4" />
-                Add
+                Нэмэх
               </Button>
             </div>
             <div class="space-y-2">
               <div v-for="(_, index) in form.bonuses" :key="`bonus-${index}`" class="flex items-center gap-2">
-                <Input v-model="form.bonuses[index]" placeholder="Write one bonus" />
+                <Input v-model="form.bonuses[index]" placeholder="Нэг давуу тал бичнэ үү" />
                 <Button type="button" variant="outline" size="icon" @click="removeItem(form.bonuses, index)">
                   <X class="h-4 w-4" />
                 </Button>
@@ -347,9 +346,9 @@ function removeItem(list: string[], index: number) {
         </div>
 
         <div class="space-y-2">
-          <Label>Location summary</Label>
+          <Label>Байршлын тойм</Label>
           <p class="text-xs text-muted-foreground">
-            Location summary: {{ [form.district, form.city].filter(Boolean).join(", ") || "Not selected" }}
+            {{ [form.district, form.city].filter(Boolean).join(", ") || "Сонгогдоогүй" }}
           </p>
         </div>
         </div>
@@ -357,15 +356,15 @@ function removeItem(list: string[], index: number) {
 
         <DialogFooter class="border-t border-border px-6 py-4">
           <Button type="button" variant="outline" @click="closeDialog">
-            Cancel
+            Болих
           </Button>
           <Button type="submit" :disabled="isSubmitting">
             {{
               isSubmitting
-                ? "Saving..."
+                ? "Хадгалж байна..."
                 : isEditing
-                  ? "Update Job"
-                  : "Create Job"
+                  ? "Шинэчлэх"
+                  : "Үүсгэх"
             }}
           </Button>
         </DialogFooter>

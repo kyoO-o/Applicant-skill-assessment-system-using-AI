@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common"
@@ -45,6 +46,38 @@ func Me(w http.ResponseWriter, r *http.Request) {
 	oapi.SendResp(w, authUser(r))
 }
 
+func UpdateMe(w http.ResponseWriter, r *http.Request) {
+	user := authUser(r)
+
+	var req struct {
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Хүсэлт буруу байна"})
+		return
+	}
+
+	req.FirstName = strings.TrimSpace(req.FirstName)
+	req.LastName = strings.TrimSpace(req.LastName)
+
+	if req.FirstName == "" {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Нэр шаардлагатай"})
+		return
+	}
+
+	user.FirstName = req.FirstName
+	user.LastName = req.LastName
+	user.FullName = strings.TrimSpace(req.FirstName + " " + req.LastName)
+
+	saved, err := app.Users.Save(user)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+	oapi.SendResp(w, saved)
+}
+
 func Register(w http.ResponseWriter, r *http.Request) {
 	var req authRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -58,7 +91,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	req.Role = strings.TrimSpace(strings.ToLower(req.Role))
 
 	if req.FirstName == "" || req.LastName == "" || req.Email == "" || req.Password == "" || req.Role == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "First name, last name, email, password, and role are required"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Нэр, овог, и-мэйл, нууц үг болон үүрэг шаардлагатай"})
 		return
 	}
 
@@ -88,13 +121,19 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	code := generateOTP()
+	expiry := time.Now().Add(codeExpiry)
+
 	user := &userman.User{
-		Email:        req.Email,
-		FirstName:    req.FirstName,
-		LastName:     req.LastName,
-		FullName:     req.FirstName + " " + req.LastName,
-		PasswordHash: passwordHash,
-		Role:         req.Role,
+		Email:            req.Email,
+		FirstName:        req.FirstName,
+		LastName:         req.LastName,
+		FullName:         req.FirstName + " " + req.LastName,
+		PasswordHash:     passwordHash,
+		Role:             req.Role,
+		EmailVerified:    false,
+		VerifyCode:       code,
+		VerifyCodeExpiry: &expiry,
 	}
 
 	user, err = app.Users.Save(user)
@@ -103,11 +142,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	startSession(r, user, "local")
+	go app.Mailer.SendVerificationEmail(user.Email, user.FullName, code)
+
 	w.WriteHeader(http.StatusCreated)
-	oapi.SendResp(w, &authResponse{
-		User:    user,
-		Message: "Registration successful",
+	oapi.SendResp(w, map[string]string{
+		"message": "Бүртгэл амжилттай. И-мэйл хаягаа баталгаажуулна уу.",
+		"email":   user.Email,
 	})
 }
 
@@ -138,6 +178,16 @@ func PasswordLogin(w http.ResponseWriter, r *http.Request) {
 
 	if user.PasswordHash == "" || common.CheckPassword(password, user.PasswordHash) != nil {
 		oapi.CustomError(w, http.StatusUnauthorized, map[string]string{"message": "Invalid email or password"})
+		return
+	}
+
+	// Block unverified users (VerifyCode empty means old user pre-verification feature — allow them)
+	if !user.EmailVerified && user.VerifyCode != "" {
+		oapi.CustomError(w, http.StatusForbidden, map[string]string{
+			"message": "И-мэйл хаяг баталгаажаагүй байна. И-мэйлдээ ирсэн кодыг оруулна уу.",
+			"code":    "EMAIL_NOT_VERIFIED",
+			"email":   user.Email,
+		})
 		return
 	}
 

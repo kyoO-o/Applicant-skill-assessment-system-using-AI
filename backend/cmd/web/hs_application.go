@@ -19,46 +19,56 @@ import (
 )
 
 type applicationResponse struct {
-	ID              int                  `json:"id"`
-	JobPostingID    int                  `json:"job_posting_id"`
-	JobTitle        string               `json:"job_title"`
-	ApplicantID     int                  `json:"applicant_id"`
-	ApplicantName   string               `json:"applicant_name"`
-	ApplicantEmail  string               `json:"applicant_email"`
-	OverallScore    int                  `json:"overall_score"`
-	Summary         string               `json:"summary"`
-	MatchedSkills   []aiman.SkillResult  `json:"matched_skills"`
-	MissingSkills   []aiman.SkillResult  `json:"missing_skills"`
-	Recommendations []string             `json:"recommendations"`
-	Status          string               `json:"status"`
-	AssessedAt      *time.Time           `json:"assessed_at"`
-	CreatedAt       time.Time            `json:"created_at"`
+	ID                     int                       `json:"id"`
+	JobPostingID           int                       `json:"job_posting_id"`
+	JobTitle               string                    `json:"job_title"`
+	ApplicantID            int                       `json:"applicant_id"`
+	ApplicantName          string                    `json:"applicant_name"`
+	ApplicantEmail         string                    `json:"applicant_email"`
+	OverallScore           int                       `json:"overall_score"`
+	Summary                string                    `json:"summary"`
+	MatchedSkills          []aiman.SkillResult       `json:"matched_skills"`
+	MissingSkills          []aiman.SkillResult       `json:"missing_skills"`
+	Recommendations        []string                  `json:"recommendations"`
+	DutyAssessments        []aiman.DutyAssessment    `json:"duty_assessments"`
+	RequirementAssessments []aiman.RequirementAssessment `json:"requirement_assessments"`
+	Status                 string                    `json:"status"`
+	AssessedAt             *time.Time                `json:"assessed_at"`
+	InterviewAt            *time.Time                `json:"interview_at"`
+	CreatedAt              time.Time                 `json:"created_at"`
 }
 
 func mapApplicationResponse(a *appman.Application, jobTitle string) *applicationResponse {
 	var matched []aiman.SkillResult
 	var missing []aiman.SkillResult
 	var recs []string
+	var dutyAssessments []aiman.DutyAssessment
+	var reqAssessments []aiman.RequirementAssessment
 
 	json.Unmarshal([]byte(a.MatchedSkills), &matched)
 	json.Unmarshal([]byte(a.MissingSkills), &missing)
 	json.Unmarshal([]byte(a.Recommendations), &recs)
+	json.Unmarshal([]byte(a.DutyAssessments), &dutyAssessments)
+	json.Unmarshal([]byte(a.RequirementAssessments), &reqAssessments)
 
 	return &applicationResponse{
-		ID:              a.ID,
-		JobPostingID:    int(a.JobPostingID),
-		JobTitle:        jobTitle,
-		ApplicantID:     int(a.ApplicantID),
-		ApplicantName:   a.ApplicantName,
-		ApplicantEmail:  a.ApplicantEmail,
-		OverallScore:    a.OverallScore,
-		Summary:         a.Summary,
-		MatchedSkills:   matched,
-		MissingSkills:   missing,
-		Recommendations: recs,
-		Status:          a.Status,
-		AssessedAt:      a.AssessedAt,
-		CreatedAt:       a.CreatedAt,
+		ID:                     a.ID,
+		JobPostingID:           int(a.JobPostingID),
+		JobTitle:               jobTitle,
+		ApplicantID:            int(a.ApplicantID),
+		ApplicantName:          a.ApplicantName,
+		ApplicantEmail:         a.ApplicantEmail,
+		OverallScore:           a.OverallScore,
+		Summary:                a.Summary,
+		MatchedSkills:          matched,
+		MissingSkills:          missing,
+		Recommendations:        recs,
+		DutyAssessments:        dutyAssessments,
+		RequirementAssessments: reqAssessments,
+		Status:                 a.Status,
+		AssessedAt:             a.AssessedAt,
+		InterviewAt:            a.InterviewAt,
+		CreatedAt:              a.CreatedAt,
 	}
 }
 
@@ -82,10 +92,16 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for duplicate application
-	if _, err := app.Applications.GetForApplicantAndJob(user.ID, jobID); err == nil {
-		oapi.CustomError(w, http.StatusConflict, map[string]string{"message": "Та энэ ажлын байранд аль хэдийн анкет илгээсэн байна"})
-		return
+	// Delete existing application to allow re-apply
+	if existing, err := app.Applications.GetForApplicantAndJob(user.ID, jobID); err == nil {
+		if delErr := app.Applications.Delete(existing.ID); delErr != nil {
+			oapi.ServerError(w, delErr)
+			return
+		}
+		// Remove old CV file if present
+		if existing.CVFilePath != "" {
+			os.Remove(existing.CVFilePath)
+		}
 	}
 
 	if err := r.ParseMultipartForm(10 << 20); err != nil {
@@ -169,6 +185,8 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		matchedJSON, _ := json.Marshal(result.MatchedSkills)
 		missingJSON, _ := json.Marshal(result.MissingSkills)
 		recsJSON, _ := json.Marshal(result.Recommendations)
+		dutyJSON, _ := json.Marshal(result.DutyAssessments)
+		reqJSON, _ := json.Marshal(result.RequirementAssessments)
 		now := time.Now()
 
 		a, _ := app.Applications.Get(appID)
@@ -180,6 +198,8 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		a.MatchedSkills = string(matchedJSON)
 		a.MissingSkills = string(missingJSON)
 		a.Recommendations = string(recsJSON)
+		a.DutyAssessments = string(dutyJSON)
+		a.RequirementAssessments = string(reqJSON)
 		a.Status = appman.StatusAssessed
 		a.AssessedAt = &now
 		app.Applications.Save(a)
@@ -338,4 +358,129 @@ func updateApplicationStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	oapi.SendResp(w, map[string]string{"message": "Төлөв шинэчлэгдлээ"})
+}
+
+// PUT /api/applications/{id}/interview  — recruiter sets interview date
+func scheduleInterview(w http.ResponseWriter, r *http.Request) {
+	_, ok := recruiterUser(r)
+	if !ok {
+		oapi.Forbidden(w)
+		return
+	}
+
+	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil || id <= 0 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "ID буруу байна"})
+		return
+	}
+
+	var req struct {
+		InterviewAt string `json:"interview_at"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Хүсэлт буруу байна"})
+		return
+	}
+
+	t, err := time.Parse("2006-01-02T15:04", req.InterviewAt)
+	if err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Огноо буруу байна (2006-01-02T15:04)"})
+		return
+	}
+
+	a, err := app.Applications.Get(id)
+	if err != nil {
+		oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Олдсонгүй"})
+		return
+	}
+
+	a.InterviewAt = &t
+	saved, err := app.Applications.Save(a)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	job, _ := app.Jobs.Get(int(saved.JobPostingID))
+	jobTitle := ""
+	if job != nil {
+		jobTitle = job.Title
+	}
+	applicant, _ := app.Users.Get(int(saved.ApplicantID))
+	resp := mapApplicationResponse(saved, jobTitle)
+	if applicant != nil {
+		resp.ApplicantName = applicant.FullName
+		resp.ApplicantEmail = applicant.Email
+	}
+	oapi.SendResp(w, resp)
+}
+
+// POST /api/jobs/{JobID}/analyze  — applicant gets AI assessment preview without saving
+func analyzeCV(w http.ResponseWriter, r *http.Request) {
+	user := authUser(r)
+	if user.Role == userman.RoleRecruiter {
+		oapi.Forbidden(w)
+		return
+	}
+
+	jobID, err := strconv.Atoi(chi.URLParam(r, "JobID"))
+	if err != nil || jobID <= 0 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Ажлын байрны ID буруу байна"})
+		return
+	}
+
+	job, err := app.Jobs.Get(jobID)
+	if err != nil {
+		oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Ажлын байр олдсонгүй"})
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Файл уншихад алдаа гарлаа"})
+		return
+	}
+
+	file, header, err := r.FormFile("cv")
+	if err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "CV файл сонгоно уу"})
+		return
+	}
+	defer file.Close()
+
+	if filepath.Ext(header.Filename) != ".pdf" {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Зөвхөн PDF файл зөвшөөрнө"})
+		return
+	}
+
+	pdfBytes, err := io.ReadAll(file)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	cvText, err := aiman.ExtractTextFromPDF(pdfBytes)
+	if err != nil || len(cvText) < 50 {
+		cvText = "CV текст уншихад алдаа гарлаа - үнэлгээ хийх боломжгүй"
+	}
+
+	jobRequirements := make([]string, 0, len(job.Requirements))
+	for _, r := range job.Requirements {
+		jobRequirements = append(jobRequirements, r.Description)
+	}
+	jobSkills := make([]string, 0, len(job.Skills))
+	for _, s := range job.Skills {
+		jobSkills = append(jobSkills, s.Name)
+	}
+	jobDuties := make([]string, 0, len(job.Duties))
+	for _, d := range job.Duties {
+		jobDuties = append(jobDuties, d.Description)
+	}
+
+	result, err := app.AI.AssessCV(cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	oapi.SendResp(w, result)
 }

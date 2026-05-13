@@ -14,7 +14,7 @@ defineProps<Props>();
   <Card class="mx-auto w-full max-w-xl rounded-[2rem] border-white/80 bg-white/90 shadow-2xl shadow-slate-200/70 backdrop-blur">
     <CardHeader class="space-y-3">
       <Badge variant="secondary" class="w-fit rounded-full px-3 py-1">
-        Secure access
+        Аюулгүй нэвтрэлт
       </Badge>
       <CardTitle class="text-2xl text-slate-950 sm:text-3xl">
         {{ title }}

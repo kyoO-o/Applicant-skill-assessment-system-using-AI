@@ -64,7 +64,13 @@ func Init(path, mode string) {
 
 	Users = userman.NewService(DB, InfoLog, ErrorLog)
 	Jobs = jobman.NewService(DB, InfoLog, ErrorLog)
-	Mailer = mailerman.NewService(DB, InfoLog, ErrorLog)
+	Mailer = mailerman.NewService(DB, InfoLog, ErrorLog, mailerman.SMTPConfig{
+		Host:     Config.SMTP.Host,
+		Port:     Config.SMTP.Port,
+		Username: Config.SMTP.Username,
+		Password: Config.SMTP.Password,
+		From:     Config.SMTP.From,
+	})
 	Applications = appman.NewService(DB, InfoLog, ErrorLog)
 	Tasks = taskman.NewService(DB, InfoLog, ErrorLog)
 	AI = aiman.NewClient(Config.AnthropicAPIKey)

@@ -33,12 +33,16 @@ func main() {
 		new(jobman.Bonus),
 		new(userman.User),
 		new(companyman.Company),
+		new(companyman.CompanyBenefit),
 		new(appman.Application),
 		new(taskman.Task),
 		new(taskman.TaskSubmission),
 	); err != nil {
 		app.ErrorLog.Panic(err)
 	}
+
+	// Mark users created before email verification was introduced as already verified
+	app.DB.Exec("UPDATE users SET email_verified = true WHERE email_verified = false AND (verify_code = '' OR verify_code IS NULL)")
 
 	// Ensure CV upload directory exists
 	if app.Config.StoragePath != "" {
