@@ -62,6 +62,13 @@ func routes() http.Handler {
 		r.Get("/applications/{id}", getApplication)
 		r.Put("/applications/{id}/status", updateApplicationStatus)
 		r.Put("/applications/{id}/interview", scheduleInterview)
+		r.Get("/interviews", listInterviewsHandler)
+
+		// Google Calendar integration
+		r.Get("/integrations/google-calendar/connect", gcalConnect)
+		r.Get("/integrations/google-calendar/callback", gcalCallback)
+		r.Delete("/integrations/google-calendar/disconnect", gcalDisconnect)
+		r.Get("/integrations/google-calendar/status", gcalStatus)
 
 		// Chatbot
 		r.Post("/chat", chat)

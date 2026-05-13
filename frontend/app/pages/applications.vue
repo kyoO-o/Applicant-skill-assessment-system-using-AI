@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Application } from "../composables/types";
 import { toast } from "vue-sonner";
-import { FileText, Loader2, ChevronRight } from "lucide-vue-next";
+import { FileText, Loader2, ChevronRight, CalendarCheck } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
 
@@ -52,6 +52,22 @@ function statusVariant(status: Application["status"]) {
 
 function formatDate(d: string) {
   return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(new Date(d));
+}
+
+function formatDateTime(d: string) {
+  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(d));
+}
+
+function gcalLink(app: Application) {
+  if (!app.interview_at) return "#";
+  const start = new Date(app.interview_at);
+  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const fmt = (d: Date) =>
+    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const title = encodeURIComponent(`Ярилцлага: ${app.job_title}`);
+  const details = encodeURIComponent(app.interview_note || "");
+  const location = encodeURIComponent(app.interview_location || "");
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(start)}/${fmt(end)}&details=${details}&location=${location}`;
 }
 </script>
 
@@ -104,6 +120,25 @@ function formatDate(d: string) {
         </p>
         <div v-if="app.status === 'pending'" class="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 class="h-3 w-3 animate-spin" /> AI үнэлгээ хийгдэж байна...
+        </div>
+        <!-- Interview schedule -->
+        <div v-if="app.interview_at" class="mt-3 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3">
+          <div class="flex items-center gap-1.5 mb-1">
+            <CalendarCheck class="h-3.5 w-3.5 text-purple-600" />
+            <p class="text-xs font-medium text-purple-700">Ярилцлагын хуваарь</p>
+          </div>
+          <p class="text-sm font-semibold text-purple-900">{{ formatDateTime(app.interview_at) }}</p>
+          <p v-if="app.interview_location" class="mt-0.5 text-xs text-purple-600">{{ app.interview_location }}</p>
+          <p v-if="app.interview_note" class="mt-0.5 text-xs text-purple-500 italic">{{ app.interview_note }}</p>
+          <a
+            :href="gcalLink(app)"
+            target="_blank"
+            rel="noopener"
+            class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-purple-700 underline underline-offset-2 hover:text-purple-900"
+            @click.stop
+          >
+            Google Calendar-д нэмэх
+          </a>
         </div>
       </div>
     </div>

@@ -27,6 +27,7 @@ type User struct {
 	VerifyCode       string     `json:"-" gorm:"column:verify_code"`
 	VerifyCodeExpiry *time.Time `json:"-" gorm:"column:verify_code_expiry"`
 	PendingEmail     string     `json:"-" gorm:"column:pending_email"`
-	ResetCode        string     `json:"-" gorm:"column:reset_code"`
-	ResetCodeExpiry  *time.Time `json:"-" gorm:"column:reset_code_expiry"`
+	ResetCode           string     `json:"-" gorm:"column:reset_code"`
+	ResetCodeExpiry     *time.Time `json:"-" gorm:"column:reset_code_expiry"`
+	GoogleRefreshToken  string     `json:"-" gorm:"column:google_refresh_token"`
 }

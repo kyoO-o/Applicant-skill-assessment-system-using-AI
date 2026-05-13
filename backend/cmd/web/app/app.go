@@ -30,6 +30,7 @@ var (
 	CustomerConnections     = map[int]*websocket.Connection{}
 	CustomerConnectionMutex = new(sync.RWMutex)
 	Todu                    *oauth2.Config
+	GoogleCalendar          *oauth2.Config
 	DB                      *gorm.DB
 
 	// Services
@@ -89,6 +90,19 @@ func Init(path, mode string) {
 			AuthURL:  Config.Todu.Endpoint.AuthURL,
 			TokenURL: Config.Todu.Endpoint.TokenURL,
 		},
+	}
+
+	if Config.Google.ClientID != "" && Config.Google.ClientSecret != "" {
+		GoogleCalendar = &oauth2.Config{
+			ClientID:     Config.Google.ClientID,
+			ClientSecret: Config.Google.ClientSecret,
+			RedirectURL:  Config.Google.RedirectURL,
+			Scopes:       []string{"https://www.googleapis.com/auth/calendar.events"},
+			Endpoint: oauth2.Endpoint{
+				AuthURL:  "https://accounts.google.com/o/oauth2/auth",
+				TokenURL: "https://oauth2.googleapis.com/token",
+			},
+		}
 	}
 }
 

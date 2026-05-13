@@ -15,9 +15,11 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
-      include: ["lucide-vue-next"],
+      include: ["lucide-vue-next", "leaflet"],
     },
   },
+
+  transpile: ["leaflet"],
 
   modules: ["shadcn-nuxt"],
   shadcn: {

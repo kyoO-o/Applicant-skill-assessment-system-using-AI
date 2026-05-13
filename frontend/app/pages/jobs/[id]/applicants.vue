@@ -45,12 +45,29 @@ const interviewOpen = ref(false);
 const interviewTarget = ref<Application | null>(null);
 const interviewDate = ref("");
 const interviewTime = ref("");
+const interviewLocation = ref("");
+const interviewNote = ref("");
 const isScheduling = ref(false);
+
+const companyAPI = useCompanyAPI();
+const companyLocation = ref("");
+
+onMounted(async () => {
+  try {
+    const company = await companyAPI.get();
+    const parts = [company.city, company.district].filter(Boolean);
+    companyLocation.value = parts.join(", ");
+  } catch {
+    // no company yet — that's fine
+  }
+});
 
 function openInterviewDialog(app: Application) {
   interviewTarget.value = app;
   interviewDate.value = "";
   interviewTime.value = "";
+  interviewLocation.value = app.interview_location || companyLocation.value;
+  interviewNote.value = app.interview_note || "";
   interviewOpen.value = true;
 }
 
@@ -65,6 +82,8 @@ async function scheduleInterview() {
     const updated = await applicationsAPI.scheduleInterview(
       interviewTarget.value!.id,
       interviewAt,
+      interviewLocation.value,
+      interviewNote.value,
     );
     const idx = applications.value.findIndex((a) => a.id === updated.id);
     if (idx !== -1) applications.value[idx] = updated;
@@ -680,7 +699,7 @@ function assessBg(s: string) {
       <DialogHeader>
         <DialogTitle>Ярилцлага товлох</DialogTitle>
         <DialogDescription>
-          {{ interviewTarget?.applicant_name }}-д ярилцлагын огноо, цагийг тохируулна уу.
+          {{ interviewTarget?.applicant_name }}-д ярилцлагын дэлгэрэнгүй мэдээллийг оруулна уу.
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
@@ -693,6 +712,14 @@ function assessBg(s: string) {
             <Label>Цаг</Label>
             <Input v-model="interviewTime" type="time" />
           </div>
+        </div>
+        <div class="space-y-2">
+          <Label>Байршил</Label>
+          <Input v-model="interviewLocation" placeholder="Уулзах газар (жишээ: Конкорд Тауэр, 5 давхар)" />
+        </div>
+        <div class="space-y-2">
+          <Label>Нэмэлт тэмдэглэл <span class="text-muted-foreground text-xs">(заавал биш)</span></Label>
+          <Textarea v-model="interviewNote" rows="3" placeholder="Горилогчид дамжуулах нэмэлт мэдээлэл..." />
         </div>
       </div>
       <DialogFooter>

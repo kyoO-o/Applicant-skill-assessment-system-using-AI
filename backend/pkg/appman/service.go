@@ -76,3 +76,15 @@ func (s *Service) Delete(id int) error {
 func (s *Service) UpdateStatus(id int, status string) error {
 	return s.db.Model(&Application{}).Where("id = ?", id).Update("status", status).Error
 }
+
+func (s *Service) ListScheduledForCompany(companyID uint) ([]*Application, error) {
+	var apps []*Application
+	if err := s.db.
+		Joins("JOIN job_postings ON job_postings.id = applications.job_posting_id").
+		Where("job_postings.company_id = ? AND applications.interview_at IS NOT NULL", companyID).
+		Order("applications.interview_at ASC").
+		Find(&apps).Error; err != nil {
+		return nil, err
+	}
+	return apps, nil
+}

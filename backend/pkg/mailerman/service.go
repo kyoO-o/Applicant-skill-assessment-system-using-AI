@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"log"
 	"net/smtp"
+	"net/url"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -48,10 +50,10 @@ func (s *Service) SendEmail(to, subject, body string) error {
 	}
 
 	auth := smtp.PlainAuth("", s.smtp.Username, s.smtp.Password, s.smtp.Host)
-	msg := []byte(fmt.Sprintf(
+	msg := fmt.Appendf(nil,
 		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n%s",
 		s.smtp.From, to, subject, body,
-	))
+	)
 
 	addr := fmt.Sprintf("%s:%d", s.smtp.Host, s.smtp.Port)
 	if err := smtp.SendMail(addr, auth, s.smtp.From, []string{to}, msg); err != nil {
@@ -133,4 +135,59 @@ func (s *Service) SendEmailChangeEmail(to, name, code string) {
 </div>`, name, code)
 
 	_ = s.SendEmail(to, "И-мэйл хаяг солих баталгаажуулах код", body)
+}
+
+func (s *Service) SendInterviewInviteEmail(to, applicantName, recruiterName, jobTitle string, interviewAt time.Time, location, note string) {
+	// Format for Google Calendar: YYYYMMDDTHHmmSS / YYYYMMDDTHHmmSS (1 hour duration)
+	gcalFmt := "20060102T150405"
+	startStr := interviewAt.Format(gcalFmt)
+	endStr := interviewAt.Add(time.Hour).Format(gcalFmt)
+	eventTitle := url.QueryEscape(fmt.Sprintf("Ярилцлага: %s", jobTitle))
+	details := url.QueryEscape(fmt.Sprintf("Ажил олгогч: %s\nАнкет илгээгч: %s\n%s", recruiterName, applicantName, note))
+	gcalLocation := url.QueryEscape(location)
+	gcalLink := fmt.Sprintf(
+		"https://calendar.google.com/calendar/render?action=TEMPLATE&text=%s&dates=%s/%s&details=%s&location=%s",
+		eventTitle, startStr, endStr, details, gcalLocation,
+	)
+
+	dateStr := interviewAt.Format("2006-01-02 15:04")
+
+	s.infoLog.Printf("============================================================")
+	s.infoLog.Printf("[INTERVIEW INVITE] To: %s | Job: %s | Date: %s | Location: %s", to, jobTitle, dateStr, location)
+	s.infoLog.Printf("============================================================")
+
+	if !s.isConfigured() {
+		return
+	}
+
+	locationLine := ""
+	if location != "" {
+		locationLine = fmt.Sprintf(`<p style="margin:4px 0"><strong>Байршил:</strong> %s</p>`, location)
+	}
+	noteLine := ""
+	if note != "" {
+		noteLine = fmt.Sprintf(`<p style="margin:4px 0"><strong>Нэмэлт мэдээлэл:</strong> %s</p>`, note)
+	}
+
+	body := fmt.Sprintf(`
+<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px">
+  <h2 style="margin-bottom:8px;color:#18181b">Ярилцлагын урилга</h2>
+  <p>Сайн байна уу, <strong>%s</strong>!</p>
+  <p>Та <strong>%s</strong> ажлын байрт анкет илгээсэн бөгөөд ярилцлагад урьж байна.</p>
+  <div style="background:#f4f4f5;border-radius:12px;padding:20px;margin:24px 0">
+    <p style="margin:4px 0"><strong>Ажлын байр:</strong> %s</p>
+    <p style="margin:4px 0"><strong>Огноо, цаг:</strong> %s</p>
+    %s
+    %s
+  </div>
+  <a href="%s" target="_blank"
+     style="display:inline-block;background:#4285F4;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;margin-top:8px">
+    Google Calendar-д нэмэх
+  </a>
+  <p style="margin-top:24px;color:#71717a;font-size:13px">
+    Энэхүү урилга нь <strong>%s</strong>-аас ирсэн болно.
+  </p>
+</div>`, applicantName, jobTitle, jobTitle, dateStr, locationLine, noteLine, gcalLink, recruiterName)
+
+	_ = s.SendEmail(to, fmt.Sprintf("Ярилцлагын урилга: %s", jobTitle), body)
 }

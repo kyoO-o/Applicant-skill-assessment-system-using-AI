@@ -10,7 +10,6 @@ const authAPI = useAuthAPI();
 const companyAPI = useCompanyAPI();
 const router = useRouter();
 const { cities, districtsFor } = useLocationOptions();
-const { extractCoordinatesFromUrl, buildSearchUrl } = useGoogleMaps();
 
 const company = ref<Company | null>(null);
 const loadingCompany = ref(false);
@@ -55,7 +54,6 @@ const companyForm = reactive({
   district: "",
   location_x: "",
   location_y: "",
-  maps_url: "",
   benefits: [] as string[],
 });
 
@@ -77,7 +75,6 @@ function fillCompanyForm(value: Company | null) {
     typeof value?.location_x === "number" ? String(value.location_x) : "";
   companyForm.location_y =
     typeof value?.location_y === "number" ? String(value.location_y) : "";
-  companyForm.maps_url = "";
   companyForm.benefits = value?.benefits?.map((b) => b.description) || [];
 }
 
@@ -108,27 +105,6 @@ function buildCompanyPayload(): SaveCompanyPayload {
 }
 
 const districtOptions = computed(() => districtsFor(companyForm.city));
-const companyMapsUrl = computed(() =>
-  buildSearchUrl(
-    [companyForm.district, companyForm.city, companyForm.name]
-      .filter(Boolean)
-      .join(", "),
-    companyForm.location_x ? Number(companyForm.location_x) : null,
-    companyForm.location_y ? Number(companyForm.location_y) : null,
-  ),
-);
-
-function applyCompanyMapsUrl() {
-  const coordinates = extractCoordinatesFromUrl(companyForm.maps_url);
-  if (!coordinates) {
-    toast.error("Зөв Google Maps хуваалцах холбоосыг буулгана уу.");
-    return;
-  }
-
-  companyForm.location_x = String(coordinates.lat);
-  companyForm.location_y = String(coordinates.lng);
-  toast.success("Компанийн координат Google Maps-аас импортлогдлоо.");
-}
 
 async function loadCompany() {
   if (!isRecruiter.value || !hasCompany.value) {
@@ -556,49 +532,12 @@ fillProfileForm();
             </Select>
           </div>
 
-          <div class="sm:col-span-2 rounded-2xl border border-border bg-muted/20 p-4">
-            <div class="flex items-start justify-between gap-3">
-              <div>
-                <p class="text-sm font-medium">Google Maps</p>
-                <p class="mt-1 text-xs text-muted-foreground">
-                  Google Maps-ийг нээж, компанийн байршлыг сонгоод хуваалцах холбоосыг буулган координатыг импортлоно уу.
-                </p>
-              </div>
-              <Button type="button" variant="outline" as-child>
-                <a :href="companyMapsUrl" target="_blank" rel="noreferrer">
-                  Газрын зураг нээх
-                </a>
-              </Button>
-            </div>
-
-            <div class="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-              <Input
-                v-model="companyForm.maps_url"
-                placeholder="Google Maps холбоос буулгах"
-              />
-              <Button type="button" variant="outline" @click="applyCompanyMapsUrl">
-                Ашиглах
-              </Button>
-            </div>
-
-            <div class="mt-4 grid gap-4 sm:grid-cols-2">
-              <div class="space-y-2">
-                <Label for="company-location-x">Өргөрөг</Label>
-                <Input
-                  id="company-location-x"
-                  v-model="companyForm.location_x"
-                  placeholder="47.9184"
-                />
-              </div>
-              <div class="space-y-2">
-                <Label for="company-location-y">Уртраг</Label>
-                <Input
-                  id="company-location-y"
-                  v-model="companyForm.location_y"
-                  placeholder="106.9177"
-                />
-              </div>
-            </div>
+          <div class="sm:col-span-2 rounded-2xl border border-border bg-muted/20 p-4 space-y-2">
+            <Label>Газрын зураг дээр байршил сонгох</Label>
+            <LocationSearch
+              v-model:model-x="companyForm.location_x"
+              v-model:model-y="companyForm.location_y"
+            />
           </div>
 
           <!-- Benefits / Incentives -->

@@ -43,4 +43,6 @@ export interface Application extends BaseModel {
   status: "pending" | "assessed" | "shortlisted" | "rejected";
   assessed_at: string | null;
   interview_at: string | null;
+  interview_location: string | null;
+  interview_note: string | null;
 }

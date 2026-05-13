@@ -6,6 +6,7 @@ type conf struct {
 	TimezoneLoc     string `yaml:"timezone_loc"`
 	SessionSecret   string `yaml:"session_secret"`
 	StoragePath     string `yaml:"storage_path"`
+	FrontendURL     string `yaml:"frontend_url"`
 	AnthropicAPIKey string `yaml:"anthropic_api_key"`
 	SMTP            struct {
 		Host     string `yaml:"host"`
@@ -25,4 +26,9 @@ type conf struct {
 			UserInfo string `yaml:"user_info"`
 		} `yaml:"endpoint"`
 	} `yaml:"todu"`
+	Google struct {
+		ClientID     string `yaml:"client_id"`
+		ClientSecret string `yaml:"client_secret"`
+		RedirectURL  string `yaml:"redirect_url"`
+	} `yaml:"google"`
 }

@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { toast } from "vue-sonner";
 import { Plus, X } from "lucide-vue-next";
 
 import { JobStatus } from "../../composables/types";
 
 const { cities, districtsFor } = useLocationOptions();
-const { extractCoordinatesFromUrl, buildSearchUrl } = useGoogleMaps();
 
 const props = defineProps<{
   open: boolean;
@@ -22,8 +20,7 @@ const props = defineProps<{
     district: string;
     location_x: string;
     location_y: string;
-    maps_url: string;
-    min_salary: string;
+      min_salary: string;
     max_salary: string;
     additional_info: string;
     duties: string[];
@@ -52,25 +49,6 @@ function submitForm() {
 }
 
 const districtOptions = computed(() => districtsFor(props.form.city));
-const googleMapsUrl = computed(() =>
-  buildSearchUrl(
-    [props.form.district, props.form.city, props.form.title].filter(Boolean).join(", "),
-    props.form.location_x ? Number(props.form.location_x) : null,
-    props.form.location_y ? Number(props.form.location_y) : null,
-  ),
-);
-
-function applyMapsUrl() {
-  const coordinates = extractCoordinatesFromUrl(props.form.maps_url);
-  if (!coordinates) {
-    toast.error("Paste a valid Google Maps share link.");
-    return;
-  }
-
-  props.form.location_x = String(coordinates.lat);
-  props.form.location_y = String(coordinates.lng);
-  toast.success("Coordinates imported from Google Maps.");
-}
 
 function addItem(list: string[]) {
   list.push("");
@@ -193,49 +171,12 @@ function removeItem(list: string[], index: number) {
           </div>
         </div>
 
-        <div class="rounded-2xl border border-border bg-muted/20 p-4">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-medium">Google Maps</p>
-              <p class="mt-1 text-xs text-muted-foreground">
-                Google Maps-ийг нээж байршлыг сонгоод хуваалцах холбоосыг буулган координатыг импортлоно уу.
-              </p>
-            </div>
-            <Button type="button" variant="outline" as-child>
-              <a :href="googleMapsUrl" target="_blank" rel="noreferrer">
-                Газрын зураг нээх
-              </a>
-            </Button>
-          </div>
-
-          <div class="mt-4 grid gap-4 sm:grid-cols-[1fr_auto]">
-            <Input
-              v-model="form.maps_url"
-              placeholder="Google Maps холбоос буулгах"
-            />
-            <Button type="button" variant="outline" @click="applyMapsUrl">
-              Ашиглах
-            </Button>
-          </div>
-
-          <div class="mt-4 grid gap-4 sm:grid-cols-2">
-            <div class="space-y-2">
-              <Label for="job-location-x">Өргөрөг</Label>
-              <Input
-                id="job-location-x"
-                v-model="form.location_x"
-                placeholder="47.9184"
-              />
-            </div>
-            <div class="space-y-2">
-              <Label for="job-location-y">Уртраг</Label>
-              <Input
-                id="job-location-y"
-                v-model="form.location_y"
-                placeholder="106.9177"
-              />
-            </div>
-          </div>
+        <div class="rounded-2xl border border-border bg-muted/20 p-4 space-y-2">
+          <Label>Газрын зураг дээр байршил сонгох</Label>
+          <LocationSearch
+            v-model:model-x="form.location_x"
+            v-model:model-y="form.location_y"
+          />
         </div>
 
         <div class="grid gap-4 sm:grid-cols-2">
@@ -283,7 +224,7 @@ function removeItem(list: string[], index: number) {
             <div class="space-y-2">
               <div v-for="(_, index) in form.duties" :key="`duty-${index}`" class="flex items-center gap-2">
                 <Input v-model="form.duties[index]" placeholder="Нэг үүрэг бичнэ үү" />
-                <Button type="button" variant="outline" size="icon" @click="removeItem(form.duties, index)">
+                <Button v-if="index > 0" type="button" variant="outline" size="icon" @click="removeItem(form.duties, index)">
                   <X class="h-4 w-4" />
                 </Button>
               </div>
@@ -300,7 +241,7 @@ function removeItem(list: string[], index: number) {
             <div class="space-y-2">
               <div v-for="(_, index) in form.requirements" :key="`requirement-${index}`" class="flex items-center gap-2">
                 <Input v-model="form.requirements[index]" placeholder="Нэг шаардлага бичнэ үү" />
-                <Button type="button" variant="outline" size="icon" @click="removeItem(form.requirements, index)">
+                <Button v-if="index > 0" type="button" variant="outline" size="icon" @click="removeItem(form.requirements, index)">
                   <X class="h-4 w-4" />
                 </Button>
               </div>
@@ -320,7 +261,7 @@ function removeItem(list: string[], index: number) {
             <div class="space-y-2">
               <div v-for="(_, index) in form.skills" :key="`skill-${index}`" class="flex items-center gap-2">
                 <Input v-model="form.skills[index]" placeholder="Нэг ур чадвар бичнэ үү" />
-                <Button type="button" variant="outline" size="icon" @click="removeItem(form.skills, index)">
+                <Button v-if="index > 0" type="button" variant="outline" size="icon" @click="removeItem(form.skills, index)">
                   <X class="h-4 w-4" />
                 </Button>
               </div>
@@ -337,7 +278,7 @@ function removeItem(list: string[], index: number) {
             <div class="space-y-2">
               <div v-for="(_, index) in form.bonuses" :key="`bonus-${index}`" class="flex items-center gap-2">
                 <Input v-model="form.bonuses[index]" placeholder="Нэг давуу тал бичнэ үү" />
-                <Button type="button" variant="outline" size="icon" @click="removeItem(form.bonuses, index)">
+                <Button v-if="index > 0" type="button" variant="outline" size="icon" @click="removeItem(form.bonuses, index)">
                   <X class="h-4 w-4" />
                 </Button>
               </div>

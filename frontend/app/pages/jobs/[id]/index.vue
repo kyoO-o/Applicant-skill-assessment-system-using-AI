@@ -150,6 +150,11 @@ function saveCachedAnalyze(result: AssessmentResult) {
   localStorage.setItem(storageKey.value, JSON.stringify(result));
 }
 
+function clearCachedAnalyze() {
+  if (!import.meta.client) return;
+  localStorage.removeItem(storageKey.value);
+}
+
 function onApplyFileChange(e: Event) {
   applyCvFile.value =
     (e.target as HTMLInputElement).files?.[0] ?? null;
@@ -171,6 +176,9 @@ async function submitApplication() {
     applyOpen.value = false;
     applyCvFile.value = null;
     showAnalyzePreview.value = false;
+    analyzeResult.value = null;
+    application.value = null;
+    clearCachedAnalyze();
     toast.success("Анкет амжилттай илгээгдлээ! AI үнэлгээ хийгдэж байна...");
     await loadMyApplication();
     startPolling();

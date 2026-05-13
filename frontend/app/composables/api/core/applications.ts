@@ -55,11 +55,15 @@ export class ApplicationsAPI {
     });
   }
 
-  scheduleInterview(id: number, interviewAt: string) {
+  scheduleInterview(id: number, interviewAt: string, location?: string, note?: string) {
     return this.fetch<Application>(`/api/applications/${id}/interview`, {
       method: "PUT",
-      body: { interview_at: interviewAt },
+      body: { interview_at: interviewAt, interview_location: location ?? "", interview_note: note ?? "" },
     });
+  }
+
+  listInterviews() {
+    return this.fetch<Application[]>("/api/interviews");
   }
 }
 

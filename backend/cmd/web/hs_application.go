@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -35,6 +37,8 @@ type applicationResponse struct {
 	Status                 string                    `json:"status"`
 	AssessedAt             *time.Time                `json:"assessed_at"`
 	InterviewAt            *time.Time                `json:"interview_at"`
+	InterviewLocation      string                    `json:"interview_location"`
+	InterviewNote          string                    `json:"interview_note"`
 	CreatedAt              time.Time                 `json:"created_at"`
 }
 
@@ -68,6 +72,8 @@ func mapApplicationResponse(a *appman.Application, jobTitle string) *application
 		Status:                 a.Status,
 		AssessedAt:             a.AssessedAt,
 		InterviewAt:            a.InterviewAt,
+		InterviewLocation:      a.InterviewLocation,
+		InterviewNote:          a.InterviewNote,
 		CreatedAt:              a.CreatedAt,
 	}
 }
@@ -362,7 +368,7 @@ func updateApplicationStatus(w http.ResponseWriter, r *http.Request) {
 
 // PUT /api/applications/{id}/interview  — recruiter sets interview date
 func scheduleInterview(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
 		return
@@ -375,7 +381,9 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		InterviewAt string `json:"interview_at"`
+		InterviewAt       string `json:"interview_at"`
+		InterviewLocation string `json:"interview_location"`
+		InterviewNote     string `json:"interview_note"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Хүсэлт буруу байна"})
@@ -395,6 +403,8 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	a.InterviewAt = &t
+	a.InterviewLocation = req.InterviewLocation
+	a.InterviewNote = req.InterviewNote
 	saved, err := app.Applications.Save(a)
 	if err != nil {
 		oapi.ServerError(w, err)
@@ -412,7 +422,72 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 		resp.ApplicantName = applicant.FullName
 		resp.ApplicantEmail = applicant.Email
 	}
+
+	// Send email invite to applicant asynchronously
+	if applicant != nil {
+		go app.Mailer.SendInterviewInviteEmail(
+			applicant.Email,
+			applicant.FullName,
+			recruiter.FullName,
+			jobTitle,
+			t,
+			req.InterviewLocation,
+			req.InterviewNote,
+		)
+	}
+
+	// Auto-create Google Calendar event if recruiter has connected their account
+	if recruiter.GoogleRefreshToken != "" {
+		go func() {
+			desc := fmt.Sprintf("Горилогч: %s", resp.ApplicantName)
+			if req.InterviewNote != "" {
+				desc += "\n" + req.InterviewNote
+			}
+			if err := createGCalEvent(context.Background(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, req.InterviewLocation, t); err != nil {
+				app.ErrorLog.Printf("gcal event creation failed: %v", err)
+			}
+		}()
+	}
+
 	oapi.SendResp(w, resp)
+}
+
+// GET /api/interviews  — recruiter sees all scheduled interviews for their company
+func listInterviewsHandler(w http.ResponseWriter, r *http.Request) {
+	recruiter, ok := recruiterUser(r)
+	if !ok {
+		oapi.Forbidden(w)
+		return
+	}
+
+	if recruiter.CompanyID == nil {
+		oapi.SendResp(w, []*applicationResponse{})
+		return
+	}
+
+	apps, err := app.Applications.ListScheduledForCompany(*recruiter.CompanyID)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	items := make([]*applicationResponse, 0, len(apps))
+	for _, a := range apps {
+		job, _ := app.Jobs.Get(int(a.JobPostingID))
+		jobTitle := ""
+		if job != nil {
+			jobTitle = job.Title
+		}
+		resp := mapApplicationResponse(a, jobTitle)
+		applicant, _ := app.Users.Get(int(a.ApplicantID))
+		if applicant != nil {
+			resp.ApplicantName = applicant.FullName
+			resp.ApplicantEmail = applicant.Email
+		}
+		items = append(items, resp)
+	}
+
+	oapi.SendResp(w, items)
 }
 
 // POST /api/jobs/{JobID}/analyze  — applicant gets AI assessment preview without saving
