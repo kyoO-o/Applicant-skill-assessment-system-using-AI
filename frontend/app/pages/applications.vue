@@ -12,6 +12,31 @@ const router = useRouter();
 const applications = ref<Application[]>([]);
 const loading = ref(true);
 
+const mapStates = ref<Map<number, { show: boolean; lat: number | null; lng: number | null }>>(new Map());
+
+function mapState(id: number) {
+  if (!mapStates.value.has(id)) mapStates.value.set(id, { show: false, lat: null, lng: null });
+  return mapStates.value.get(id)!;
+}
+
+async function toggleMap(id: number, location: string | null | undefined) {
+  const state = mapState(id);
+  if (state.show) { state.show = false; return; }
+  if (state.lat !== null) { state.show = true; return; }
+  if (!location) return;
+  try {
+    const results = await $fetch<Array<{ lat: string; lon: string }>>(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+      { headers: { "User-Agent": "SkillAssessmentApp/1.0" } },
+    );
+    if (results.length) {
+      state.lat = Number(results[0].lat);
+      state.lng = Number(results[0].lon);
+      state.show = true;
+    }
+  } catch { /* ignore */ }
+}
+
 const isApplicant = computed(() => user.value?.role === "user");
 
 async function load() {
@@ -128,7 +153,23 @@ function gcalLink(app: Application) {
             <p class="text-xs font-medium text-purple-700">Ярилцлагын хуваарь</p>
           </div>
           <p class="text-sm font-semibold text-purple-900">{{ formatDateTime(app.interview_at) }}</p>
-          <p v-if="app.interview_location" class="mt-0.5 text-xs text-purple-600">{{ app.interview_location }}</p>
+          <div v-if="app.interview_location" class="mt-1 flex items-start justify-between gap-2" @click.stop>
+            <p class="text-xs text-purple-600">{{ app.interview_location }}</p>
+            <label class="flex cursor-pointer items-center gap-1 text-xs text-purple-500 whitespace-nowrap">
+              <Checkbox
+                :checked="mapState(app.id).show"
+                @update:checked="toggleMap(app.id, app.interview_location)"
+              />
+              Зураг
+            </label>
+          </div>
+          <div v-if="mapState(app.id).show && mapState(app.id).lat !== null" class="mt-2" @click.stop>
+            <LocationMap
+              :lat="mapState(app.id).lat!"
+              :lng="mapState(app.id).lng!"
+              :label="app.interview_location ?? undefined"
+            />
+          </div>
           <p v-if="app.interview_note" class="mt-0.5 text-xs text-purple-500 italic">{{ app.interview_note }}</p>
           <a
             :href="gcalLink(app)"

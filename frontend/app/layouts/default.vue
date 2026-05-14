@@ -13,6 +13,7 @@ import {
   Settings,
   LogOut,
   PanelLeft,
+  ScrollText,
 } from "lucide-vue-next";
 
 const { user, logout, isLoading } = useAuth();
@@ -23,6 +24,7 @@ const menuUser = [
   { title: "Нүүр хуудас", icon: ChartNoAxesColumnIncreasing, to: "/" },
   { title: "Ажлын байрууд", icon: BriefcaseBusiness, to: "/jobs" },
   { title: "Миний анкетууд", icon: FileText, to: "/applications" },
+  { title: "CV Бүтээгч", icon: ScrollText, to: "/cv" },
   { title: "Даалгаврууд", icon: ClipboardList, to: "/tasks" },
   { title: "AI Чатбот", icon: Bot, to: "/chat" },
   { title: "Профайл", icon: User, to: "/profile" },
@@ -162,15 +164,6 @@ async function handleLogout() {
                 <PanelLeft class="h-4 w-4" />
               </div>
               <div>
-                <p
-                  class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
-                >
-                  {{
-                    user?.role === "recruiter"
-                      ? "Ажил олгогчийн ажлын орчин"
-                      : "Ажил горилогчийн ажлын орчин"
-                  }}
-                </p>
                 <h1 class="mt-1 text-2xl font-semibold tracking-tight">
                   {{ currentPage }}
                 </h1>

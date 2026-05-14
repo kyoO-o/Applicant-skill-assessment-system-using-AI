@@ -14,6 +14,32 @@ const interviews = ref<Application[]>([]);
 const loading = ref(true);
 const gcalConnected = ref(false);
 
+// Map toggle per card: appID → {show, lat, lng} | null
+const mapStates = ref<Map<number, { show: boolean; lat: number | null; lng: number | null }>>(new Map());
+
+function mapState(id: number) {
+  if (!mapStates.value.has(id)) mapStates.value.set(id, { show: false, lat: null, lng: null });
+  return mapStates.value.get(id)!;
+}
+
+async function toggleMap(id: number, location: string | null | undefined) {
+  const state = mapState(id);
+  if (state.show) { state.show = false; return; }
+  if (state.lat !== null) { state.show = true; return; }
+  if (!location) return;
+  try {
+    const results = await $fetch<Array<{ lat: string; lon: string }>>(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
+      { headers: { "User-Agent": "SkillAssessmentApp/1.0" } },
+    );
+    if (results.length) {
+      state.lat = Number(results[0].lat);
+      state.lng = Number(results[0].lon);
+      state.show = true;
+    }
+  } catch { /* ignore */ }
+}
+
 const isRecruiter = computed(() => user.value?.role === "recruiter");
 
 async function load() {
@@ -172,9 +198,26 @@ function gcalLink(app: Application) {
             </template>
 
             <!-- Location -->
-            <div v-if="app.interview_location" class="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
-              <MapPin class="mt-0.5 h-3 w-3 shrink-0" />
-              <span>{{ app.interview_location }}</span>
+            <div v-if="app.interview_location" class="mt-2 space-y-2">
+              <div class="flex items-start justify-between gap-2">
+                <div class="flex items-start gap-1.5 text-xs text-muted-foreground">
+                  <MapPin class="mt-0.5 h-3 w-3 shrink-0" />
+                  <span>{{ app.interview_location }}</span>
+                </div>
+                <label class="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground whitespace-nowrap">
+                  <Checkbox
+                    :checked="mapState(app.id).show"
+                    @update:checked="toggleMap(app.id, app.interview_location)"
+                  />
+                  Зураг
+                </label>
+              </div>
+              <LocationMap
+                v-if="mapState(app.id).show && mapState(app.id).lat !== null"
+                :lat="mapState(app.id).lat!"
+                :lng="mapState(app.id).lng!"
+                :label="app.interview_location"
+              />
             </div>
 
             <!-- Note -->

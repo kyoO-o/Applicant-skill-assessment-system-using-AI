@@ -64,6 +64,11 @@ func routes() http.Handler {
 		r.Put("/applications/{id}/interview", scheduleInterview)
 		r.Get("/interviews", listInterviewsHandler)
 
+		// CV profile routes
+		r.Get("/cv-profile", getCVProfile)
+		r.Put("/cv-profile", saveCVProfile)
+		r.Post("/cv-profile/parse", parseCVProfile)
+
 		// Google Calendar integration
 		r.Get("/integrations/google-calendar/connect", gcalConnect)
 		r.Get("/integrations/google-calendar/callback", gcalCallback)

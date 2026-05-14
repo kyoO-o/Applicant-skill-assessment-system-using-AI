@@ -50,6 +50,7 @@ const analyzeOpen = ref(false);
 const analyzeCvFile = ref<File | null>(null);
 const isAnalyzing = ref(false);
 const pollTimer = ref<ReturnType<typeof setInterval> | null>(null);
+const showJobMap = ref(false);
 
 // ── Computed ───────────────────────────────────────────────────────────────
 const jobID = computed(() => Number(route.params.id));
@@ -649,6 +650,34 @@ function jobStatusLabel(status: string) {
             <CardHeader><CardTitle>Холбоо барих</CardTitle></CardHeader>
             <CardContent>
               <p class="text-sm text-muted-foreground">{{ job.contact_info }}</p>
+            </CardContent>
+          </Card>
+
+          <!-- Location card -->
+          <Card v-if="job.location" class="rounded-3xl border-border shadow-sm">
+            <CardHeader>
+              <div class="flex items-center justify-between gap-2">
+                <CardTitle>Байршил</CardTitle>
+                <label
+                  v-if="job.location_x && job.location_y"
+                  class="flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground"
+                >
+                  <Checkbox v-model:checked="showJobMap" />
+                  Газрын зураг
+                </label>
+              </div>
+            </CardHeader>
+            <CardContent class="space-y-3">
+              <div class="flex items-start gap-1.5 text-sm text-muted-foreground">
+                <MapPin class="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{{ job.location }}</span>
+              </div>
+              <LocationMap
+                v-if="showJobMap && job.location_x && job.location_y"
+                :lat="job.location_x"
+                :lng="job.location_y"
+                :label="job.location"
+              />
             </CardContent>
           </Card>
         </div>

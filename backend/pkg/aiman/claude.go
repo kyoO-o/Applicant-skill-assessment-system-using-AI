@@ -259,3 +259,53 @@ type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
+
+// ParseCV extracts structured CV data from free-form text and returns it as JSON.
+func (c *Client) ParseCV(cvText string) (string, error) {
+	system := `Та CV текстийг задлан шинжлэх AI систем. Монгол болон Англи хэлний CV-г хоёуланг нь ойлгоно.
+Доорх JSON форматаар CV-ийн мэдээллийг гаргаж өг. Мэдээлэл байхгүй бол хоосон утга ашигла.
+Заавал дараах JSON форматаар хариул, өөр текст бүү нэм:
+{
+  "first_name": "",
+  "last_name": "",
+  "date_of_birth": "",
+  "gender": "",
+  "national_id": "",
+  "driver_licenses": [],
+  "marital_status": "",
+  "phone": "",
+  "email": "",
+  "address": "",
+  "about": "",
+  "work_experiences": [{"company":"","position":"","start_date":"","end_date":"","current":false,"description":""}],
+  "education": [{"school":"","degree":"","field":"","start_date":"","end_date":"","current":false,"gpa":""}],
+  "personal_skills": [],
+  "professional_skills": [],
+  "languages": [{"name":"","level":""}],
+  "computer_skills": [],
+  "art_skills": [],
+  "sport_skills": [],
+  "trainings": [{"name":"","organization":"","date":"","certificate":""}],
+  "exams": [{"name":"","score":"","date":""}],
+  "internships": [{"company":"","position":"","start_date":"","end_date":"","description":""}],
+  "awards": [{"name":"","organization":"","date":"","description":""}]
+}`
+
+	text, err := c.call(system, "CV текст:\n"+cvText)
+	if err != nil {
+		return "", err
+	}
+
+	text = strings.TrimSpace(text)
+	text = strings.TrimPrefix(text, "```json")
+	text = strings.TrimPrefix(text, "```")
+	text = strings.TrimSuffix(text, "```")
+	text = strings.TrimSpace(text)
+
+	var check map[string]any
+	if err := json.Unmarshal([]byte(text), &check); err != nil {
+		return "", fmt.Errorf("invalid JSON from Claude: %w", err)
+	}
+
+	return text, nil
+}

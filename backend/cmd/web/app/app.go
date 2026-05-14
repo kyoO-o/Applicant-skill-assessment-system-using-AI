@@ -11,6 +11,7 @@ import (
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/websocket"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/aiman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/appman"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/cvman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/mailerman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/taskman"
@@ -39,6 +40,7 @@ var (
 	Mailer       *mailerman.Service
 	Applications *appman.Service
 	Tasks        *taskman.Service
+	CVProfiles   *cvman.Service
 	AI           *aiman.Client
 )
 
@@ -74,6 +76,7 @@ func Init(path, mode string) {
 	})
 	Applications = appman.NewService(DB, InfoLog, ErrorLog)
 	Tasks = taskman.NewService(DB, InfoLog, ErrorLog)
+	CVProfiles = cvman.NewService(DB, InfoLog, ErrorLog)
 	AI = aiman.NewClient(Config.AnthropicAPIKey)
 
 	FrontendWS = websocket.New()

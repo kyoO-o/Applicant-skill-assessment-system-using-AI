@@ -11,6 +11,7 @@ import (
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/appman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/companyman"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/cvman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/taskman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
@@ -37,6 +38,7 @@ func main() {
 		new(appman.Application),
 		new(taskman.Task),
 		new(taskman.TaskSubmission),
+		new(cvman.CVProfile),
 	); err != nil {
 		app.ErrorLog.Panic(err)
 	}
