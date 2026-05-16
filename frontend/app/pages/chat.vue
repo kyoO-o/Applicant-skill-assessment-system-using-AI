@@ -10,7 +10,8 @@ const chatAPI = useChatAPI();
 const messages = ref<ChatMessage[]>([
   {
     role: "assistant",
-    content: "Сайн байна уу! Би таны ажлын байр хайхад туслах AI туслагч. Цалин, байршил, чиглэлийн талаар хэлбэл тохирох ажлыг олоход тусална. Юу хайж байна вэ?",
+    content:
+      "Сайн байна уу! Би таны ажлын байр хайхад туслах AI туслагч. Цалин, байршил, чиглэлийн талаар хэлбэл тохирох ажлыг олоход тусална. Юу хайж байна вэ?",
   },
 ]);
 const input = ref("");
@@ -59,15 +60,21 @@ function onKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-8rem)] flex-col gap-0 overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+  <div
+    class="flex h-[calc(100vh-8rem)] flex-col gap-0 overflow-hidden rounded-3xl border border-border bg-card"
+  >
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border px-6 py-4">
-      <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+      <div
+        class="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground"
+      >
         <Bot class="h-5 w-5" />
       </div>
       <div>
         <p class="font-semibold">Ажлын байр хайх туслагч</p>
-        <p class="text-xs text-muted-foreground">AI-д суурилсан ажлын байрны зөвлөгөө</p>
+        <p class="text-xs text-muted-foreground">
+          AI-д суурилсан ажлын байрны зөвлөгөө
+        </p>
       </div>
     </div>
 
@@ -76,25 +83,38 @@ function onKeydown(e: KeyboardEvent) {
       <div
         v-for="(msg, i) in messages"
         :key="i"
-        :class="['flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row']"
+        :class="[
+          'flex gap-3',
+          msg.role === 'user' ? 'flex-row-reverse' : 'flex-row',
+        ]"
       >
-        <div :class="[
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-xs font-medium',
-          msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
-        ]">
+        <div
+          :class="[
+            'flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl text-xs font-medium',
+            msg.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-muted-foreground',
+          ]"
+        >
           <User v-if="msg.role === 'user'" class="h-4 w-4" />
           <Bot v-else class="h-4 w-4" />
         </div>
-        <div :class="[
-          'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-6',
-          msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
-        ]">
+        <div
+          :class="[
+            'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-6',
+            msg.role === 'user'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground',
+          ]"
+        >
           {{ msg.content }}
         </div>
       </div>
 
       <div v-if="isLoading" class="flex gap-3">
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+        <div
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
+        >
           <Bot class="h-4 w-4" />
         </div>
         <div class="rounded-2xl bg-muted px-4 py-3">
@@ -113,11 +133,17 @@ function onKeydown(e: KeyboardEvent) {
           class="flex-1 resize-none rounded-2xl border border-input bg-background px-4 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           @keydown="onKeydown"
         />
-        <Button class="h-10 w-10 shrink-0 rounded-2xl p-0" :disabled="!input.trim() || isLoading" @click="sendMessage">
+        <Button
+          class="h-10 w-10 shrink-0 rounded-2xl p-0"
+          :disabled="!input.trim() || isLoading"
+          @click="sendMessage"
+        >
           <Send class="h-4 w-4" />
         </Button>
       </div>
-      <p class="mt-2 text-xs text-muted-foreground">Enter дарж илгээх · Shift+Enter шинэ мөр</p>
+      <p class="mt-2 text-xs text-muted-foreground">
+        Enter дарж илгээх · Shift+Enter шинэ мөр
+      </p>
     </div>
   </div>
 </template>

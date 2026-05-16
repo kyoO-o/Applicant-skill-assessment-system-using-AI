@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Task } from "../composables/types";
 import { toast } from "vue-sonner";
-import { ClipboardList, Plus, Wand2, Send, Loader2, ChevronRight } from "lucide-vue-next";
+import { ClipboardList, Plus, Wand2, Send, Loader2, ChevronRight, Sparkles } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
 
@@ -142,11 +142,11 @@ function statusLabel(status: Task["status"]) {
   return map[status] ?? status;
 }
 
-function statusVariant(status: Task["status"]) {
-  if (status === "graded") return "default";
-  if (status === "completed") return "secondary";
-  if (status === "sent") return "outline";
-  return "outline";
+function statusClass(status: Task["status"]) {
+  if (status === "graded") return "badge-success";
+  if (status === "completed") return "badge-info";
+  if (status === "sent") return "badge-warning";
+  return "bg-muted text-muted-foreground";
 }
 
 function formatDate(d: string | null | undefined) {
@@ -156,84 +156,133 @@ function formatDate(d: string | null | undefined) {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p class="text-sm font-medium text-muted-foreground">
-            {{ isRecruiter ? "Даалгаврын удирдлага" : "Миний даалгаврууд" }}
-          </p>
-          <h2 class="mt-2 text-3xl font-semibold tracking-tight">Даалгаврууд</h2>
-        </div>
-        <div v-if="isRecruiter" class="flex gap-2">
-          <Button variant="outline" class="rounded-full" :disabled="isGenerating" @click="generateTask">
-            <Wand2 class="mr-2 h-4 w-4" />
-            {{ isGenerating ? "Үүсгэж байна..." : "AI-аар үүсгэх" }}
-          </Button>
-          <Button class="rounded-full" :disabled="!selectedJobID" @click="createOpen = true">
-            <Plus class="mr-2 h-4 w-4" /> Гараар үүсгэх
-          </Button>
-        </div>
+  <div class="space-y-5">
+    <!-- Page header -->
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div>
+        <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">
+          {{ isRecruiter ? "Удирдлага" : "Миний даалгаврууд" }}
+        </p>
+        <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">Даалгаврууд</h1>
       </div>
-
-      <!-- Job selector for recruiter -->
-      <div v-if="isRecruiter && jobs.length" class="mt-4">
-        <select
-          v-model="selectedJobID"
-          class="rounded-xl border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      <div v-if="isRecruiter" class="flex gap-2">
+        <button
+          class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
+          :disabled="isGenerating"
+          @click="generateTask"
         >
-          <option :value="null">-- Ажлын байр сонгох --</option>
-          <option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.title }}</option>
-        </select>
+          <Loader2 v-if="isGenerating" class="h-4 w-4 animate-spin" />
+          <Sparkles v-else class="h-4 w-4 text-primary" />
+          {{ isGenerating ? "Үүсгэж байна..." : "AI-аар үүсгэх" }}
+        </button>
+        <button
+          class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+          style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+          :disabled="!selectedJobID"
+          @click="createOpen = true"
+        >
+          <Plus class="h-4 w-4" /> Гараар үүсгэх
+        </button>
       </div>
-    </section>
-
-    <div v-if="loading" class="flex justify-center py-12">
-      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
     </div>
 
-    <div v-else-if="!tasks.length"
-         class="rounded-3xl border border-dashed border-border px-6 py-20 text-center">
-      <ClipboardList class="mx-auto h-10 w-10 text-muted-foreground" />
-      <p class="mt-4 text-lg font-medium">Даалгавар байхгүй</p>
+    <!-- Job selector -->
+    <div v-if="isRecruiter && jobs.length" class="flex items-center gap-2">
+      <label class="text-[13px] font-medium text-muted-foreground">Ажлын байр:</label>
+      <select
+        v-model="selectedJobID"
+        class="rounded-xl border border-input bg-background px-3 py-2 text-[13.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <option :value="null">-- Сонгох --</option>
+        <option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.title }}</option>
+      </select>
     </div>
 
-    <div v-else class="space-y-4">
-      <div v-for="task in tasks" :key="task.id"
-           class="rounded-3xl border border-border bg-card px-6 py-5 shadow-sm">
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center py-16">
+      <Loader2 class="h-7 w-7 animate-spin text-primary" />
+    </div>
+
+    <!-- Empty -->
+    <div
+      v-else-if="!tasks.length"
+      class="flex flex-col items-center py-20 text-center"
+    >
+      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+        <ClipboardList class="h-7 w-7 text-muted-foreground" />
+      </div>
+      <p class="text-[16px] font-semibold">Даалгавар байхгүй</p>
+      <p v-if="isRecruiter && !selectedJobID" class="mt-2 text-[13.5px] text-muted-foreground">
+        Даалгавар харахын тулд ажлын байр сонгоно уу.
+      </p>
+    </div>
+
+    <!-- Task cards -->
+    <div v-else class="space-y-3.5">
+      <div
+        v-for="task in tasks"
+        :key="task.id"
+        class="rounded-2xl border border-border bg-card p-5 transition hover:border-primary/15"
+      >
         <div class="flex items-start justify-between gap-4">
-          <div class="space-y-1 min-w-0">
-            <div class="flex items-center gap-2">
-              <h3 class="font-semibold">{{ task.title }}</h3>
-              <Badge v-if="task.created_by_ai" variant="secondary" class="rounded-full px-2 text-xs">AI</Badge>
+          <div class="flex-1 min-w-0 space-y-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h3 class="text-[15px] font-semibold">{{ task.title }}</h3>
+              <span
+                v-if="task.created_by_ai"
+                class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold bg-primary/10 text-primary"
+              >
+                <Sparkles class="h-2.5 w-2.5" /> AI
+              </span>
             </div>
-            <p class="text-sm text-muted-foreground line-clamp-2">{{ task.description }}</p>
-            <p v-if="task.due_date" class="text-xs text-muted-foreground">
+            <p class="text-[13.5px] text-muted-foreground line-clamp-2">{{ task.description }}</p>
+            <p v-if="task.due_date" class="text-[12px] text-muted-foreground">
               Дуусах огноо: {{ formatDate(task.due_date) }}
             </p>
           </div>
           <div class="flex shrink-0 items-center gap-2">
-            <Badge :variant="statusVariant(task.status) as any" class="rounded-full px-3">
+            <span
+              class="inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold"
+              :class="statusClass(task.status)"
+            >
               {{ statusLabel(task.status) }}
-            </Badge>
-            <!-- Recruiter: send button -->
-            <Button v-if="isRecruiter && task.status === 'draft'" size="sm" class="rounded-full" @click="sendTask(task)">
-              <Send class="mr-1 h-3 w-3" /> Илгээх
-            </Button>
-            <!-- Applicant: submit button -->
-            <Button v-if="!isRecruiter && task.status === 'sent'" size="sm" class="rounded-full"
-                    @click="selectedTask = task; submitOpen = true">
-              <ChevronRight class="mr-1 h-3 w-3" /> Гүйцэтгэл илгээх
-            </Button>
+            </span>
+            <!-- Recruiter: send -->
+            <button
+              v-if="isRecruiter && task.status === 'draft'"
+              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:opacity-90"
+              style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+              @click="sendTask(task)"
+            >
+              <Send class="h-3.5 w-3.5" /> Илгээх
+            </button>
+            <!-- Applicant: submit -->
+            <button
+              v-if="!isRecruiter && task.status === 'sent'"
+              class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:opacity-90"
+              style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+              @click="selectedTask = task; submitOpen = true"
+            >
+              <ChevronRight class="h-3.5 w-3.5" /> Гүйцэтгэл илгээх
+            </button>
           </div>
         </div>
 
-        <!-- Submissions for recruiter -->
-        <div v-if="isRecruiter && task.submissions?.length" class="mt-3 border-t border-border pt-3">
-          <p class="mb-2 text-xs font-medium text-muted-foreground">Илгээлтүүд ({{ task.submissions.length }})</p>
-          <div v-for="sub in task.submissions" :key="sub.id" class="rounded-2xl bg-muted px-3 py-2 text-sm">
-            <p class="line-clamp-2">{{ sub.content }}</p>
-            <p v-if="sub.grade !== null" class="mt-1 text-xs text-muted-foreground">Оноо: {{ sub.grade }}/100</p>
+        <!-- Recruiter: submissions -->
+        <div v-if="isRecruiter && task.submissions?.length" class="mt-4 space-y-2 border-t border-border pt-4">
+          <p class="text-[12px] font-semibold uppercase tracking-[0.5px] text-muted-foreground">
+            Илгээлтүүд ({{ task.submissions.length }})
+          </p>
+          <div
+            v-for="sub in task.submissions"
+            :key="sub.id"
+            class="rounded-xl bg-muted/40 px-4 py-3 text-[13.5px]"
+          >
+            <p class="line-clamp-2 text-foreground">{{ sub.content }}</p>
+            <p v-if="sub.grade !== null" class="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-success-foreground">
+              <span class="h-1.5 w-1.5 rounded-full bg-success" />
+              Оноо: {{ sub.grade }}/100
+            </p>
           </div>
         </div>
       </div>
@@ -242,7 +291,7 @@ function formatDate(d: string | null | undefined) {
 
   <!-- Create task dialog -->
   <Dialog v-model:open="createOpen">
-    <DialogContent class="rounded-3xl sm:max-w-lg">
+    <DialogContent class="rounded-2xl sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Даалгавар үүсгэх</DialogTitle>
       </DialogHeader>
@@ -257,11 +306,11 @@ function formatDate(d: string | null | undefined) {
             v-model="form.description"
             rows="5"
             placeholder="Даалгаврын дэлгэрэнгүй тайлбар..."
-            class="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-[13.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
         <div class="space-y-2">
-          <Label>Дуусах огноо (заавал биш)</Label>
+          <Label>Дуусах огноо <span class="text-[11.5px] text-muted-foreground">(заавал биш)</span></Label>
           <Input v-model="form.due_date" type="date" />
         </div>
       </div>
@@ -277,7 +326,7 @@ function formatDate(d: string | null | undefined) {
 
   <!-- Submit task dialog -->
   <Dialog v-model:open="submitOpen">
-    <DialogContent class="rounded-3xl sm:max-w-lg">
+    <DialogContent class="rounded-2xl sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>{{ selectedTask?.title }}</DialogTitle>
         <DialogDescription>{{ selectedTask?.description }}</DialogDescription>
@@ -289,7 +338,7 @@ function formatDate(d: string | null | undefined) {
             v-model="submitContent"
             rows="6"
             placeholder="Гүйцэтгэсэн ажлынхаа тайлбар, хариулт эсвэл холбоосыг энд бичнэ үү..."
-            class="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-[13.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </div>
       </div>

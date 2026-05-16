@@ -220,7 +220,10 @@ async function changePassword() {
   }
   isChangingPassword.value = true;
   try {
-    const res = await authAPI.changePassword(passwordForm.current, passwordForm.newPwd);
+    const res = await authAPI.changePassword(
+      passwordForm.current,
+      passwordForm.newPwd,
+    );
     toast.success(res.message);
     passwordForm.current = "";
     passwordForm.newPwd = "";
@@ -238,9 +241,7 @@ fillProfileForm();
 
 <template>
   <div class="space-y-6">
-    <section
-      class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm"
-    >
+    <section class="rounded-3xl border border-border bg-card px-6 py-6">
       <p class="text-sm font-medium text-muted-foreground">Профайл</p>
       <h1 class="mt-2 text-3xl font-semibold tracking-tight">
         {{ displayName() }}
@@ -251,7 +252,7 @@ fillProfileForm();
     </section>
 
     <!-- Profile name edit -->
-    <Card class="rounded-3xl border-border shadow-sm">
+    <Card class="rounded-3xl border-border shadow-none">
       <CardHeader>
         <CardTitle>Хувийн мэдээлэл засах</CardTitle>
         <CardDescription>Нэр, овгоо шинэчилнэ үү.</CardDescription>
@@ -286,7 +287,7 @@ fillProfileForm();
     </Card>
 
     <!-- Email change card -->
-    <Card class="rounded-3xl border-border shadow-sm">
+    <Card class="rounded-3xl border-border shadow-none">
       <CardHeader>
         <CardTitle>И-мэйл хаяг солих</CardTitle>
         <CardDescription>
@@ -294,7 +295,10 @@ fillProfileForm();
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div v-if="emailChangeStep === 'form'" class="grid gap-4 sm:grid-cols-[1fr_auto]">
+        <div
+          v-if="emailChangeStep === 'form'"
+          class="grid gap-4 sm:grid-cols-[1fr_auto]"
+        >
           <div class="space-y-2">
             <Label for="new-email">Шинэ и-мэйл хаяг</Label>
             <Input
@@ -314,7 +318,9 @@ fillProfileForm();
 
         <div v-else class="space-y-4">
           <p class="text-sm text-muted-foreground">
-            Шинэ и-мэйл <span class="font-medium text-foreground">{{ newEmail }}</span> хаягт код илгээгдлээ.
+            Шинэ и-мэйл
+            <span class="font-medium text-foreground">{{ newEmail }}</span>
+            хаягт код илгээгдлээ.
           </p>
           <div class="grid gap-4 sm:grid-cols-[1fr_auto]">
             <div class="space-y-2">
@@ -330,9 +336,13 @@ fillProfileForm();
               />
             </div>
             <div class="flex items-end gap-2">
-              <Button variant="outline" @click="emailChangeStep = 'form'">Буцах</Button>
+              <Button variant="outline" @click="emailChangeStep = 'form'"
+                >Буцах</Button
+              >
               <Button :disabled="isVerifyingEmail" @click="confirmEmailChange">
-                {{ isVerifyingEmail ? "Баталгаажуулж байна..." : "Баталгаажуулах" }}
+                {{
+                  isVerifyingEmail ? "Баталгаажуулж байна..." : "Баталгаажуулах"
+                }}
               </Button>
             </div>
           </div>
@@ -341,13 +351,18 @@ fillProfileForm();
     </Card>
 
     <!-- Password change card -->
-    <Card class="rounded-3xl border-border shadow-sm">
+    <Card class="rounded-3xl border-border shadow-none">
       <CardHeader>
         <CardTitle>Нууц үг солих</CardTitle>
-        <CardDescription>Одоогийн нууц үгийг оруулж баталгаажуулна уу.</CardDescription>
+        <CardDescription
+          >Одоогийн нууц үгийг оруулж баталгаажуулна уу.</CardDescription
+        >
       </CardHeader>
       <CardContent>
-        <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="changePassword">
+        <form
+          class="grid gap-4 sm:grid-cols-2"
+          @submit.prevent="changePassword"
+        >
           <div class="space-y-2 sm:col-span-2">
             <Label for="current-password">Одоогийн нууц үг</Label>
             <PasswordInput
@@ -390,37 +405,50 @@ fillProfileForm();
     >
       <p class="text-sm font-semibold">Ажил олгогчийн тохиргоо дуусгах</p>
       <p class="mt-2 text-sm leading-6 text-muted-foreground">
-        Таны бүртгэл бэлэн боллоо, гэхдээ ажлын зар нийтлэхийн өмнө компанийн мэдээллээ оруулна уу.
+        Таны бүртгэл бэлэн боллоо, гэхдээ ажлын зар нийтлэхийн өмнө компанийн
+        мэдээллээ оруулна уу.
       </p>
     </section>
 
     <section class="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
-      <Card class="rounded-3xl border-border shadow-sm">
+      <Card class="rounded-3xl border-border shadow-none">
         <CardHeader>
           <CardTitle>Бүртгэлийн дэлгэрэнгүй</CardTitle>
           <CardDescription>Нэвтэрсэн хэрэглэгчийн мэдээлэл.</CardDescription>
         </CardHeader>
         <CardContent class="grid gap-4 sm:grid-cols-2">
           <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <p
+              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
+            >
               Э-мэйл
             </p>
             <p class="mt-2 text-sm font-medium">{{ user?.email || "-" }}</p>
           </div>
           <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <p
+              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
+            >
               Үүрэг
             </p>
-            <p class="mt-2 text-sm font-medium capitalize">{{ user?.role === "recruiter" ? "Ажил олгогч" : "Ажил горилогч" }}</p>
+            <p class="mt-2 text-sm font-medium capitalize">
+              {{ user?.role === "recruiter" ? "Ажил олгогч" : "Ажил горилогч" }}
+            </p>
           </div>
           <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <p
+              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
+            >
               Компани
             </p>
-            <p class="mt-2 text-sm font-medium">{{ company?.name || user?.company_name || "-" }}</p>
+            <p class="mt-2 text-sm font-medium">
+              {{ company?.name || user?.company_name || "-" }}
+            </p>
           </div>
           <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p class="text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <p
+              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
+            >
               Албан тушаал
             </p>
             <p class="mt-2 text-sm font-medium">{{ user?.position || "-" }}</p>
@@ -428,7 +456,7 @@ fillProfileForm();
         </CardContent>
       </Card>
 
-      <Card class="rounded-3xl border-border shadow-sm">
+      <Card class="rounded-3xl border-border shadow-none">
         <CardHeader>
           <CardTitle>Дараагийн алхам</CardTitle>
           <CardDescription>Үүрэгт тохирсон хурдан зам.</CardDescription>
@@ -440,7 +468,11 @@ fillProfileForm();
             :class="isRecruiter && !hasCompany ? 'opacity-70' : ''"
             @click="openJobs"
           >
-            {{ user?.role === "recruiter" ? "Ажлын байр удирдах" : "Ажлын байрууд харах" }}
+            {{
+              user?.role === "recruiter"
+                ? "Ажлын байр удирдах"
+                : "Ажлын байрууд харах"
+            }}
           </button>
           <NuxtLink
             to="/settings"
@@ -452,11 +484,17 @@ fillProfileForm();
       </Card>
     </section>
 
-    <Card v-if="isRecruiter" class="rounded-3xl border-border shadow-sm">
+    <Card v-if="isRecruiter" class="rounded-3xl border-border shadow-none">
       <CardHeader>
-        <CardTitle>{{ hasCompany ? "Компанийн профайл" : "Компани үүсгэх" }}</CardTitle>
+        <CardTitle>{{
+          hasCompany ? "Компанийн профайл" : "Компани үүсгэх"
+        }}</CardTitle>
         <CardDescription>
-          {{ hasCompany ? "Ажил олгогчийн компанийн мэдээллийг шинэчлэн байгаарай." : "Ажлын байр нийтлэхийн өмнө энэ хэсгийг бөглөх шаардлагатай." }}
+          {{
+            hasCompany
+              ? "Ажил олгогчийн компанийн мэдээллийг шинэчлэн байгаарай."
+              : "Ажлын байр нийтлэхийн өмнө энэ хэсгийг бөглөх шаардлагатай."
+          }}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -471,10 +509,18 @@ fillProfileForm();
           Компанийн мэдээлэл ачааллаж байна...
         </div>
 
-        <form v-else class="grid gap-4 sm:grid-cols-2" @submit.prevent="saveCompany">
+        <form
+          v-else
+          class="grid gap-4 sm:grid-cols-2"
+          @submit.prevent="saveCompany"
+        >
           <div class="space-y-2 sm:col-span-2">
             <Label for="company-name">Компанийн нэр</Label>
-            <Input id="company-name" v-model="companyForm.name" placeholder="Таны компани" />
+            <Input
+              id="company-name"
+              v-model="companyForm.name"
+              placeholder="Таны компани"
+            />
           </div>
 
           <div class="space-y-2 sm:col-span-2">
@@ -489,12 +535,20 @@ fillProfileForm();
 
           <div class="space-y-2">
             <Label for="company-register-id">Регистрийн дугаар</Label>
-            <Input id="company-register-id" v-model="companyForm.register_id" placeholder="A1234567" />
+            <Input
+              id="company-register-id"
+              v-model="companyForm.register_id"
+              placeholder="A1234567"
+            />
           </div>
 
           <div class="space-y-2">
             <Label for="company-contact-info">Холбоо барих мэдээлэл</Label>
-            <Input id="company-contact-info" v-model="companyForm.contact_info" placeholder="hr@company.mn | +976 99000000" />
+            <Input
+              id="company-contact-info"
+              v-model="companyForm.contact_info"
+              placeholder="hr@company.mn | +976 99000000"
+            />
             <p class="text-xs text-muted-foreground">
               Ажлын зарт автоматаар нэмэгдэх холбоо барих мэдээлэл.
             </p>
@@ -516,7 +570,10 @@ fillProfileForm();
 
           <div class="space-y-2">
             <Label for="company-district">Дүүрэг / Сум</Label>
-            <Select v-model="companyForm.district" :disabled="!companyForm.city">
+            <Select
+              v-model="companyForm.district"
+              :disabled="!companyForm.city"
+            >
               <SelectTrigger id="company-district" class="w-full">
                 <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
               </SelectTrigger>
@@ -532,7 +589,9 @@ fillProfileForm();
             </Select>
           </div>
 
-          <div class="sm:col-span-2 rounded-2xl border border-border bg-muted/20 p-4 space-y-2">
+          <div
+            class="sm:col-span-2 rounded-2xl border border-border bg-muted/20 p-4 space-y-2"
+          >
             <Label>Газрын зураг дээр байршил сонгох</Label>
             <LocationSearch
               v-model:model-x="companyForm.location_x"
@@ -549,7 +608,12 @@ fillProfileForm();
                   Ажлын зарт нэмэхийн тулд компанийн давуу талуудыг жагсаана уу.
                 </p>
               </div>
-              <Button type="button" variant="outline" size="sm" @click="addBenefit">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                @click="addBenefit"
+              >
                 <Plus class="mr-1 h-4 w-4" />Нэмэх
               </Button>
             </div>
@@ -563,7 +627,12 @@ fillProfileForm();
                   v-model="companyForm.benefits[index]"
                   placeholder="Жишээ: Эрүүл мэндийн даатгал, Уян хатан цаг..."
                 />
-                <Button type="button" variant="outline" size="icon" @click="removeBenefit(index)">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  @click="removeBenefit(index)"
+                >
                   <X class="h-4 w-4" />
                 </Button>
               </div>
@@ -578,7 +647,13 @@ fillProfileForm();
 
           <div class="sm:col-span-2 flex justify-end">
             <Button type="submit" :disabled="isSavingCompany">
-              {{ isSavingCompany ? "Хадгалж байна..." : hasCompany ? "Шинэчлэх" : "Компани үүсгэх" }}
+              {{
+                isSavingCompany
+                  ? "Хадгалж байна..."
+                  : hasCompany
+                    ? "Шинэчлэх"
+                    : "Компани үүсгэх"
+              }}
             </Button>
           </div>
         </form>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { Application } from "../composables/types";
 import { toast } from "vue-sonner";
-import { FileText, Loader2, ChevronRight, CalendarCheck } from "lucide-vue-next";
+import { FileText, Loader2, CalendarCheck } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
 
@@ -29,9 +29,10 @@ async function toggleMap(id: number, location: string | null | undefined) {
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`,
       { headers: { "User-Agent": "SkillAssessmentApp/1.0" } },
     );
-    if (results.length) {
-      state.lat = Number(results[0].lat);
-      state.lng = Number(results[0].lon);
+    const first = results[0];
+    if (first) {
+      state.lat = Number(first.lat);
+      state.lng = Number(first.lon);
       state.show = true;
     }
   } catch { /* ignore */ }
@@ -53,9 +54,15 @@ async function load() {
 await load();
 
 function scoreColor(score: number) {
-  if (score >= 75) return "text-green-600";
-  if (score >= 50) return "text-yellow-600";
-  return "text-red-600";
+  if (score >= 75) return "text-success-foreground";
+  if (score >= 50) return "text-warning-foreground";
+  return "text-destructive";
+}
+
+function scoreBorderBg(score: number) {
+  if (score >= 75) return "border-success bg-success-bg";
+  if (score >= 50) return "border-warning bg-warning-bg";
+  return "border-destructive/40 bg-destructive/5";
 }
 
 function statusLabel(status: Application["status"]) {
@@ -66,13 +73,6 @@ function statusLabel(status: Application["status"]) {
     rejected: "Татгалзсан",
   };
   return map[status] ?? status;
-}
-
-function statusVariant(status: Application["status"]) {
-  if (status === "shortlisted") return "default";
-  if (status === "rejected") return "destructive";
-  if (status === "pending") return "outline";
-  return "secondary";
 }
 
 function formatDate(d: string) {
@@ -97,65 +97,124 @@ function gcalLink(app: Application) {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
-      <p class="text-sm font-medium text-muted-foreground">Миний анкетууд</p>
-      <h2 class="mt-2 text-3xl font-semibold tracking-tight">Илгээсэн анкетууд</h2>
-      <p class="mt-2 text-sm leading-6 text-muted-foreground">
-        Та илгээсэн анкетуудын AI үнэлгээний үр дүнг энд харж болно.
-      </p>
-    </section>
-
-    <div v-if="loading" class="flex justify-center py-12">
-      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+  <div class="space-y-5">
+    <!-- Page header -->
+    <div>
+      <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Анкет</p>
+      <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">Илгээсэн анкетууд</h1>
+      <p class="mt-1 text-[13.5px] text-muted-foreground">AI үнэлгээний үр дүнг энд харна уу.</p>
     </div>
 
-    <div v-else-if="!applications.length"
-         class="rounded-3xl border border-dashed border-border px-6 py-20 text-center">
-      <FileText class="mx-auto h-10 w-10 text-muted-foreground" />
-      <p class="mt-4 text-lg font-medium">Илгээсэн анкет байхгүй</p>
-      <p class="mt-2 text-sm text-muted-foreground">Ажлын байруудыг харж анкетаа илгээгээрэй.</p>
-      <Button class="mt-6 rounded-full px-5" @click="router.push('/jobs')">
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center py-16">
+      <Loader2 class="h-7 w-7 animate-spin text-primary" />
+    </div>
+
+    <!-- Empty state -->
+    <div v-else-if="!applications.length" class="flex flex-col items-center py-20 text-center">
+      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+        <FileText class="h-7 w-7 text-muted-foreground" />
+      </div>
+      <p class="text-[16px] font-semibold">Илгээсэн анкет байхгүй</p>
+      <p class="mt-2 text-[13.5px] text-muted-foreground">Ажлын байруудыг харж анкетаа илгээгээрэй.</p>
+      <button
+        class="mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-semibold text-white transition hover:opacity-90"
+        style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+        @click="router.push('/jobs')"
+      >
         Ажлын байр харах
-      </Button>
+      </button>
     </div>
 
-    <div v-else class="space-y-4">
-      <div v-for="app in applications" :key="app.id"
-           class="cursor-pointer rounded-3xl border border-border bg-card px-6 py-5 shadow-sm transition hover:shadow-md"
-           @click="router.push(`/jobs/${app.job_posting_id}`)">
+    <!-- Application cards -->
+    <div v-else class="space-y-3.5">
+      <div
+        v-for="app in applications"
+        :key="app.id"
+        class="group cursor-pointer rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
+        @click="router.push(`/jobs/${app.job_posting_id}`)"
+      >
+        <!-- Top row -->
         <div class="flex items-start justify-between gap-4">
-          <div class="space-y-1">
-            <h3 class="font-semibold">{{ app.job_title || "Ажлын байр" }}</h3>
-            <p class="text-xs text-muted-foreground">{{ formatDate(app.created_at) }}</p>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-[15px] font-semibold leading-snug">{{ app.job_title || "Ажлын байр" }}</h3>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">{{ formatDate(app.created_at) }}</p>
           </div>
-          <div class="flex items-center gap-3">
-            <div v-if="app.status !== 'pending'" class="text-right">
-              <p class="text-xs text-muted-foreground">Оноо</p>
-              <p :class="['text-2xl font-bold', scoreColor(app.overall_score)]">{{ app.overall_score }}%</p>
+          <div class="flex shrink-0 items-center gap-2.5">
+            <!-- Score circle -->
+            <div
+              v-if="app.status !== 'pending'"
+              class="flex h-12 w-12 items-center justify-center rounded-full border-[3px] shrink-0"
+              :class="scoreBorderBg(app.overall_score)"
+            >
+              <span class="text-[13px] font-bold leading-none" :class="scoreColor(app.overall_score)">
+                {{ app.overall_score }}<span class="text-[9px]">%</span>
+              </span>
             </div>
-            <Badge :variant="statusVariant(app.status) as any" class="rounded-full px-3 py-1">
+            <!-- Status badge -->
+            <span
+              class="inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold"
+              :class="{
+                'badge-success': app.status === 'shortlisted',
+                'badge-info': app.status === 'assessed',
+                'bg-destructive/10 text-destructive': app.status === 'rejected',
+                'bg-muted text-muted-foreground': app.status === 'pending',
+              }"
+            >
               {{ statusLabel(app.status) }}
-            </Badge>
-            <ChevronRight class="h-4 w-4 text-muted-foreground" />
+            </span>
           </div>
         </div>
-        <p v-if="app.summary && app.status !== 'pending'" class="mt-3 text-sm text-muted-foreground line-clamp-2">
+
+        <!-- AI pending indicator -->
+        <div v-if="app.status === 'pending'" class="mt-3 flex items-center gap-2 text-[13px] text-muted-foreground">
+          <Loader2 class="h-3.5 w-3.5 animate-spin text-primary" />
+          <span>AI үнэлгээ хийгдэж байна...</span>
+        </div>
+
+        <!-- Summary -->
+        <p
+          v-if="app.summary && app.status !== 'pending'"
+          class="mt-3 text-[13.5px] leading-[1.55] text-muted-foreground line-clamp-2"
+        >
           {{ app.summary }}
         </p>
-        <div v-if="app.status === 'pending'" class="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 class="h-3 w-3 animate-spin" /> AI үнэлгээ хийгдэж байна...
+
+        <!-- Skill chips -->
+        <div
+          v-if="(app.matched_skills?.length || app.missing_skills?.length) && app.status !== 'pending'"
+          class="mt-3 flex flex-wrap gap-1.5"
+        >
+          <span
+            v-for="s in app.matched_skills?.slice(0, 4)"
+            :key="s.skill"
+            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium badge-success"
+          >
+            ✓ {{ s.skill }}
+          </span>
+          <span
+            v-for="s in app.missing_skills?.slice(0, 3)"
+            :key="'m-' + s.skill"
+            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium bg-destructive/10 text-destructive"
+          >
+            ✗ {{ s.skill }}
+          </span>
         </div>
-        <!-- Interview schedule -->
-        <div v-if="app.interview_at" class="mt-3 rounded-2xl border border-purple-200 bg-purple-50 px-4 py-3">
-          <div class="flex items-center gap-1.5 mb-1">
-            <CalendarCheck class="h-3.5 w-3.5 text-purple-600" />
-            <p class="text-xs font-medium text-purple-700">Ярилцлагын хуваарь</p>
+
+        <!-- Interview section -->
+        <div
+          v-if="app.interview_at"
+          class="mt-4 rounded-xl border p-4 ai-surface"
+          @click.stop
+        >
+          <div class="flex items-center gap-1.5 mb-2">
+            <CalendarCheck class="h-3.5 w-3.5 text-primary" />
+            <p class="text-[11.5px] font-semibold uppercase tracking-[0.5px] text-primary">Ярилцлагын хуваарь</p>
           </div>
-          <p class="text-sm font-semibold text-purple-900">{{ formatDateTime(app.interview_at) }}</p>
-          <div v-if="app.interview_location" class="mt-1 flex items-start justify-between gap-2" @click.stop>
-            <p class="text-xs text-purple-600">{{ app.interview_location }}</p>
-            <label class="flex cursor-pointer items-center gap-1 text-xs text-purple-500 whitespace-nowrap">
+          <p class="text-[15px] font-semibold">{{ formatDateTime(app.interview_at) }}</p>
+          <div v-if="app.interview_location" class="mt-2 flex items-start justify-between gap-2">
+            <p class="text-[12.5px] text-muted-foreground">{{ app.interview_location }}</p>
+            <label class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap">
               <Checkbox
                 :checked="mapState(app.id).show"
                 @update:checked="toggleMap(app.id, app.interview_location)"
@@ -163,21 +222,21 @@ function gcalLink(app: Application) {
               Зураг
             </label>
           </div>
-          <div v-if="mapState(app.id).show && mapState(app.id).lat !== null" class="mt-2" @click.stop>
+          <div v-if="mapState(app.id).show && mapState(app.id).lat !== null" class="mt-2">
             <LocationMap
               :lat="mapState(app.id).lat!"
               :lng="mapState(app.id).lng!"
               :label="app.interview_location ?? undefined"
             />
           </div>
-          <p v-if="app.interview_note" class="mt-0.5 text-xs text-purple-500 italic">{{ app.interview_note }}</p>
+          <p v-if="app.interview_note" class="mt-1 text-[12px] text-muted-foreground italic">{{ app.interview_note }}</p>
           <a
             :href="gcalLink(app)"
             target="_blank"
             rel="noopener"
-            class="mt-2 inline-flex items-center gap-1 text-xs font-medium text-purple-700 underline underline-offset-2 hover:text-purple-900"
-            @click.stop
+            class="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-primary hover:underline"
           >
+            <CalendarCheck class="h-3.5 w-3.5" />
             Google Calendar-д нэмэх
           </a>
         </div>

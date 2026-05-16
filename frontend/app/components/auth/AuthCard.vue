@@ -11,33 +11,25 @@ defineProps<Props>();
 </script>
 
 <template>
-  <Card class="mx-auto w-full max-w-xl rounded-[2rem] border-white/80 bg-white/90 shadow-2xl shadow-slate-200/70 backdrop-blur">
-    <CardHeader class="space-y-3">
-      <Badge variant="secondary" class="w-fit rounded-full px-3 py-1">
-        Аюулгүй нэвтрэлт
-      </Badge>
-      <CardTitle class="text-2xl text-slate-950 sm:text-3xl">
-        {{ title }}
-      </CardTitle>
-      <CardDescription class="text-base leading-7 text-slate-600">
-        {{ description }}
-      </CardDescription>
-    </CardHeader>
+  <div>
+    <!-- Heading -->
+    <h1 class="text-[26px] font-semibold tracking-[-0.6px] text-foreground">{{ title }}</h1>
+    <p class="mt-1.5 text-[14px] text-muted-foreground">{{ description }}</p>
 
-    <CardContent class="space-y-6">
+    <!-- Form content -->
+    <div class="mt-7">
       <slot />
+    </div>
 
-      <Separator />
-
-      <p class="text-center text-sm text-slate-600">
-        {{ footerText }}
-        <NuxtLink
-          :to="footerLinkTo"
-          class="font-semibold text-blue-700 transition hover:text-blue-800"
-        >
-          {{ footerLinkText }}
-        </NuxtLink>
-      </p>
-    </CardContent>
-  </Card>
+    <!-- Footer link -->
+    <p class="mt-6 text-center text-[13px] text-muted-foreground">
+      {{ footerText }}
+      <NuxtLink
+        :to="footerLinkTo"
+        class="ml-1 font-semibold text-primary hover:text-primary/80"
+      >
+        {{ footerLinkText }}
+      </NuxtLink>
+    </p>
+  </div>
 </template>

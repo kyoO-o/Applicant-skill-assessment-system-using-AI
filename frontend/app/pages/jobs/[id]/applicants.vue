@@ -215,31 +215,13 @@ function derivedStatus(app: Application): DerivedStatus {
   return "applied";
 }
 
-const statusConfig: Record<DerivedStatus, { label: string; class: string }> = {
-  applied: {
-    label: "Анкет илгээсэн",
-    class: "bg-blue-50 text-blue-700 border-blue-200",
-  },
-  interview_scheduled: {
-    label: "Ярилцлага товлосон",
-    class: "bg-purple-50 text-purple-700 border-purple-200",
-  },
-  task_sent: {
-    label: "Даалгавар илгээсэн",
-    class: "bg-amber-50 text-amber-700 border-amber-200",
-  },
-  task_completed: {
-    label: "Даалгавар гүйцэтгэсэн",
-    class: "bg-teal-50 text-teal-700 border-teal-200",
-  },
-  hired: {
-    label: "Ажилд авсан",
-    class: "bg-green-50 text-green-700 border-green-200",
-  },
-  failed: {
-    label: "Тэнцээгүй",
-    class: "bg-red-50 text-red-700 border-red-200",
-  },
+const statusConfig: Record<DerivedStatus, { label: string; cls: string }> = {
+  applied: { label: "Анкет илгээсэн", cls: "badge-info" },
+  interview_scheduled: { label: "Ярилцлага товлосон", cls: "bg-primary/10 text-primary" },
+  task_sent: { label: "Даалгавар илгээсэн", cls: "badge-warning" },
+  task_completed: { label: "Даалгавар гүйцэтгэсэн", cls: "bg-success-bg text-success-foreground border border-success/20" },
+  hired: { label: "Ажилд авсан", cls: "badge-success" },
+  failed: { label: "Тэнцээгүй", cls: "bg-destructive/10 text-destructive" },
 };
 
 const statusOrder: Record<DerivedStatus, number> = {
@@ -299,30 +281,15 @@ try {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function scoreColor(score: number) {
-  if (score >= 75) return "text-green-600";
-  if (score >= 50) return "text-yellow-600";
-  return "text-red-600";
+  if (score >= 75) return "text-success-foreground";
+  if (score >= 50) return "text-warning-foreground";
+  return "text-destructive";
 }
 
-function scoreBadge(score: number) {
-  if (score >= 75) return "bg-green-50 text-green-700";
-  if (score >= 50) return "bg-yellow-50 text-yellow-700";
-  return "bg-red-50 text-red-700";
-}
-
-function formatDate(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(
-    new Date(d),
-  );
-}
-
-function formatDateTime(d: string | null | undefined) {
-  if (!d) return "—";
-  return new Intl.DateTimeFormat("mn-MN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(d));
+function scoreBorderBg(score: number) {
+  if (score >= 75) return "border-success bg-success-bg";
+  if (score >= 50) return "border-warning bg-warning-bg";
+  return "border-destructive/40 bg-destructive/5";
 }
 
 function assessIcon(s: string) {
@@ -332,358 +299,322 @@ function assessIcon(s: string) {
 }
 
 function assessColor(s: string) {
-  if (s === "met") return "text-green-600";
-  if (s === "partial") return "text-yellow-600";
-  return "text-red-500";
+  if (s === "met") return "text-success-foreground";
+  if (s === "partial") return "text-warning-foreground";
+  return "text-destructive";
 }
 
-function assessBg(s: string) {
-  if (s === "met") return "bg-green-50 border-green-100";
-  if (s === "partial") return "bg-yellow-50 border-yellow-100";
-  return "bg-red-50 border-red-100";
+function assessRowBg(s: string) {
+  if (s === "met") return "bg-success-bg border-success/20";
+  if (s === "partial") return "bg-warning-bg border-warning/20";
+  return "bg-destructive/5 border-destructive/15";
+}
+
+function formatDate(d: string | null | undefined) {
+  if (!d) return "—";
+  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(new Date(d));
+}
+
+function formatDateTime(d: string | null | undefined) {
+  if (!d) return "—";
+  return new Intl.DateTimeFormat("mn-MN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(d));
 }
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex items-center gap-3">
-          <Button variant="ghost" size="icon" class="rounded-xl" @click="router.back()">
-            <ChevronLeft class="h-4 w-4" />
-          </Button>
-          <div>
-            <p class="text-sm font-medium text-muted-foreground">Ажлын горилогчид</p>
-            <h2 class="text-2xl font-semibold tracking-tight">
-              {{ applications.length }} горилогч
-            </h2>
-          </div>
-        </div>
-
-        <!-- Sort -->
-        <div class="flex items-center gap-2">
-          <ArrowUpDown class="h-4 w-4 shrink-0 text-muted-foreground" />
-          <Select v-model="sortBy">
-            <SelectTrigger class="w-52 rounded-2xl">
-              <SelectValue placeholder="Эрэмбэлэх" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </SelectItem>
-            </SelectContent>
-          </Select>
+  <div class="space-y-5">
+    <!-- Page header -->
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <button
+          class="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          @click="router.back()"
+        >
+          <ChevronLeft class="h-4 w-4" />
+        </button>
+        <div>
+          <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Горилогчид</p>
+          <h1 class="text-[22px] font-semibold tracking-[-0.5px]">
+            {{ loading ? "…" : `${applications.length} горилогч` }}
+          </h1>
         </div>
       </div>
-    </section>
+
+      <!-- Sort -->
+      <div class="flex items-center gap-2">
+        <ArrowUpDown class="h-4 w-4 shrink-0 text-muted-foreground" />
+        <Select v-model="sortBy">
+          <SelectTrigger class="w-48 rounded-xl">
+            <SelectValue placeholder="Эрэмбэлэх" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-12">
-      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+    <div v-if="loading" class="flex justify-center py-16">
+      <Loader2 class="h-7 w-7 animate-spin text-primary" />
     </div>
 
     <!-- Empty -->
-    <div
-      v-else-if="!applications.length"
-      class="rounded-3xl border border-dashed border-border px-6 py-20 text-center"
-    >
-      <Users class="mx-auto h-10 w-10 text-muted-foreground" />
-      <p class="mt-4 text-lg font-medium">Горилогч байхгүй байна</p>
-      <p class="mt-2 text-sm text-muted-foreground">
-        Горилогчид анкет илгээх үед энд харагдана.
-      </p>
+    <div v-else-if="!applications.length" class="flex flex-col items-center py-20 text-center">
+      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+        <Users class="h-7 w-7 text-muted-foreground" />
+      </div>
+      <p class="text-[16px] font-semibold">Горилогч байхгүй байна</p>
+      <p class="mt-2 text-[13.5px] text-muted-foreground">Горилогчид анкет илгээх үед энд харагдана.</p>
     </div>
 
-    <!-- Table -->
-    <Card v-else class="rounded-3xl border-border shadow-sm overflow-hidden">
-      <div class="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead class="min-w-[180px]">Горилогч</TableHead>
-              <TableHead class="min-w-[90px] text-center">Үнэлгээ</TableHead>
-              <TableHead class="min-w-[160px]">Төлөв</TableHead>
-              <TableHead class="min-w-[120px]">Илгээсэн огноо</TableHead>
-              <TableHead class="min-w-[140px]">Ярилцлагийн тов</TableHead>
-              <TableHead class="min-w-[140px]">Даалгавар илгээсэн</TableHead>
-              <TableHead class="min-w-[150px]">Даалгавар гүйцэтгэсэн</TableHead>
-              <TableHead class="min-w-[180px] text-right">Үйлдэл</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            <TableRow
-              v-for="app in sortedApplications"
-              :key="app.id"
-              class="cursor-pointer hover:bg-muted/30 transition-colors"
-              @click="openDetail(app)"
-            >
-              <!-- Name -->
-              <TableCell>
-                <div class="min-w-0">
-                  <p class="truncate font-medium text-sm">{{ app.applicant_name || "Хэрэглэгч" }}</p>
-                  <p class="truncate text-xs text-muted-foreground">{{ app.applicant_email }}</p>
-                </div>
-              </TableCell>
+    <!-- Applicant cards -->
+    <div v-else class="space-y-3">
+      <div
+        v-for="app in sortedApplications"
+        :key="app.id"
+        class="group cursor-pointer rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
+        @click="openDetail(app)"
+      >
+        <div class="flex items-center gap-4">
+          <!-- Score circle -->
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-[3px]"
+            :class="scoreBorderBg(app.overall_score)"
+          >
+            <span class="text-[13px] font-bold leading-none" :class="scoreColor(app.overall_score)">
+              {{ app.overall_score }}<span class="text-[9px]">%</span>
+            </span>
+          </div>
 
-              <!-- Score -->
-              <TableCell class="text-center">
-                <span
-                  :class="[
-                    'inline-block rounded-xl px-2.5 py-1 text-sm font-bold',
-                    scoreBadge(app.overall_score),
-                  ]"
-                >
-                  {{ app.overall_score }}%
-                </span>
-              </TableCell>
+          <!-- Applicant info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <p class="text-[15px] font-semibold">{{ app.applicant_name || "Хэрэглэгч" }}</p>
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold"
+                :class="statusConfig[derivedStatus(app)].cls"
+              >
+                {{ statusConfig[derivedStatus(app)].label }}
+              </span>
+            </div>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground">{{ app.applicant_email }}</p>
 
-              <!-- Status -->
-              <TableCell>
-                <span
-                  :class="[
-                    'inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium',
-                    statusConfig[derivedStatus(app)].class,
-                  ]"
-                >
-                  {{ statusConfig[derivedStatus(app)].label }}
-                </span>
-              </TableCell>
+            <!-- Skill chips preview -->
+            <div v-if="app.matched_skills?.length" class="mt-2 flex flex-wrap gap-1">
+              <span
+                v-for="s in app.matched_skills.slice(0, 4)"
+                :key="s.skill"
+                class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium badge-success"
+              >
+                ✓ {{ s.skill }}
+              </span>
+              <span
+                v-for="s in app.missing_skills?.slice(0, 2)"
+                :key="'m-' + s.skill"
+                class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium bg-destructive/10 text-destructive"
+              >
+                ✗ {{ s.skill }}
+              </span>
+            </div>
+          </div>
 
-              <!-- Applied date -->
-              <TableCell class="text-sm text-muted-foreground">
-                {{ formatDate(app.created_at) }}
-              </TableCell>
-
-              <!-- Interview date -->
-              <TableCell class="text-sm text-muted-foreground">
-                {{ app.interview_at ? formatDateTime(app.interview_at) : "—" }}
-              </TableCell>
-
-              <!-- Task sent date -->
-              <TableCell class="text-sm text-muted-foreground">
-                <template v-if="taskForApp(app.id)">
-                  {{ formatDate(taskForApp(app.id)!.created_at) }}
-                </template>
-                <template v-else>—</template>
-              </TableCell>
-
-              <!-- Task completed date -->
-              <TableCell class="text-sm text-muted-foreground">
-                <template
-                  v-if="taskForApp(app.id) && (taskForApp(app.id)!.status === 'completed' || taskForApp(app.id)!.status === 'graded')"
-                >
-                  {{ formatDate(taskForApp(app.id)!.updated_at) }}
-                </template>
-                <template v-else>—</template>
-              </TableCell>
-
-              <!-- Actions -->
-              <TableCell class="text-right" @click.stop>
-                <div class="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="rounded-xl gap-1.5"
-                    :title="app.interview_at ? 'Ярилцлага товлогдсон' : 'Ярилцлага товлох'"
-                    @click="openInterviewDialog(app)"
-                  >
-                    <CalendarDays class="h-3.5 w-3.5" />
-                    <span class="hidden sm:inline">Ярилцлага</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    class="rounded-xl gap-1.5"
-                    :disabled="!!taskForApp(app.id)"
-                    :title="taskForApp(app.id) ? 'Даалгавар илгээгдсэн' : 'Даалгавар илгээх'"
-                    @click="openTaskDialog(app)"
-                  >
-                    <ClipboardList class="h-3.5 w-3.5" />
-                    <span class="hidden sm:inline">Даалгавар</span>
-                  </Button>
-                </div>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
+          <!-- Date + actions -->
+          <div class="shrink-0 flex flex-col items-end gap-2" @click.stop>
+            <p class="text-[12px] text-muted-foreground">{{ formatDate(app.created_at) }}</p>
+            <div class="flex items-center gap-1.5">
+              <button
+                class="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                :title="app.interview_at ? 'Ярилцлага товлогдсон' : 'Ярилцлага товлох'"
+                @click="openInterviewDialog(app)"
+              >
+                <CalendarDays class="h-3.5 w-3.5" />
+                <span class="hidden sm:inline">Ярилцлага</span>
+              </button>
+              <button
+                class="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
+                :disabled="!!taskForApp(app.id)"
+                :title="taskForApp(app.id) ? 'Даалгавар илгээгдсэн' : 'Даалгавар илгээх'"
+                @click="openTaskDialog(app)"
+              >
+                <ClipboardList class="h-3.5 w-3.5" />
+                <span class="hidden sm:inline">Даалгавар</span>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
-    </Card>
+    </div>
   </div>
 
   <!-- ── Detail dialog ──────────────────────────────────────────────────── -->
   <Dialog v-model:open="detailOpen">
-    <DialogContent class="rounded-3xl sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+    <DialogContent class="rounded-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>{{ selected?.applicant_name || "Горилогч" }}</DialogTitle>
+        <DialogTitle class="text-[18px]">{{ selected?.applicant_name || "Горилогч" }}</DialogTitle>
         <DialogDescription>{{ selected?.applicant_email }}</DialogDescription>
       </DialogHeader>
 
       <div v-if="selected" class="space-y-5 py-2">
         <!-- Score + summary -->
-        <div class="flex items-start gap-4 rounded-2xl border border-border bg-muted/20 p-4">
-          <div class="shrink-0 text-center">
-            <p :class="['text-4xl font-bold', scoreColor(selected.overall_score)]">
-              {{ selected.overall_score }}%
-            </p>
-            <p class="text-xs text-muted-foreground mt-1">үнэлгээ</p>
+        <div class="flex items-start gap-4 rounded-xl border p-4"
+          :class="selected.overall_score >= 75 ? 'bg-success-bg border-success/20' : selected.overall_score >= 50 ? 'bg-warning-bg border-warning/20' : 'bg-destructive/5 border-destructive/15'"
+        >
+          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[3px]"
+            :class="scoreBorderBg(selected.overall_score)"
+          >
+            <div class="text-center">
+              <p class="text-[18px] font-bold leading-none" :class="scoreColor(selected.overall_score)">{{ selected.overall_score }}</p>
+              <p class="text-[10px]" :class="scoreColor(selected.overall_score)">/100</p>
+            </div>
           </div>
           <div class="flex-1">
-            <p class="text-sm leading-6 text-muted-foreground">{{ selected.summary }}</p>
+            <div class="mb-1.5 flex items-center gap-2">
+              <Sparkles class="h-3.5 w-3.5 text-primary" />
+              <p class="text-[13px] font-semibold">AI үнэлгээний дүгнэлт</p>
+            </div>
+            <p class="text-[13px] leading-[1.6] text-muted-foreground">{{ selected.summary }}</p>
           </div>
         </div>
 
-        <!-- Status timeline -->
-        <div class="grid gap-2 sm:grid-cols-2">
-          <div class="rounded-2xl border border-border bg-muted/20 px-4 py-3">
-            <p class="text-xs text-muted-foreground">Одоогийн төлөв</p>
+        <!-- Status + interview -->
+        <div class="grid gap-2.5 sm:grid-cols-2">
+          <div class="rounded-xl border border-border bg-muted/20 px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5">Одоогийн төлөв</p>
             <span
-              :class="[
-                'mt-1 inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium',
-                statusConfig[derivedStatus(selected)].class,
-              ]"
+              class="inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold"
+              :class="statusConfig[derivedStatus(selected)].cls"
             >
               {{ statusConfig[derivedStatus(selected)].label }}
             </span>
           </div>
-          <div class="rounded-2xl border border-border bg-muted/20 px-4 py-3">
-            <p class="text-xs text-muted-foreground">Ярилцлагийн тов</p>
-            <p class="mt-1 text-sm font-medium">
+          <div class="rounded-xl border border-border bg-muted/20 px-4 py-3">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5">Ярилцлагийн тов</p>
+            <p class="text-[13.5px] font-medium">
               {{ selected.interview_at ? formatDateTime(selected.interview_at) : "Товлоогүй" }}
             </p>
           </div>
         </div>
 
-        <!-- Hire / Reject + Interview / Task -->
+        <!-- Actions -->
         <div class="flex flex-wrap gap-2">
-          <Button
+          <button
             v-if="selected.status !== 'shortlisted'"
-            class="rounded-full"
+            class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90"
+            style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
             :disabled="updatingStatus"
             @click="updateStatus(selected.id, 'shortlisted')"
           >
             Ажилд авах
-          </Button>
-          <Button
+          </button>
+          <button
             v-if="selected.status !== 'rejected'"
-            variant="outline"
-            class="rounded-full"
+            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
             :disabled="updatingStatus"
             @click="updateStatus(selected.id, 'rejected')"
           >
             Тэнцээгүй
-          </Button>
-          <Button
-            variant="outline"
-            class="rounded-full"
+          </button>
+          <button
+            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
             @click="() => { detailOpen = false; openInterviewDialog(selected!); }"
           >
-            <CalendarDays class="mr-2 h-4 w-4" />
+            <CalendarDays class="h-4 w-4" />
             Ярилцлага товлох
-          </Button>
-          <Button
-            variant="outline"
-            class="rounded-full"
+          </button>
+          <button
+            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
             :disabled="!!taskForApp(selected.id)"
             @click="() => { detailOpen = false; openTaskDialog(selected!); }"
           >
-            <ClipboardList class="mr-2 h-4 w-4" />
+            <ClipboardList class="h-4 w-4" />
             Даалгавар илгээх
-          </Button>
+          </button>
         </div>
 
         <!-- Skills -->
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
-            <p class="text-xs font-medium uppercase tracking-wide text-green-700">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-success-foreground">
               Тохирсон ур чадварууд
             </p>
             <div
               v-for="s in selected.matched_skills"
               :key="s.skill"
-              class="rounded-xl bg-green-50 px-3 py-2"
+              class="rounded-xl border border-success/20 bg-success-bg p-3"
             >
-              <p class="text-xs font-medium text-green-800">✓ {{ s.skill }}</p>
-              <p class="mt-0.5 text-xs text-green-600">{{ s.explanation }}</p>
+              <p class="flex items-center gap-1.5 text-[12.5px] font-semibold text-success-foreground">
+                <CheckCircle2 class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
+              </p>
+              <p class="mt-0.5 text-[12px] text-muted-foreground">{{ s.explanation }}</p>
             </div>
-            <p v-if="!selected.matched_skills?.length" class="text-xs text-muted-foreground">
-              Байхгүй
-            </p>
+            <p v-if="!selected.matched_skills?.length" class="text-[12.5px] text-muted-foreground">Байхгүй</p>
           </div>
           <div class="space-y-2">
-            <p class="text-xs font-medium uppercase tracking-wide text-red-700">
+            <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-destructive">
               Дутуу ур чадварууд
             </p>
             <div
               v-for="s in selected.missing_skills"
               :key="s.skill"
-              class="rounded-xl bg-red-50 px-3 py-2"
+              class="rounded-xl border border-destructive/15 bg-destructive/5 p-3"
             >
-              <p class="text-xs font-medium text-red-800">✗ {{ s.skill }}</p>
-              <p class="mt-0.5 text-xs text-red-600">{{ s.explanation }}</p>
+              <p class="flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive">
+                <XCircle class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
+              </p>
+              <p class="mt-0.5 text-[12px] text-muted-foreground">{{ s.explanation }}</p>
             </div>
-            <p v-if="!selected.missing_skills?.length" class="text-xs text-muted-foreground">
-              Байхгүй
-            </p>
+            <p v-if="!selected.missing_skills?.length" class="text-[12.5px] text-muted-foreground">Байхгүй</p>
           </div>
         </div>
 
         <!-- Duty assessments -->
         <div v-if="selected.duty_assessments?.length" class="space-y-2">
-          <p class="text-sm font-medium">Үүрэг хариуцлагын үнэлгээ</p>
+          <p class="text-[13.5px] font-semibold">Үүрэг хариуцлагын үнэлгээ</p>
           <div
             v-for="d in selected.duty_assessments"
             :key="d.duty"
-            :class="['rounded-2xl border p-3', assessBg(d.status)]"
+            class="flex items-start gap-3 rounded-xl border p-3"
+            :class="assessRowBg(d.status)"
           >
-            <div class="flex items-start gap-2">
-              <component
-                :is="assessIcon(d.status)"
-                class="mt-0.5 h-4 w-4 shrink-0"
-                :class="assessColor(d.status)"
-              />
-              <div>
-                <p class="text-sm font-medium">{{ d.duty }}</p>
-                <p class="mt-0.5 text-xs" :class="assessColor(d.status)">
-                  {{ d.explanation }}
-                </p>
-              </div>
+            <component :is="assessIcon(d.status)" class="mt-0.5 h-4 w-4 shrink-0" :class="assessColor(d.status)" />
+            <div>
+              <p class="text-[13px] font-medium">{{ d.duty }}</p>
+              <p class="mt-0.5 text-[12px]" :class="assessColor(d.status)">{{ d.explanation }}</p>
             </div>
           </div>
         </div>
 
         <!-- Requirement assessments -->
         <div v-if="selected.requirement_assessments?.length" class="space-y-2">
-          <p class="text-sm font-medium">Шаардлагын үнэлгээ</p>
+          <p class="text-[13.5px] font-semibold">Шаардлагын үнэлгээ</p>
           <div
             v-for="r in selected.requirement_assessments"
             :key="r.requirement"
-            :class="['rounded-2xl border p-3', assessBg(r.status)]"
+            class="flex items-start gap-3 rounded-xl border p-3"
+            :class="assessRowBg(r.status)"
           >
-            <div class="flex items-start gap-2">
-              <component
-                :is="assessIcon(r.status)"
-                class="mt-0.5 h-4 w-4 shrink-0"
-                :class="assessColor(r.status)"
-              />
-              <div>
-                <p class="text-sm font-medium">{{ r.requirement }}</p>
-                <p class="mt-0.5 text-xs" :class="assessColor(r.status)">
-                  {{ r.explanation }}
-                </p>
-              </div>
+            <component :is="assessIcon(r.status)" class="mt-0.5 h-4 w-4 shrink-0" :class="assessColor(r.status)" />
+            <div>
+              <p class="text-[13px] font-medium">{{ r.requirement }}</p>
+              <p class="mt-0.5 text-[12px]" :class="assessColor(r.status)">{{ r.explanation }}</p>
             </div>
           </div>
         </div>
 
         <!-- Recommendations -->
         <div v-if="selected.recommendations?.length" class="space-y-2">
-          <p class="text-sm font-medium">Зөвлөмж</p>
-          <ul class="space-y-1">
+          <p class="text-[13.5px] font-semibold">Зөвлөмж</p>
+          <ul class="space-y-1.5">
             <li
               v-for="r in selected.recommendations"
               :key="r"
-              class="flex items-start gap-2 text-sm text-muted-foreground"
+              class="flex items-start gap-2 text-[13px] text-muted-foreground"
             >
               <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {{ r }}
             </li>
@@ -695,11 +626,11 @@ function assessBg(s: string) {
 
   <!-- ── Interview dialog ───────────────────────────────────────────────── -->
   <Dialog v-model:open="interviewOpen">
-    <DialogContent class="rounded-3xl sm:max-w-md">
+    <DialogContent class="rounded-2xl sm:max-w-md">
       <DialogHeader>
         <DialogTitle>Ярилцлага товлох</DialogTitle>
         <DialogDescription>
-          {{ interviewTarget?.applicant_name }}-д ярилцлагын дэлгэрэнгүй мэдээллийг оруулна уу.
+          {{ interviewTarget?.applicant_name }}-д ярилцлагын мэдээллийг оруулна уу.
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
@@ -715,17 +646,15 @@ function assessBg(s: string) {
         </div>
         <div class="space-y-2">
           <Label>Байршил</Label>
-          <Input v-model="interviewLocation" placeholder="Уулзах газар (жишээ: Конкорд Тауэр, 5 давхар)" />
+          <Input v-model="interviewLocation" placeholder="Уулзах газар" />
         </div>
         <div class="space-y-2">
-          <Label>Нэмэлт тэмдэглэл <span class="text-muted-foreground text-xs">(заавал биш)</span></Label>
+          <Label>Нэмэлт тэмдэглэл <span class="text-muted-foreground text-[11.5px]">(заавал биш)</span></Label>
           <Textarea v-model="interviewNote" rows="3" placeholder="Горилогчид дамжуулах нэмэлт мэдээлэл..." />
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isScheduling" @click="interviewOpen = false">
-          Болих
-        </Button>
+        <Button variant="outline" :disabled="isScheduling" @click="interviewOpen = false">Болих</Button>
         <Button :disabled="isScheduling" @click="scheduleInterview">
           <Loader2 v-if="isScheduling" class="mr-2 h-4 w-4 animate-spin" />
           <CalendarDays v-else class="mr-2 h-4 w-4" />
@@ -737,7 +666,7 @@ function assessBg(s: string) {
 
   <!-- ── Task dialog ────────────────────────────────────────────────────── -->
   <Dialog v-model:open="taskOpen">
-    <DialogContent class="rounded-3xl sm:max-w-lg">
+    <DialogContent class="rounded-2xl sm:max-w-lg">
       <DialogHeader>
         <DialogTitle>Даалгавар илгээх</DialogTitle>
         <DialogDescription>
@@ -745,17 +674,16 @@ function assessBg(s: string) {
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
-        <Button
+        <button
           type="button"
-          variant="outline"
-          class="w-full rounded-2xl"
+          class="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-2.5 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
           :disabled="isGeneratingTask"
           @click="generateTask"
         >
-          <Loader2 v-if="isGeneratingTask" class="mr-2 h-4 w-4 animate-spin" />
-          <Sparkles v-else class="mr-2 h-4 w-4" />
+          <Loader2 v-if="isGeneratingTask" class="h-4 w-4 animate-spin" />
+          <Sparkles v-else class="h-4 w-4 text-primary" />
           {{ isGeneratingTask ? "AI үүсгэж байна..." : "AI-аар үүсгэх" }}
-        </Button>
+        </button>
         <div class="space-y-2">
           <Label>Гарчиг</Label>
           <Input v-model="taskTitle" placeholder="Даалгаврын гарчиг" />
@@ -765,14 +693,12 @@ function assessBg(s: string) {
           <Textarea v-model="taskDescription" rows="5" placeholder="Даалгаврын дэлгэрэнгүй тайлбар..." />
         </div>
         <div class="space-y-2">
-          <Label>Дуусах огноо (заавал биш)</Label>
+          <Label>Дуусах огноо <span class="text-muted-foreground text-[11.5px]">(заавал биш)</span></Label>
           <Input v-model="taskDueDate" type="date" />
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isSendingTask" @click="taskOpen = false">
-          Болих
-        </Button>
+        <Button variant="outline" :disabled="isSendingTask" @click="taskOpen = false">Болих</Button>
         <Button :disabled="isSendingTask || !taskTitle || !taskDescription" @click="sendTask">
           <Loader2 v-if="isSendingTask" class="mr-2 h-4 w-4 animate-spin" />
           <ClipboardList v-else class="mr-2 h-4 w-4" />

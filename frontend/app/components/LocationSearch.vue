@@ -12,7 +12,12 @@ const emit = defineEmits<{
   "update:modelY": [value: string];
 }>();
 
-type NominatimResult = { place_id: number; display_name: string; lat: string; lon: string };
+type NominatimResult = {
+  place_id: number;
+  display_name: string;
+  lat: string;
+  lon: string;
+};
 
 const query = ref("");
 const results = ref<NominatimResult[]>([]);
@@ -43,7 +48,8 @@ onMounted(async () => {
   delete (L.Icon.Default.prototype as any)._getIconUrl;
   L.Icon.Default.mergeOptions({
     iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-    iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+    iconRetinaUrl:
+      "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
     shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
   });
 
@@ -53,7 +59,10 @@ onMounted(async () => {
   const initLat = hasInit ? Number(props.modelX) : DEFAULT_LAT;
   const initLng = hasInit ? Number(props.modelY) : DEFAULT_LNG;
 
-  leafletMap = L.map(mapContainer.value, { zoomControl: true }).setView([initLat, initLng], hasInit ? 15 : 12);
+  leafletMap = L.map(mapContainer.value, { zoomControl: true }).setView(
+    [initLat, initLng],
+    hasInit ? 15 : 12,
+  );
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     attribution: "© OpenStreetMap",
@@ -61,7 +70,9 @@ onMounted(async () => {
   }).addTo(leafletMap);
 
   if (hasInit) {
-    marker = L.marker([initLat, initLng], { draggable: true }).addTo(leafletMap);
+    marker = L.marker([initLat, initLng], { draggable: true }).addTo(
+      leafletMap,
+    );
     marker.on("dragend", () => {
       const pos = marker.getLatLng();
       emit("update:modelX", String(pos.lat));
@@ -89,8 +100,11 @@ onMounted(async () => {
   // Use browser geolocation as default center when no coordinates set
   if (!hasInit && navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-      (pos) => leafletMap?.setView([pos.coords.latitude, pos.coords.longitude], 14),
-      () => { /* denied — stay on UB */ },
+      (pos) =>
+        leafletMap?.setView([pos.coords.latitude, pos.coords.longitude], 14),
+      () => {
+        /* denied — stay on UB */
+      },
       { timeout: 5000 },
     );
   }
@@ -122,7 +136,11 @@ onUnmounted(() => {
 
 async function search() {
   const q = query.value.trim();
-  if (q.length < 2) { results.value = []; showDropdown.value = false; return; }
+  if (q.length < 2) {
+    results.value = [];
+    showDropdown.value = false;
+    return;
+  }
   try {
     const data = await $fetch<NominatimResult[]>(
       `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=6&accept-language=mn,en`,
@@ -130,7 +148,9 @@ async function search() {
     );
     results.value = data;
     showDropdown.value = data.length > 0;
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function onInput() {
@@ -146,7 +166,9 @@ function select(r: NominatimResult) {
 }
 
 function hideDropdown() {
-  setTimeout(() => { showDropdown.value = false; }, 150);
+  setTimeout(() => {
+    showDropdown.value = false;
+  }, 150);
 }
 
 function clear() {
@@ -154,14 +176,19 @@ function clear() {
   emit("update:modelY", "");
   query.value = "";
   results.value = [];
-  if (marker) { marker.remove(); marker = null; }
+  if (marker) {
+    marker.remove();
+    marker = null;
+  }
 }
 </script>
 
 <template>
   <div class="space-y-3">
     <div class="relative">
-      <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      <Search
+        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+      />
       <Input
         v-model="query"
         :disabled="disabled"
@@ -182,7 +209,7 @@ function clear() {
       </button>
       <div
         v-if="showDropdown"
-        class="absolute z-50 mt-1 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-lg"
+        class="absolute z-50 mt-1 w-full overflow-hidden rounded-2xl border border-border bg-popover"
       >
         <button
           v-for="r in results"

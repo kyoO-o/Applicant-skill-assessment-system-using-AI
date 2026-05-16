@@ -23,7 +23,9 @@ try {
   if (user.value?.company_id) {
     company.value = await companyAPI.get();
   }
-} catch { /* company not yet set up */ }
+} catch {
+  /* company not yet set up */
+}
 
 async function handleSubmit(payload: any) {
   errorMessage.value = "";
@@ -34,7 +36,9 @@ async function handleSubmit(payload: any) {
     router.push("/jobs");
   } catch (error: any) {
     errorMessage.value =
-      error?.data?.message || error?.message || "Ажлын байр хадгалахад алдаа гарлаа.";
+      error?.data?.message ||
+      error?.message ||
+      "Ажлын байр хадгалахад алдаа гарлаа.";
   } finally {
     isSubmitting.value = false;
   }
@@ -43,7 +47,7 @@ async function handleSubmit(payload: any) {
 
 <template>
   <div class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6 shadow-sm">
+    <section class="rounded-3xl border border-border bg-card px-6 py-6">
       <div class="flex items-center gap-3">
         <NuxtLink
           to="/jobs"
@@ -52,13 +56,15 @@ async function handleSubmit(payload: any) {
           ← Ажлын байрууд
         </NuxtLink>
       </div>
-      <h1 class="mt-4 text-3xl font-semibold tracking-tight">Шинэ ажлын байр нэмэх</h1>
+      <h1 class="mt-4 text-3xl font-semibold tracking-tight">
+        Шинэ ажлын байр нэмэх
+      </h1>
       <p class="mt-2 text-sm leading-6 text-muted-foreground">
         Ажлын байрны мэдээллийг бөглөж хадгална уу.
       </p>
     </section>
 
-    <Card class="rounded-3xl border-border shadow-sm">
+    <Card class="rounded-3xl border-border">
       <CardContent class="pt-6">
         <JobForm
           :company="company"
@@ -67,7 +73,12 @@ async function handleSubmit(payload: any) {
           @submit="handleSubmit"
         >
           <template #actions>
-            <Button type="button" variant="outline" @click="router.push('/jobs')">Болих</Button>
+            <Button
+              type="button"
+              variant="outline"
+              @click="router.push('/jobs')"
+              >Болих</Button
+            >
             <Button type="submit" :disabled="isSubmitting">
               {{ isSubmitting ? "Хадгалж байна..." : "Ажлын байр үүсгэх" }}
             </Button>
