@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { Application } from "../composables/types";
 import { toast } from "vue-sonner";
-import { CalendarCheck, Loader2, CalendarDays, MapPin, FileText } from "lucide-vue-next";
+import {
+  CalendarCheck,
+  Loader2,
+  CalendarDays,
+  MapPin,
+  FileText,
+} from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
 
@@ -14,17 +20,26 @@ const interviews = ref<Application[]>([]);
 const loading = ref(true);
 const gcalConnected = ref(false);
 
-const mapStates = ref<Map<number, { show: boolean; lat: number | null; lng: number | null }>>(new Map());
+const mapStates = ref<
+  Map<number, { show: boolean; lat: number | null; lng: number | null }>
+>(new Map());
 
 function mapState(id: number) {
-  if (!mapStates.value.has(id)) mapStates.value.set(id, { show: false, lat: null, lng: null });
+  if (!mapStates.value.has(id))
+    mapStates.value.set(id, { show: false, lat: null, lng: null });
   return mapStates.value.get(id)!;
 }
 
 async function toggleMap(id: number, location: string | null | undefined) {
   const state = mapState(id);
-  if (state.show) { state.show = false; return; }
-  if (state.lat !== null) { state.show = true; return; }
+  if (state.show) {
+    state.show = false;
+    return;
+  }
+  if (state.lat !== null) {
+    state.show = true;
+    return;
+  }
   if (!location) return;
   try {
     const results = await $fetch<Array<{ lat: string; lon: string }>>(
@@ -37,7 +52,9 @@ async function toggleMap(id: number, location: string | null | undefined) {
       state.lng = Number(first.lon);
       state.show = true;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 const isRecruiter = computed(() => user.value?.role === "recruiter");
@@ -51,7 +68,8 @@ async function load() {
         integrationsAPI.googleCalendarStatus(),
       ]);
       if (data.status === "fulfilled") interviews.value = data.value;
-      if (status.status === "fulfilled") gcalConnected.value = status.value.connected;
+      if (status.status === "fulfilled")
+        gcalConnected.value = status.value.connected;
     } else {
       const apps = await applicationsAPI.listMine();
       interviews.value = apps.filter((a) => a.interview_at != null);
@@ -69,7 +87,11 @@ const grouped = computed(() => {
   const map = new Map<string, Application[]>();
   for (const a of interviews.value) {
     const key = a.interview_at
-      ? new Date(a.interview_at).toLocaleDateString("mn-MN", { year: "numeric", month: "long", day: "numeric" })
+      ? new Date(a.interview_at).toLocaleDateString("mn-MN", {
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
       : "Огноогүй";
     if (!map.has(key)) map.set(key, []);
     map.get(key)!.push(a);
@@ -79,12 +101,17 @@ const grouped = computed(() => {
 
 function formatTime(d: string | null | undefined) {
   if (!d) return "";
-  return new Intl.DateTimeFormat("mn-MN", { timeStyle: "short" }).format(new Date(d));
+  return new Intl.DateTimeFormat("mn-MN", { timeStyle: "short" }).format(
+    new Date(d),
+  );
 }
 
 function formatDateTime(d: string | null | undefined) {
   if (!d) return "—";
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(d));
+  return new Intl.DateTimeFormat("mn-MN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(d));
 }
 
 function gcalLink(app: Application) {
@@ -92,7 +119,10 @@ function gcalLink(app: Application) {
   const start = new Date(app.interview_at);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
   const fmt = (d: Date) =>
-    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    d
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "");
   const title = encodeURIComponent(`Ярилцлага: ${app.job_title}`);
   const details = encodeURIComponent(
     [
@@ -112,17 +142,21 @@ function gcalLink(app: Application) {
     <!-- Page header -->
     <div class="flex items-end justify-between gap-4">
       <div>
-        <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Хуваарь</p>
         <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">
           {{ isRecruiter ? "Ярилцлагын урсгал" : "Миний ярилцлагууд" }}
         </h1>
         <p class="mt-1 text-[13.5px] text-muted-foreground">
-          {{ isRecruiter
-            ? "Компанийн бүх товлогдсон ярилцлагуудыг огноогоор эрэмбэлэн харна уу."
-            : "Ажил олгогч тань товлосон ярилцлагуудыг энд харна уу." }}
+          {{
+            isRecruiter
+              ? "Компанийн бүх товлогдсон ярилцлагуудыг огноогоор эрэмбэлэн харна уу."
+              : "Ажил олгогч тань товлосон ярилцлагуудыг энд харна уу."
+          }}
         </p>
       </div>
-      <div v-if="isRecruiter && gcalConnected" class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold badge-success">
+      <div
+        v-if="isRecruiter && gcalConnected"
+        class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold badge-success"
+      >
         <CalendarCheck class="h-3.5 w-3.5" />
         Google Calendar холбогдсон
       </div>
@@ -138,28 +172,42 @@ function gcalLink(app: Application) {
       v-else-if="interviews.length === 0"
       class="flex flex-col items-center py-20 text-center"
     >
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
+      >
         <CalendarDays class="h-7 w-7 text-muted-foreground" />
       </div>
       <p class="text-[16px] font-semibold">Товлогдсон ярилцлага байхгүй</p>
       <p class="mt-2 text-[13.5px] text-muted-foreground">
-        {{ isRecruiter
-          ? "Горилогчид ярилцлага товлох үед энд харагдана."
-          : "Ажил олгогч таны ярилцлага товлоход энд харагдана." }}
+        {{
+          isRecruiter
+            ? "Горилогчид ярилцлага товлох үед энд харагдана."
+            : "Ажил олгогч таны ярилцлага товлоход энд харагдана."
+        }}
       </p>
     </div>
 
     <!-- Grouped by date -->
     <div v-else class="space-y-7">
-      <div v-for="[dateLabel, items] in grouped" :key="dateLabel" class="space-y-3">
+      <div
+        v-for="[dateLabel, items] in grouped"
+        :key="dateLabel"
+        class="space-y-3"
+      >
         <!-- Date group header -->
         <div class="flex items-center gap-3">
-          <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
+          <div
+            class="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10"
+          >
             <CalendarCheck class="h-3.5 w-3.5 text-primary" />
           </div>
-          <h2 class="text-[13.5px] font-semibold text-primary">{{ dateLabel }}</h2>
+          <h2 class="text-[13.5px] font-semibold text-primary">
+            {{ dateLabel }}
+          </h2>
           <div class="flex-1 border-t border-primary/15" />
-          <span class="text-[12px] font-medium text-muted-foreground">{{ items.length }} ярилцлага</span>
+          <span class="text-[12px] font-medium text-muted-foreground"
+            >{{ items.length }} ярилцлага</span
+          >
         </div>
 
         <!-- Cards -->
@@ -171,7 +219,9 @@ function gcalLink(app: Application) {
           >
             <!-- Time badge -->
             <div class="mb-3 flex items-center justify-between gap-2">
-              <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold bg-primary/10 text-primary">
+              <span
+                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-semibold bg-primary/10 text-primary"
+              >
                 <CalendarCheck class="h-3 w-3" />
                 {{ formatTime(app.interview_at) }}
               </span>
@@ -185,22 +235,32 @@ function gcalLink(app: Application) {
             </div>
 
             <!-- Job title -->
-            <p class="text-[14.5px] font-semibold leading-snug">{{ app.job_title || "Ажлын байр" }}</p>
+            <p class="text-[14.5px] font-semibold leading-snug">
+              {{ app.job_title || "Ажлын байр" }}
+            </p>
 
             <!-- Applicant (recruiter view) -->
             <template v-if="isRecruiter">
-              <p class="mt-1.5 text-[13px] font-medium text-foreground">{{ app.applicant_name || "Горилогч" }}</p>
-              <p class="text-[12px] text-muted-foreground">{{ app.applicant_email }}</p>
+              <p class="mt-1.5 text-[13px] font-medium text-foreground">
+                {{ app.applicant_name || "Горилогч" }}
+              </p>
+              <p class="text-[12px] text-muted-foreground">
+                {{ app.applicant_email }}
+              </p>
             </template>
 
             <!-- Location -->
             <div v-if="app.interview_location" class="mt-3 space-y-2">
               <div class="flex items-start justify-between gap-2">
-                <div class="flex items-start gap-1.5 text-[12.5px] text-muted-foreground">
+                <div
+                  class="flex items-start gap-1.5 text-[12.5px] text-muted-foreground"
+                >
                   <MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0" />
                   <span>{{ app.interview_location }}</span>
                 </div>
-                <label class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap">
+                <label
+                  class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap"
+                >
                   <Checkbox
                     :checked="mapState(app.id).show"
                     @update:checked="toggleMap(app.id, app.interview_location)"
@@ -217,13 +277,18 @@ function gcalLink(app: Application) {
             </div>
 
             <!-- Note -->
-            <div v-if="app.interview_note" class="mt-2.5 flex items-start gap-1.5 text-[12.5px] text-muted-foreground italic">
+            <div
+              v-if="app.interview_note"
+              class="mt-2.5 flex items-start gap-1.5 text-[12.5px] text-muted-foreground italic"
+            >
               <FileText class="mt-0.5 h-3.5 w-3.5 shrink-0" />
               <span class="line-clamp-2">{{ app.interview_note }}</span>
             </div>
 
             <!-- Full datetime -->
-            <p class="mt-3 text-[12px] text-muted-foreground">{{ formatDateTime(app.interview_at) }}</p>
+            <p class="mt-3 text-[12px] text-muted-foreground">
+              {{ formatDateTime(app.interview_at) }}
+            </p>
 
             <!-- Calendar CTA -->
             <template v-if="!(isRecruiter && gcalConnected)">
@@ -238,7 +303,9 @@ function gcalLink(app: Application) {
               </a>
             </template>
             <template v-else>
-              <p class="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-success-foreground font-medium">
+              <p
+                class="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-success-foreground font-medium"
+              >
                 <CalendarCheck class="h-3.5 w-3.5" />
                 Google Calendar-д нэмэгдсэн
               </p>

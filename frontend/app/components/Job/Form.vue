@@ -3,6 +3,9 @@ import { Plus, X } from "lucide-vue-next";
 import { JobStatus } from "../../composables/types";
 import type { Company } from "../../composables/types";
 import type { SaveJobPayload } from "../../composables/types/payload";
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import { jobSchema } from "~/utils/schemas";
 
 const { cities, districtsFor } = useLocationOptions();
 
@@ -34,6 +37,10 @@ const emit = defineEmits<{
 
 const overrideContact = ref(!!props.initialTitle);
 const overrideLocation = ref(!!props.initialTitle);
+
+const { validate, setValues, errors } = useForm({
+  validationSchema: toTypedSchema(jobSchema),
+});
 
 // Split initial bonuses into company-benefit-selected vs manually typed
 const companyBenefitSet = new Set(props.company?.benefits?.map(b => b.description) ?? []);
@@ -95,7 +102,16 @@ function isBenefitAdded(desc: string) {
   return selectedBenefits.value.includes(desc);
 }
 
-function submitForm() {
+async function submitForm() {
+  setValues({
+    title: form.title,
+    contact_info: form.contact_info,
+    type: form.type,
+    level: form.level,
+  });
+  const { valid } = await validate();
+  if (!valid) return;
+
   const city = form.city.trim();
   const district = form.district.trim();
   const location = [district, city].filter(Boolean).join(", ");
@@ -135,7 +151,8 @@ function submitForm() {
     <!-- Title -->
     <div class="space-y-2">
       <Label for="job-title">Ажлын байрны нэр</Label>
-      <Input id="job-title" v-model="form.title" placeholder="Frontend Developer" required />
+      <Input id="job-title" v-model="form.title" placeholder="Frontend Developer" />
+      <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
     </div>
 
     <!-- Type + Level + Status -->
@@ -143,10 +160,12 @@ function submitForm() {
       <div class="space-y-2">
         <Label for="job-type">Хөдөлмөрийн гэрээний хэлбэр</Label>
         <Input id="job-type" v-model="form.type" placeholder="Full-time" />
+        <p v-if="errors.type" class="text-sm text-destructive">{{ errors.type }}</p>
       </div>
       <div class="space-y-2">
         <Label for="job-level">Мэргэжлийн түвшин</Label>
         <Input id="job-level" v-model="form.level" placeholder="Mid-level" />
+        <p v-if="errors.level" class="text-sm text-destructive">{{ errors.level }}</p>
       </div>
       <div class="space-y-2">
         <Label for="job-status">Төлөв</Label>
@@ -182,6 +201,7 @@ function submitForm() {
         placeholder="hr@company.mn | +976 99000000"
         :disabled="!overrideContact && !!company"
       />
+      <p v-if="errors.contact_info" class="text-sm text-destructive">{{ errors.contact_info }}</p>
     </div>
 
     <!-- Location -->

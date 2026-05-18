@@ -9,34 +9,45 @@ import (
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 )
 
+func NotifyUser(userID int, title, body, notifType string) {
+	conn := GetCustomerConnection(userID)
+	if conn == nil {
+		return
+	}
+	payload := map[string]string{"title": title, "body": body, "type": notifType}
+	if err := conn.Send("Notification", payload); err != nil {
+		app.ErrorLog.Printf("notify user %d: %v", userID, err)
+	}
+}
+
 func OnFrontendWSConnect(r *http.Request, conn *websocket.Connection) error {
 	user := r.Context().Value(app.ContextKeyAuthCustomer).(*userman.User)
 	if user == nil {
 		return errors.New("user is nil")
 	}
-	app.InfoLog.Println("OnFrontendWSConnect", user)
-	existingConn := app.CustomerConnections[user.ID]
-	if existingConn != nil {
-		return errors.New("already connected")
-	}
+	app.InfoLog.Printf("OnFrontendWSConnect user=%d", user.ID)
 
+	// Replace any existing connection so browser refresh / reconnects work.
 	SetCustomerConnection(user.ID, conn)
 	if err := conn.Send("Connected", user); err != nil {
 		return err
 	}
 
-	conn.OnMessage = func(m websocket.Message) {
-
-	}
-
-	conn.OnClose = onCustomerWSClose(user)
+	conn.OnMessage = func(m websocket.Message) {}
+	conn.OnClose = onCustomerWSClose(user.ID, conn)
 
 	return nil
 }
 
-func onCustomerWSClose(user *userman.User) func() {
+// onCustomerWSClose only removes the entry when this specific connection is
+// still the active one, preventing a stale close from evicting a newer conn.
+func onCustomerWSClose(userID int, conn *websocket.Connection) func() {
 	return func() {
-		DeleteCustomerConnection(user.ID)
+		app.CustomerConnectionMutex.Lock()
+		defer app.CustomerConnectionMutex.Unlock()
+		if app.CustomerConnections[userID] == conn {
+			delete(app.CustomerConnections, userID)
+		}
 	}
 }
 

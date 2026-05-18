@@ -64,6 +64,12 @@ export class AuthAPI {
     return this.fetch<User>("/api/me", { method: "PUT", body: payload });
   }
 
+  uploadAvatar(file: File) {
+    const form = new FormData();
+    form.set("file", file);
+    return this.fetch<User>("/api/me/avatar", { method: "POST", body: form });
+  }
+
   initiateEmailChange(email: string) {
     return this.fetch<MessageResponse>("/api/me/email", { method: "PUT", body: { email } });
   }

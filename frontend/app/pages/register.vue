@@ -1,5 +1,18 @@
 <script setup lang="ts">
+import { toTypedSchema } from "@vee-validate/zod";
 import { UserRole } from "../composables/types/constants";
+import {
+  registerBaseSchema,
+  registerRecruiterSchema,
+} from "~/utils/schemas";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
 
 definePageMeta({
   layout: false,
@@ -9,42 +22,34 @@ definePageMeta({
 const selectedRole = ref<UserRole>(UserRole.User);
 const { register, isLoading } = useAuth();
 const router = useRouter();
-
-const form = reactive({
-  firstName: "",
-  lastName: "",
-  email: "",
-  password: "",
-  confirmPassword: "",
-  companyName: "",
-  recruiterPosition: "",
-});
-
 const errorMessage = ref("");
 
-async function submitRegister() {
+const schema = computed(() =>
+  toTypedSchema(
+    selectedRole.value === UserRole.Recruiter
+      ? registerRecruiterSchema
+      : registerBaseSchema,
+  ),
+);
+
+async function onSubmit(values: Record<string, any>) {
   errorMessage.value = "";
-
-  if (form.password !== form.confirmPassword) {
-    errorMessage.value = "Нууц үг таарахгүй байна.";
-    return;
-  }
-
   try {
     const res = await register({
-      first_name: form.firstName.trim(),
-      last_name: form.lastName.trim(),
+      first_name: values.firstName.trim(),
+      last_name: values.lastName.trim(),
       company_name:
-        selectedRole.value === "recruiter"
-          ? form.companyName.trim()
+        selectedRole.value === UserRole.Recruiter
+          ? (values.companyName?.trim() || undefined)
           : undefined,
-      email: form.email,
-      position: form.recruiterPosition.trim() || undefined,
-      password: form.password,
+      email: values.email,
+      position: values.recruiterPosition?.trim() || undefined,
+      password: values.password,
       role:
-        selectedRole.value === "recruiter" ? UserRole.Recruiter : UserRole.User,
+        selectedRole.value === UserRole.Recruiter
+          ? UserRole.Recruiter
+          : UserRole.User,
     });
-
     await router.push(`/verify-email?email=${encodeURIComponent(res.email)}`);
   } catch (error: any) {
     errorMessage.value =
@@ -72,7 +77,12 @@ async function submitRegister() {
       footer-link-text="Нэвтрэх"
       footer-link-to="/login"
     >
-      <form class="space-y-5" @submit.prevent="submitRegister">
+      <Form
+        :key="selectedRole"
+        :validation-schema="schema"
+        class="space-y-5"
+        @submit="onSubmit"
+      >
         <div
           v-if="errorMessage"
           class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm leading-6 text-destructive"
@@ -91,95 +101,124 @@ async function submitRegister() {
         </div>
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <div class="space-y-2">
-            <Label for="first-name">Нэр*</Label>
-            <Input
-              id="first-name"
-              v-model="form.firstName"
-              type="text"
-              autocomplete="given-name"
-              placeholder="Нэр"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="last-name">Овог*</Label>
-            <Input
-              id="last-name"
-              v-model="form.lastName"
-              type="text"
-              autocomplete="family-name"
-              placeholder="Овог"
-            />
-          </div>
+          <FormField v-slot="{ componentField }" name="firstName">
+            <FormItem class="space-y-2">
+              <FormLabel>Нэр*</FormLabel>
+              <FormControl>
+                <Input
+                  v-bind="componentField"
+                  type="text"
+                  autocomplete="given-name"
+                  placeholder="Нэр"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <FormField v-slot="{ componentField }" name="lastName">
+            <FormItem class="space-y-2">
+              <FormLabel>Овог*</FormLabel>
+              <FormControl>
+                <Input
+                  v-bind="componentField"
+                  type="text"
+                  autocomplete="family-name"
+                  placeholder="Овог"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
         </div>
 
-        <div class="space-y-2">
-          <Label for="register-email">Э-мэйл*</Label>
-          <Input
-            id="register-email"
-            v-model="form.email"
-            type="email"
-            autocomplete="email"
-            placeholder="name@company.com"
-          />
-        </div>
+        <FormField v-slot="{ componentField }" name="email">
+          <FormItem class="space-y-2">
+            <FormLabel>Э-мэйл*</FormLabel>
+            <FormControl>
+              <Input
+                v-bind="componentField"
+                type="email"
+                autocomplete="email"
+                placeholder="name@company.com"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <div class="space-y-2">
-            <Label for="register-password">Нууц үг*</Label>
-            <PasswordInput
-              id="register-password"
-              v-model="form.password"
-              autocomplete="new-password"
-              placeholder="Нууц үгээ оруулна уу"
-            />
-          </div>
+          <FormField v-slot="{ componentField }" name="password">
+            <FormItem class="space-y-2">
+              <FormLabel>Нууц үг*</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  v-bind="componentField"
+                  autocomplete="new-password"
+                  placeholder="Нууц үгээ оруулна уу"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-          <div class="space-y-2">
-            <Label for="confirm-password">Нууц үг давтах*</Label>
-            <PasswordInput
-              id="confirm-password"
-              v-model="form.confirmPassword"
-              autocomplete="new-password"
-              placeholder="Нууц үгээ дахин оруулна уу"
-            />
-          </div>
+          <FormField v-slot="{ componentField }" name="confirmPassword">
+            <FormItem class="space-y-2">
+              <FormLabel>Нууц үг давтах*</FormLabel>
+              <FormControl>
+                <PasswordInput
+                  v-bind="componentField"
+                  autocomplete="new-password"
+                  placeholder="Нууц үгээ дахин оруулна уу"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
         </div>
 
         <div
-          v-if="selectedRole === 'recruiter'"
+          v-if="selectedRole === UserRole.Recruiter"
           class="grid gap-5 sm:grid-cols-2"
         >
-          <div class="space-y-2">
-            <Label for="company-name">Компаний нэр</Label>
-            <Input
-              id="company-name"
-              v-model="form.companyName"
-              type="text"
-              autocomplete="organization"
-              placeholder="Таны компани"
-            />
-            <p class="text-xs text-muted-foreground">
-              Ажил олгогчийн бүртгэл үүсгэсний дараа нэмж болно.
-            </p>
-          </div>
+          <FormField v-slot="{ componentField }" name="companyName">
+            <FormItem class="space-y-2">
+              <FormLabel>Компаний нэр</FormLabel>
+              <FormControl>
+                <Input
+                  v-bind="componentField"
+                  type="text"
+                  autocomplete="organization"
+                  placeholder="Таны компани"
+                />
+              </FormControl>
+              <p class="text-xs text-muted-foreground">
+                Ажил олгогчийн бүртгэл үүсгэсний дараа нэмж болно.
+              </p>
+              <FormMessage />
+            </FormItem>
+          </FormField>
 
-          <div class="space-y-2">
-            <Label for="recruiter-position">Ажил олгогчийн албан тушаал*</Label>
-            <Input
-              id="recruiter-position"
-              v-model="form.recruiterPosition"
-              type="text"
-              autocomplete="organization-title"
-              placeholder="Talent Acquisition Specialist"
-            />
-          </div>
+          <FormField v-slot="{ componentField }" name="recruiterPosition">
+            <FormItem class="space-y-2">
+              <FormLabel>Ажил олгогчийн албан тушаал*</FormLabel>
+              <FormControl>
+                <Input
+                  v-bind="componentField"
+                  type="text"
+                  autocomplete="organization-title"
+                  placeholder="Talent Acquisition Specialist"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
         </div>
 
         <Button class="w-full" type="submit" :disabled="isLoading">
           {{ isLoading ? "Бүртгэл үүсгэж байна..." : "Бүртгүүлэх" }}
         </Button>
-      </form>
+      </Form>
     </AuthCard>
   </AuthShell>
 </template>

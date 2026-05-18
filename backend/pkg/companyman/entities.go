@@ -12,6 +12,7 @@ type Company struct {
 	District    string           `json:"district"`
 	LocationX   float64          `json:"location_x"`
 	LocationY   float64          `json:"location_y"`
+	Logo        string           `json:"logo_url" gorm:"column:logo"`
 	Benefits    []CompanyBenefit `json:"benefits" gorm:"foreignKey:CompanyID"`
 }
 

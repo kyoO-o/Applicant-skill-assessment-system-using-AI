@@ -98,7 +98,7 @@ func (ws *Websocket) Handler(w http.ResponseWriter, r *http.Request) {
 	if ws.OnConnect != nil {
 		if err := ws.OnConnect(r, ws.connections[k]); err != nil {
 			ws.CloseConnection(k)
-			oapi.ServerError(w, err)
+			// Connection already hijacked by WS upgrade; can't write HTTP response.
 			return
 		}
 	}

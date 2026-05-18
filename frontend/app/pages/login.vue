@@ -1,4 +1,15 @@
 <script setup lang="ts">
+import { toTypedSchema } from "@vee-validate/zod";
+import { loginSchema } from "~/utils/schemas";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
+
 definePageMeta({
   layout: false,
   middleware: "guest",
@@ -7,24 +18,27 @@ definePageMeta({
 const { login, isLoading } = useAuth();
 const router = useRouter();
 
-const form = reactive({ email: "", password: "" });
-const errorMessage = ref("");
 const unverifiedEmail = ref("");
+const errorMessage = ref("");
 
-async function submitLogin() {
+const schema = toTypedSchema(loginSchema);
+
+async function onSubmit(values: { email: string; password: string }) {
   errorMessage.value = "";
   unverifiedEmail.value = "";
 
   try {
-    await login({ email: form.email, password: form.password });
+    await login({ email: values.email, password: values.password });
     await router.push("/");
   } catch (error: any) {
     const data = error?.data as any;
     if (data?.code === "EMAIL_NOT_VERIFIED") {
-      unverifiedEmail.value = data.email || form.email;
+      unverifiedEmail.value = data.email || values.email;
     } else {
       errorMessage.value =
-        data?.message || error?.message || "Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.";
+        data?.message ||
+        error?.message ||
+        "Нэвтрэхэд алдаа гарлаа. Дахин оролдоно уу.";
     }
   }
 }
@@ -39,13 +53,16 @@ async function submitLogin() {
       footer-link-text="Бүртгүүлэх"
       footer-link-to="/register"
     >
-      <form class="space-y-4" @submit.prevent="submitLogin">
+      <Form :validation-schema="schema" class="space-y-4" @submit="onSubmit">
         <div
           v-if="unverifiedEmail"
           class="rounded-xl px-4 py-3 text-[13px] leading-6"
-          style="background: var(--warning-bg); color: var(--warning-foreground);"
+          style="
+            background: var(--warning-bg);
+            color: var(--warning-foreground);
+          "
         >
-          И-мэйл хаяг баталгаажаагүй байна.
+          Э-мэйл хаяг баталгаажаагүй байна.
           <NuxtLink
             :to="`/verify-email?email=${encodeURIComponent(unverifiedEmail)}`"
             class="font-semibold underline"
@@ -57,41 +74,57 @@ async function submitLogin() {
         <div
           v-if="errorMessage"
           class="rounded-xl px-4 py-3 text-[13px] leading-6"
-          style="background: oklch(0.626 0.228 28 / 8%); color: var(--destructive);"
+          style="
+            background: oklch(0.626 0.228 28 / 8%);
+            color: var(--destructive);
+          "
         >
           {{ errorMessage }}
         </div>
 
-        <div class="space-y-1.5">
-          <Label for="email" class="text-[11.5px] font-medium text-muted-foreground">Э-мэйл</Label>
-          <Input
-            id="email"
-            v-model="form.email"
-            type="email"
-            autocomplete="email"
-            placeholder="name@company.com"
-            class="rounded-xl"
-          />
-        </div>
-
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between gap-3">
-            <Label for="password" class="text-[11.5px] font-medium text-muted-foreground">Нууц үг</Label>
-            <NuxtLink
-              to="/forgot-password"
-              class="text-[11.5px] font-medium text-primary hover:text-primary/80"
+        <FormField v-slot="{ componentField }" name="email">
+          <FormItem class="space-y-1.5">
+            <FormLabel class="text-[11.5px] font-medium text-muted-foreground"
+              >Э-мэйл</FormLabel
             >
-              Нууц үг мартсан уу?
-            </NuxtLink>
-          </div>
-          <PasswordInput
-            id="password"
-            v-model="form.password"
-            autocomplete="current-password"
-            placeholder="Нууц үгээ оруулна уу"
-            class="rounded-xl"
-          />
-        </div>
+            <FormControl>
+              <Input
+                v-bind="componentField"
+                type="email"
+                autocomplete="email"
+                placeholder="name@company.com"
+                class="rounded-xl"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ componentField }" name="password">
+          <FormItem class="space-y-1.5">
+            <div class="flex items-center justify-between gap-3">
+              <FormLabel
+                class="text-[11.5px] font-medium text-muted-foreground"
+                >Нууц үг</FormLabel
+              >
+              <NuxtLink
+                to="/forgot-password"
+                class="text-[11.5px] font-medium text-primary hover:text-primary/80"
+              >
+                Нууц үг мартсан уу?
+              </NuxtLink>
+            </div>
+            <FormControl>
+              <PasswordInput
+                v-bind="componentField"
+                autocomplete="current-password"
+                placeholder="Нууц үгээ оруулна уу"
+                class="rounded-xl"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
         <div class="rounded-xl border border-border bg-muted/40 px-4 py-3">
           <p class="text-[12.5px] leading-6 text-muted-foreground">
@@ -103,11 +136,17 @@ async function submitLogin() {
           type="submit"
           :disabled="isLoading"
           class="flex w-full items-center justify-center gap-2 rounded-full py-3 text-[13.5px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+          style="
+            background: linear-gradient(
+              135deg,
+              var(--primary),
+              oklch(0.348 0.106 295)
+            );
+          "
         >
           {{ isLoading ? "Нэвтэрч байна..." : "Нэвтрэх" }}
         </button>
-      </form>
+      </Form>
     </AuthCard>
   </AuthShell>
 </template>

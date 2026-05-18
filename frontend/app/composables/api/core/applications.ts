@@ -27,12 +27,24 @@ export class ApplicationsAPI {
     });
   }
 
+  applyFromProfile(jobID: number) {
+    return this.fetch<{ message: string; id: number }>(`/api/jobs/${jobID}/apply-from-profile`, {
+      method: "POST",
+    });
+  }
+
   analyzeJob(jobID: number, cvFile: File) {
     const form = new FormData();
     form.append("cv", cvFile);
     return this.fetch<AssessmentResult>(`/api/jobs/${jobID}/analyze`, {
       method: "POST",
       body: form,
+    });
+  }
+
+  analyzeFromProfile(jobID: number) {
+    return this.fetch<AssessmentResult>(`/api/jobs/${jobID}/analyze-from-profile`, {
+      method: "POST",
     });
   }
 

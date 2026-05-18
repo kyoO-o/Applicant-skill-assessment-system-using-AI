@@ -76,7 +76,7 @@ func (s *Service) SendVerificationEmail(to, name, code string) {
 
 	body := fmt.Sprintf(`
 <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-  <h2 style="margin-bottom:8px">И-мэйл баталгаажуулалт</h2>
+  <h2 style="margin-bottom:8px">Э-мэйл баталгаажуулалт</h2>
   <p>Сайн байна уу, %s!</p>
   <p>Таны бүртгэлийн баталгаажуулах код:</p>
   <div style="font-size:36px;font-weight:bold;letter-spacing:10px;text-align:center;padding:24px;background:#f4f4f5;border-radius:12px;margin:24px 0;color:#18181b">
@@ -86,7 +86,7 @@ func (s *Service) SendVerificationEmail(to, name, code string) {
   <p style="color:#71717a;font-size:14px">Та энэ бүртгэлийг хийгээгүй бол энэ мэйлийг үл тоомсорлоно уу.</p>
 </div>`, name, code)
 
-	_ = s.SendEmail(to, "И-мэйл хаягаа баталгаажуулна уу", body)
+	_ = s.SendEmail(to, "Э-мэйл хаягаа баталгаажуулна уу", body)
 }
 
 func (s *Service) SendPasswordResetEmail(to, name, code string) {
@@ -124,7 +124,7 @@ func (s *Service) SendEmailChangeEmail(to, name, code string) {
 
 	body := fmt.Sprintf(`
 <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px">
-  <h2 style="margin-bottom:8px">И-мэйл хаяг солих</h2>
+  <h2 style="margin-bottom:8px">Э-мэйл хаяг солих</h2>
   <p>Сайн байна уу, %s!</p>
   <p>Шинэ и-мэйл хаягаа баталгаажуулах код:</p>
   <div style="font-size:36px;font-weight:bold;letter-spacing:10px;text-align:center;padding:24px;background:#f4f4f5;border-radius:12px;margin:24px 0;color:#18181b">
@@ -134,7 +134,7 @@ func (s *Service) SendEmailChangeEmail(to, name, code string) {
   <p style="color:#71717a;font-size:14px">Та и-мэйл хаягаа солихыг хүсэлт гаргаагүй бол энэ мэйлийг үл тоомсорлоно уу.</p>
 </div>`, name, code)
 
-	_ = s.SendEmail(to, "И-мэйл хаяг солих баталгаажуулах код", body)
+	_ = s.SendEmail(to, "Э-мэйл хаяг солих баталгаажуулах код", body)
 }
 
 func (s *Service) SendInterviewInviteEmail(to, applicantName, recruiterName, jobTitle string, interviewAt time.Time, location, note string) {

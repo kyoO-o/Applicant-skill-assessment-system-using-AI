@@ -5,7 +5,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -146,7 +150,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	oapi.SendResp(w, map[string]string{
-		"message": "Бүртгэл амжилттай. И-мэйл хаягаа баталгаажуулна уу.",
+		"message": "Бүртгэл амжилттай. Э-мэйл хаягаа баталгаажуулна уу.",
 		"email":   user.Email,
 	})
 }
@@ -184,7 +188,7 @@ func PasswordLogin(w http.ResponseWriter, r *http.Request) {
 	// Block unverified users (VerifyCode empty means old user pre-verification feature — allow them)
 	if !user.EmailVerified && user.VerifyCode != "" {
 		oapi.CustomError(w, http.StatusForbidden, map[string]string{
-			"message": "И-мэйл хаяг баталгаажаагүй байна. И-мэйлдээ ирсэн кодыг оруулна уу.",
+			"message": "Э-мэйл хаяг баталгаажаагүй байна. Э-мэйлдээ ирсэн кодыг оруулна уу.",
 			"code":    "EMAIL_NOT_VERIFIED",
 			"email":   user.Email,
 		})
@@ -284,6 +288,59 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 	app.Session.Remove(r, "accessToken")
 	ocookie.Remove(w, r, "session")
 	oapi.SendResp(w, map[string]string{"message": "Logout successful"})
+}
+
+var allowedImageExts = map[string]bool{".jpg": true, ".jpeg": true, ".png": true, ".webp": true}
+
+func UploadAvatar(w http.ResponseWriter, r *http.Request) {
+	user := authUser(r)
+
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Файл 5МБ-аас их байж болохгүй"})
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Файл шаардлагатай"})
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if !allowedImageExts[ext] {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Зөвхөн jpg, png, webp файл зөвшөөрөгдөнө"})
+		return
+	}
+
+	avatarDir := filepath.Join(app.Config.StoragePath, "avatars")
+	if err := os.MkdirAll(avatarDir, 0755); err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	filename := fmt.Sprintf("%d_%d%s", user.ID, time.Now().Unix(), ext)
+	dst := filepath.Join(avatarDir, filename)
+
+	out, err := os.Create(dst)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, file); err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	user.ProfilePicture = "/storage/avatars/" + filename
+	saved, err := app.Users.Save(user)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+	oapi.SendResp(w, saved)
 }
 
 func startSession(r *http.Request, user *userman.User, accessToken string) {

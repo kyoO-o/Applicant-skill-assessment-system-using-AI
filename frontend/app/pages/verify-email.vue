@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { toTypedSchema } from "@vee-validate/zod";
 import { toast } from "vue-sonner";
+import { verifyEmailSchema } from "~/utils/schemas";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
 
 definePageMeta({ layout: false, middleware: "guest" });
 
@@ -9,11 +19,12 @@ const router = useRouter();
 const route = useRoute();
 
 const email = computed(() => (route.query.email as string) || "");
-const code = ref("");
 const isVerifying = ref(false);
 const isResending = ref(false);
 const errorMessage = ref("");
 const resendMessage = ref("");
+
+const schema = toTypedSchema(verifyEmailSchema);
 
 onMounted(async () => {
   if (email.value) {
@@ -21,21 +32,18 @@ onMounted(async () => {
   }
 });
 
-async function submitCode() {
-  if (code.value.trim().length !== 6) {
-    errorMessage.value = "6 оронтой кодыг оруулна уу";
-    return;
-  }
+async function onSubmit(values: { code: string }) {
   errorMessage.value = "";
   resendMessage.value = "";
   isVerifying.value = true;
   try {
-    const response = await authAPI.verifyEmail(email.value, code.value.trim());
+    const response = await authAPI.verifyEmail(email.value, values.code);
     await setUserFromAuthResponse(response);
-    toast.success("И-мэйл амжилттай баталгаажлаа!");
+    toast.success("Э-мэйл амжилттай баталгаажлаа!");
     await router.push("/");
   } catch (e: any) {
-    const msg = e?.data?.message || e?.message || "Баталгаажуулахад алдаа гарлаа";
+    const msg =
+      e?.data?.message || e?.message || "Баталгаажуулахад алдаа гарлаа";
     errorMessage.value = msg;
     toast.error(msg);
   } finally {
@@ -45,7 +53,7 @@ async function submitCode() {
 
 async function resend() {
   if (!email.value) {
-    toast.error("И-мэйл хаяг олдсонгүй");
+    toast.error("Э-мэйл хаяг олдсонгүй");
     return;
   }
   resendMessage.value = "";
@@ -66,27 +74,28 @@ async function resend() {
 
 <template>
   <AuthShell
-    title="И-мэйл баталгаажуулалт"
+    title="Э-мэйл баталгаажуулалт"
     description="Бүртгэлийн аюулгүй байдлыг хангахын тулд и-мэйл хаягаа баталгаажуулна уу."
     :highlights="[
-      { label: 'Аюулгүй', value: 'И-мэйл баталгаажуулалт' },
+      { label: 'Аюулгүй', value: 'Э-мэйл баталгаажуулалт' },
       { label: 'Хурдан', value: '15 минутын дотор' },
       { label: 'Хялбар', value: '6 оронтой код' },
     ]"
   >
     <AuthCard
-      title="И-мэйл баталгаажуулах"
-      description="И-мэйл хаягт илгээсэн 6 оронтой кодыг оруулна уу."
+      title="Э-мэйл баталгаажуулах"
+      description="Э-мэйл хаягт илгээсэн 6 оронтой кодыг оруулна уу."
       footer-text="Бүртгэлтэй юу?"
       footer-link-text="Нэвтрэх"
       footer-link-to="/login"
     >
-      <form class="space-y-5" @submit.prevent="submitCode">
+      <Form :validation-schema="schema" class="space-y-5" @submit="onSubmit">
         <div
           v-if="email"
           class="rounded-2xl border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground"
         >
-          Код илгээгдсэн хаяг: <span class="font-medium text-foreground">{{ email }}</span>
+          Код илгээгдсэн хаяг:
+          <span class="font-medium text-foreground">{{ email }}</span>
         </div>
 
         <div
@@ -103,23 +112,27 @@ async function resend() {
           {{ resendMessage }}
         </div>
 
-        <div class="space-y-2">
-          <Label for="code">Баталгаажуулах код</Label>
-          <Input
-            id="code"
-            v-model="code"
-            type="text"
-            inputmode="numeric"
-            maxlength="6"
-            placeholder="000000"
-            class="text-center text-2xl tracking-[0.5em] font-bold"
-          />
-          <p class="text-xs text-muted-foreground text-center">
-            Код бүртгүүлэх үед и-мэйл хаягт илгээгдсэн байна
-          </p>
-        </div>
+        <FormField v-slot="{ componentField }" name="code">
+          <FormItem class="space-y-2">
+            <FormLabel>Баталгаажуулах код</FormLabel>
+            <FormControl>
+              <Input
+                v-bind="componentField"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="000000"
+                class="text-center text-2xl tracking-[0.5em] font-bold"
+              />
+            </FormControl>
+            <p class="text-xs text-muted-foreground text-center">
+              Код бүртгүүлэх үед и-мэйл хаягт илгээгдсэн байна
+            </p>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
-        <Button class="w-full" type="submit" :disabled="isVerifying || !code">
+        <Button class="w-full" type="submit" :disabled="isVerifying">
           {{ isVerifying ? "Баталгаажуулж байна..." : "Баталгаажуулах" }}
         </Button>
 
@@ -134,7 +147,7 @@ async function resend() {
             {{ isResending ? "Илгээж байна..." : "Дахин илгээх" }}
           </button>
         </div>
-      </form>
+      </Form>
     </AuthCard>
   </AuthShell>
 </template>

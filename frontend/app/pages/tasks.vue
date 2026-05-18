@@ -2,6 +2,16 @@
 import type { Task } from "../composables/types";
 import { toast } from "vue-sonner";
 import { ClipboardList, Plus, Wand2, Send, Loader2, ChevronRight, Sparkles } from "lucide-vue-next";
+import { toTypedSchema } from "@vee-validate/zod";
+import { taskSchema } from "~/utils/schemas";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
 
 definePageMeta({ middleware: "auth" });
 
@@ -26,6 +36,7 @@ const form = reactive({
   description: "",
   due_date: "",
 });
+const taskFormSchema = toTypedSchema(taskSchema);
 
 const submitContent = ref("");
 
@@ -77,18 +88,18 @@ async function generateTask() {
   }
 }
 
-async function createTask() {
-  if (!form.title.trim() || !form.description.trim()) {
-    toast.warning("Гарчиг болон тайлбар шаардлагатай");
-    return;
-  }
+async function createTask(values: {
+  title: string;
+  description?: string;
+  due_date?: string;
+}) {
   isSubmitting.value = true;
   try {
     await tasksAPI.create({
       job_posting_id: selectedJobID.value!,
-      title: form.title,
-      description: form.description,
-      due_date: form.due_date || undefined,
+      title: values.title,
+      description: values.description ?? "",
+      due_date: values.due_date || undefined,
     });
     createOpen.value = false;
     form.title = "";
@@ -295,32 +306,64 @@ function formatDate(d: string | null | undefined) {
       <DialogHeader>
         <DialogTitle>Даалгавар үүсгэх</DialogTitle>
       </DialogHeader>
-      <div class="space-y-4 py-2">
-        <div class="space-y-2">
-          <Label>Гарчиг</Label>
-          <Input v-model="form.title" placeholder="Даалгаврын гарчиг" />
-        </div>
-        <div class="space-y-2">
-          <Label>Тайлбар</Label>
-          <textarea
-            v-model="form.description"
-            rows="5"
-            placeholder="Даалгаврын дэлгэрэнгүй тайлбар..."
-            class="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-[13.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
-        </div>
-        <div class="space-y-2">
-          <Label>Дуусах огноо <span class="text-[11.5px] text-muted-foreground">(заавал биш)</span></Label>
-          <Input v-model="form.due_date" type="date" />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" @click="createOpen = false" :disabled="isSubmitting">Болих</Button>
-        <Button @click="createTask" :disabled="isSubmitting">
-          <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
-          Хадгалах
-        </Button>
-      </DialogFooter>
+      <Form
+        :validation-schema="taskFormSchema"
+        :initial-values="form"
+        class="space-y-4 py-2"
+        @submit="createTask"
+      >
+        <FormField v-slot="{ componentField }" name="title">
+          <FormItem class="space-y-2">
+            <FormLabel>Гарчиг</FormLabel>
+            <FormControl>
+              <Input v-bind="componentField" placeholder="Даалгаврын гарчиг" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ componentField }" name="description">
+          <FormItem class="space-y-2">
+            <FormLabel>Тайлбар</FormLabel>
+            <FormControl>
+              <textarea
+                v-bind="componentField"
+                rows="5"
+                placeholder="Даалгаврын дэлгэрэнгүй тайлбар..."
+                class="w-full resize-none rounded-xl border border-input bg-background px-3 py-2 text-[13.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <FormField v-slot="{ componentField }" name="due_date">
+          <FormItem class="space-y-2">
+            <FormLabel>
+              Дуусах огноо
+              <span class="text-[11.5px] text-muted-foreground">(заавал биш)</span>
+            </FormLabel>
+            <FormControl>
+              <Input v-bind="componentField" type="date" />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+
+        <DialogFooter>
+          <Button
+            variant="outline"
+            type="button"
+            :disabled="isSubmitting"
+            @click="createOpen = false"
+            >Болих</Button
+          >
+          <Button type="submit" :disabled="isSubmitting">
+            <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
+            Хадгалах
+          </Button>
+        </DialogFooter>
+      </Form>
     </DialogContent>
   </Dialog>
 

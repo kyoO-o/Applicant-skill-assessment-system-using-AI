@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/oapi"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/aiman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/appman"
@@ -209,6 +210,9 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		a.Status = appman.StatusAssessed
 		a.AssessedAt = &now
 		app.Applications.Save(a)
+
+		socket.NotifyUser(int(a.ApplicantID), "AI үнэлгээ дууслаа",
+			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", jobTitle, result.OverallScore), "assessment_complete")
 	}(savedApp.ID, cvText, job.Title, jobRequirements, jobSkills, jobDuties)
 
 	w.WriteHeader(http.StatusCreated)
@@ -358,9 +362,22 @@ func updateApplicationStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	existing, _ := app.Applications.Get(id)
+
 	if err := app.Applications.UpdateStatus(id, req.Status); err != nil {
 		oapi.ServerError(w, err)
 		return
+	}
+
+	if existing != nil {
+		statusLabels := map[string]string{
+			appman.StatusShortlisted: "Шалгарсан",
+			appman.StatusRejected:    "Татгалзсан",
+			appman.StatusAssessed:    "Үнэлэгдсэн",
+		}
+		label := statusLabels[req.Status]
+		socket.NotifyUser(int(existing.ApplicantID), "Анкетын төлөв өөрчлөгдлөө",
+			fmt.Sprintf("Таны анкетын төлөв '%s' болов", label), "status_update")
 	}
 
 	oapi.SendResp(w, map[string]string{"message": "Төлөв шинэчлэгдлээ"})
@@ -421,6 +438,11 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 	if applicant != nil {
 		resp.ApplicantName = applicant.FullName
 		resp.ApplicantEmail = applicant.Email
+	}
+
+	if applicant != nil {
+		socket.NotifyUser(int(saved.ApplicantID), "Ярилцлага товлогдлоо",
+			fmt.Sprintf("%s — %s", jobTitle, t.Format("2006-01-02 15:04")), "interview_scheduled")
 	}
 
 	// Send email invite to applicant asynchronously
@@ -536,6 +558,170 @@ func analyzeCV(w http.ResponseWriter, r *http.Request) {
 	cvText, err := aiman.ExtractTextFromPDF(pdfBytes)
 	if err != nil || len(cvText) < 50 {
 		cvText = "CV текст уншихад алдаа гарлаа - үнэлгээ хийх боломжгүй"
+	}
+
+	jobRequirements := make([]string, 0, len(job.Requirements))
+	for _, r := range job.Requirements {
+		jobRequirements = append(jobRequirements, r.Description)
+	}
+	jobSkills := make([]string, 0, len(job.Skills))
+	for _, s := range job.Skills {
+		jobSkills = append(jobSkills, s.Name)
+	}
+	jobDuties := make([]string, 0, len(job.Duties))
+	for _, d := range job.Duties {
+		jobDuties = append(jobDuties, d.Description)
+	}
+
+	result, err := app.AI.AssessCV(cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	oapi.SendResp(w, result)
+}
+
+// POST /api/jobs/{JobID}/apply-from-profile  — apply using saved CV profile (no file upload)
+func applyFromProfile(w http.ResponseWriter, r *http.Request) {
+	user := authUser(r)
+	if user.Role == userman.RoleRecruiter {
+		oapi.Forbidden(w)
+		return
+	}
+
+	jobID, err := strconv.Atoi(chi.URLParam(r, "JobID"))
+	if err != nil || jobID <= 0 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Ажлын байрны ID буруу байна"})
+		return
+	}
+
+	job, err := app.Jobs.Get(jobID)
+	if err != nil {
+		oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Ажлын байр олдсонгүй"})
+		return
+	}
+
+	cv, err := app.CVProfiles.GetByUserID(user.ID)
+	if err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Хадгалагдсан CV олдсонгүй. Эхлээд CV бүрдүүлэгч хэсэгт мэдээллээ оруулна уу."})
+		return
+	}
+
+	cvText := cvProfileToText(cv)
+	if len(cvText) < 50 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "CV мэдээлэл хангалтгүй байна. CV бүрдүүлэгч хэсэгт мэдээллээ нэмнэ үү."})
+		return
+	}
+
+	// Delete existing application to allow re-apply
+	if existing, err := app.Applications.GetForApplicantAndJob(user.ID, jobID); err == nil {
+		if delErr := app.Applications.Delete(existing.ID); delErr != nil {
+			oapi.ServerError(w, delErr)
+			return
+		}
+		if existing.CVFilePath != "" {
+			os.Remove(existing.CVFilePath)
+		}
+	}
+
+	application := &appman.Application{
+		JobPostingID: uint(jobID),
+		ApplicantID:  uint(user.ID),
+		CVFilePath:   "",
+		CVText:       cvText,
+		Status:       appman.StatusPending,
+	}
+
+	savedApp, err := app.Applications.Save(application)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	jobRequirements := make([]string, 0, len(job.Requirements))
+	for _, r := range job.Requirements {
+		jobRequirements = append(jobRequirements, r.Description)
+	}
+	jobSkills := make([]string, 0, len(job.Skills))
+	for _, s := range job.Skills {
+		jobSkills = append(jobSkills, s.Name)
+	}
+	jobDuties := make([]string, 0, len(job.Duties))
+	for _, d := range job.Duties {
+		jobDuties = append(jobDuties, d.Description)
+	}
+
+	go func(appID int, cvText, jobTitle string, requirements, skills, duties []string) {
+		result, err := app.AI.AssessCV(cvText, jobTitle, requirements, skills, duties)
+		if err != nil {
+			app.ErrorLog.Printf("AI assessment failed for application %d: %v", appID, err)
+			return
+		}
+
+		matchedJSON, _ := json.Marshal(result.MatchedSkills)
+		missingJSON, _ := json.Marshal(result.MissingSkills)
+		recsJSON, _ := json.Marshal(result.Recommendations)
+		dutyJSON, _ := json.Marshal(result.DutyAssessments)
+		reqJSON, _ := json.Marshal(result.RequirementAssessments)
+		now := time.Now()
+
+		a, _ := app.Applications.Get(appID)
+		if a == nil {
+			return
+		}
+		a.OverallScore = result.OverallScore
+		a.Summary = result.Summary
+		a.MatchedSkills = string(matchedJSON)
+		a.MissingSkills = string(missingJSON)
+		a.Recommendations = string(recsJSON)
+		a.DutyAssessments = string(dutyJSON)
+		a.RequirementAssessments = string(reqJSON)
+		a.Status = appman.StatusAssessed
+		a.AssessedAt = &now
+		app.Applications.Save(a)
+
+		socket.NotifyUser(int(a.ApplicantID), "AI үнэлгээ дууслаа",
+			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", jobTitle, result.OverallScore), "assessment_complete")
+	}(savedApp.ID, cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+
+	w.WriteHeader(http.StatusCreated)
+	oapi.SendResp(w, map[string]any{
+		"message": "Анкет амжилттай илгээгдлээ. AI үнэлгээ хийгдэж байна...",
+		"id":      savedApp.ID,
+	})
+}
+
+// POST /api/jobs/{JobID}/analyze-from-profile  — AI preview using saved CV profile (no save)
+func analyzeFromProfile(w http.ResponseWriter, r *http.Request) {
+	user := authUser(r)
+	if user.Role == userman.RoleRecruiter {
+		oapi.Forbidden(w)
+		return
+	}
+
+	jobID, err := strconv.Atoi(chi.URLParam(r, "JobID"))
+	if err != nil || jobID <= 0 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Ажлын байрны ID буруу байна"})
+		return
+	}
+
+	job, err := app.Jobs.Get(jobID)
+	if err != nil {
+		oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Ажлын байр олдсонгүй"})
+		return
+	}
+
+	cv, err := app.CVProfiles.GetByUserID(user.ID)
+	if err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Хадгалагдсан CV олдсонгүй. Эхлээд CV бүрдүүлэгч хэсэгт мэдээллээ оруулна уу."})
+		return
+	}
+
+	cvText := cvProfileToText(cv)
+	if len(cvText) < 50 {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "CV мэдээлэл хангалтгүй байна. CV бүрдүүлэгч хэсэгт мэдээллээ нэмнэ үү."})
+		return
 	}
 
 	jobRequirements := make([]string, 0, len(job.Requirements))

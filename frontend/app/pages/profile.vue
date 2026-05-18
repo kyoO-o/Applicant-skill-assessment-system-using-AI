@@ -1,50 +1,92 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
-import { Plus, X } from "lucide-vue-next";
+import {
+  Plus,
+  X,
+  Building2,
+  User,
+  Mail,
+  Briefcase,
+  Camera,
+} from "lucide-vue-next";
 
 import type { Company } from "../composables/types";
 import type { SaveCompanyPayload } from "../composables/types/payload";
+import { toTypedSchema } from "@vee-validate/zod";
+import { userProfileSchema } from "~/utils/schemas";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "~/components/ui/form";
 
 const { user, me } = useAuth();
 const authAPI = useAuthAPI();
 const companyAPI = useCompanyAPI();
 const router = useRouter();
 const { cities, districtsFor } = useLocationOptions();
+const config = useRuntimeConfig();
 
+// ── Tab switcher (recruiter only) ─────────────────────────────
+const profileTab = ref<"user" | "company">("user");
+
+// ── Company state ──────────────────────────────────────────────
 const company = ref<Company | null>(null);
 const loadingCompany = ref(false);
 const isSavingCompany = ref(false);
 const companyError = ref("");
 
+// ── Profile form ───────────────────────────────────────────────
 const profileForm = reactive({ firstName: "", lastName: "" });
 const isSavingProfile = ref(false);
+const profileSchema = toTypedSchema(userProfileSchema);
 
-function fillProfileForm() {
-  const parts = (user.value?.full_name || user.value?.name || "").split(" ");
-  profileForm.firstName = parts[0] || "";
-  profileForm.lastName = parts.slice(1).join(" ") || "";
+// ── Avatar upload ───────────────────────────────────────────────
+const avatarInput = ref<HTMLInputElement | null>(null);
+const pendingAvatarFile = ref<File | null>(null);
+const avatarPreview = ref<string | null>(null);
+
+const avatarURL = computed(() => {
+  if (avatarPreview.value) return avatarPreview.value;
+  const url = user.value?.profile_url;
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${config.public.apiBase}${url}`;
+});
+
+function onAvatarChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
+  pendingAvatarFile.value = file;
+  avatarPreview.value = URL.createObjectURL(file);
 }
 
-async function saveProfile() {
-  if (!profileForm.firstName.trim()) {
-    toast.error("Нэр шаардлагатай");
-    return;
-  }
-  isSavingProfile.value = true;
-  try {
-    await authAPI.updateMe({
-      first_name: profileForm.firstName.trim(),
-      last_name: profileForm.lastName.trim(),
-    });
-    await me();
-    toast.success("Профайл амжилттай шинэчлэгдлээ.");
-  } catch (e: any) {
-    toast.error(e?.data?.message || "Профайл хадгалахад алдаа гарлаа");
-  } finally {
-    isSavingProfile.value = false;
-  }
+// ── Logo upload ────────────────────────────────────────────────
+const logoInput = ref<HTMLInputElement | null>(null);
+const pendingLogoFile = ref<File | null>(null);
+const logoPreview = ref<string | null>(null);
+
+const logoURL = computed(() => {
+  if (logoPreview.value) return logoPreview.value;
+  const url = company.value?.logo_url;
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${config.public.apiBase}${url}`;
+});
+
+function onLogoChange(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0];
+  if (!file) return;
+  if (logoPreview.value) URL.revokeObjectURL(logoPreview.value);
+  pendingLogoFile.value = file;
+  logoPreview.value = URL.createObjectURL(file);
 }
 
+// ── Company form ───────────────────────────────────────────────
 const companyForm = reactive({
   name: "",
   description: "",
@@ -60,8 +102,54 @@ const companyForm = reactive({
 const isRecruiter = computed(() => user.value?.role === "recruiter");
 const hasCompany = computed(() => Boolean(user.value?.company_id));
 
+const initials = computed(() => {
+  const name = user.value?.full_name || user.value?.name || "";
+  return (
+    name
+      .split(" ")
+      .map((s) => s[0])
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
+});
+
+const companyInitial = computed(() => {
+  const name = company.value?.name || companyForm.name;
+  return name ? name.charAt(0).toUpperCase() : "?";
+});
+
 function displayName() {
-  return user.value?.name || user.value?.full_name || "Your profile";
+  return user.value?.name || user.value?.full_name || "Профайл";
+}
+
+function fillProfileForm() {
+  const parts = (user.value?.full_name || user.value?.name || "").split(" ");
+  profileForm.firstName = parts[0] || "";
+  profileForm.lastName = parts.slice(1).join(" ") || "";
+}
+
+async function saveProfile(values: Record<string, any>) {
+  isSavingProfile.value = true;
+  try {
+    if (pendingAvatarFile.value) {
+      await authAPI.uploadAvatar(pendingAvatarFile.value);
+      if (avatarPreview.value) URL.revokeObjectURL(avatarPreview.value);
+      pendingAvatarFile.value = null;
+      avatarPreview.value = null;
+      if (avatarInput.value) avatarInput.value.value = "";
+    }
+    await authAPI.updateMe({
+      first_name: values.firstName.trim(),
+      last_name: values.lastName?.trim() ?? "",
+    });
+    await me();
+    toast.success("Профайл амжилттай шинэчлэгдлээ.");
+  } catch (e: any) {
+    toast.error(e?.data?.message || "Профайл хадгалахад алдаа гарлаа");
+  } finally {
+    isSavingProfile.value = false;
+  }
 }
 
 function fillCompanyForm(value: Company | null) {
@@ -112,7 +200,6 @@ async function loadCompany() {
     fillCompanyForm(null);
     return;
   }
-
   loadingCompany.value = true;
   try {
     company.value = await companyAPI.get();
@@ -125,18 +212,28 @@ async function loadCompany() {
 }
 
 async function saveCompany() {
+  console.log("clicked");
   companyError.value = "";
   isSavingCompany.value = true;
   const wasHasCompany = hasCompany.value;
-
   try {
     const savedCompany = await companyAPI.save(buildCompanyPayload());
     company.value = savedCompany;
     fillCompanyForm(savedCompany);
     await me();
+
+    if (pendingLogoFile.value) {
+      const updated = await companyAPI.uploadLogo(pendingLogoFile.value);
+      company.value = updated;
+      if (logoPreview.value) URL.revokeObjectURL(logoPreview.value);
+      pendingLogoFile.value = null;
+      logoPreview.value = null;
+      if (logoInput.value) logoInput.value.value = "";
+    }
+
     toast.success(
       wasHasCompany
-        ? "Компанийн профайл шинэчлэгдлээ."
+        ? "Компаний профайл шинэчлэгдлээ."
         : "Компани үүсгэгдлээ. Одоо ажлын байр удирдах боломжтой.",
     );
   } catch (error: any) {
@@ -150,89 +247,10 @@ async function saveCompany() {
 
 function openJobs() {
   if (isRecruiter.value && !hasCompany.value) {
-    toast.warning("Ажлын байр нээхийн өмнө компанийн мэдээллээ нэмнэ үү.");
+    toast.warning("Ажлын байр нээхийн өмнө компаний мэдээллээ нэмнэ үү.");
     return;
   }
-
   router.push("/jobs");
-}
-
-// ── Email change ─────────────────────────────────────────────────────────
-const emailChangeStep = ref<"form" | "code">("form");
-const newEmail = ref("");
-const emailChangeCode = ref("");
-const isSendingEmailCode = ref(false);
-const isVerifyingEmail = ref(false);
-
-async function sendEmailChangeCode() {
-  if (!newEmail.value.trim()) {
-    toast.error("Шинэ и-мэйл хаягаа оруулна уу");
-    return;
-  }
-  isSendingEmailCode.value = true;
-  try {
-    const res = await authAPI.initiateEmailChange(newEmail.value.trim());
-    toast.success(res.message);
-    emailChangeStep.value = "code";
-  } catch (e: any) {
-    toast.error(e?.data?.message || "Код илгээхэд алдаа гарлаа");
-  } finally {
-    isSendingEmailCode.value = false;
-  }
-}
-
-async function confirmEmailChange() {
-  if (emailChangeCode.value.trim().length !== 6) {
-    toast.error("6 оронтой кодыг оруулна уу");
-    return;
-  }
-  isVerifyingEmail.value = true;
-  try {
-    await authAPI.verifyEmailChange(emailChangeCode.value.trim());
-    await me();
-    emailChangeStep.value = "form";
-    newEmail.value = "";
-    emailChangeCode.value = "";
-    toast.success("И-мэйл хаяг амжилттай шинэчлэгдлээ.");
-  } catch (e: any) {
-    toast.error(e?.data?.message || "Баталгаажуулахад алдаа гарлаа");
-  } finally {
-    isVerifyingEmail.value = false;
-  }
-}
-
-// ── Password change ───────────────────────────────────────────────────────
-const passwordForm = reactive({ current: "", newPwd: "", confirm: "" });
-const isChangingPassword = ref(false);
-
-async function changePassword() {
-  if (!passwordForm.current || !passwordForm.newPwd) {
-    toast.error("Бүх талбарыг бөглөнө үү");
-    return;
-  }
-  if (passwordForm.newPwd !== passwordForm.confirm) {
-    toast.error("Нууц үг таарахгүй байна");
-    return;
-  }
-  if (passwordForm.newPwd.length < 8) {
-    toast.error("Нууц үг наад зах нь 8 тэмдэгттэй байна");
-    return;
-  }
-  isChangingPassword.value = true;
-  try {
-    const res = await authAPI.changePassword(
-      passwordForm.current,
-      passwordForm.newPwd,
-    );
-    toast.success(res.message);
-    passwordForm.current = "";
-    passwordForm.newPwd = "";
-    passwordForm.confirm = "";
-  } catch (e: any) {
-    toast.error(e?.data?.message || "Нууц үг солиход алдаа гарлаа");
-  } finally {
-    isChangingPassword.value = false;
-  }
 }
 
 await loadCompany();
@@ -240,424 +258,515 @@ fillProfileForm();
 </script>
 
 <template>
-  <div class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6">
-      <p class="text-sm font-medium text-muted-foreground">Профайл</p>
-      <h1 class="mt-2 text-3xl font-semibold tracking-tight">
-        {{ displayName() }}
-      </h1>
-      <p class="mt-2 text-sm leading-6 text-muted-foreground">
-        Бүртгэлийн мэдээлэл болон компанийн тохиргоог энд удирдана уу.
-      </p>
-    </section>
+  <div>
+    <!-- Page header -->
+    <div class="mb-6 flex items-end justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">Профайл</h1>
+        <p class="mt-1.5 text-sm text-muted-foreground">
+          <template v-if="isRecruiter && profileTab === 'company'">
+            Ажил горилогчид компаний мэдээллийг харуулна.
+          </template>
+          <template v-else> Таны MatchHire дахь бүртгэл. </template>
+        </p>
+      </div>
+    </div>
 
-    <!-- Profile name edit -->
-    <Card class="rounded-3xl border-border shadow-none">
-      <CardHeader>
-        <CardTitle>Хувийн мэдээлэл засах</CardTitle>
-        <CardDescription>Нэр, овгоо шинэчилнэ үү.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form class="grid gap-4 sm:grid-cols-2" @submit.prevent="saveProfile">
-          <div class="space-y-2">
-            <Label for="profile-first-name">Нэр</Label>
-            <Input
-              id="profile-first-name"
-              v-model="profileForm.firstName"
-              placeholder="Нэр"
-              autocomplete="given-name"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="profile-last-name">Овог</Label>
-            <Input
-              id="profile-last-name"
-              v-model="profileForm.lastName"
-              placeholder="Овог"
-              autocomplete="family-name"
-            />
-          </div>
-          <div class="sm:col-span-2 flex justify-end">
-            <Button type="submit" :disabled="isSavingProfile">
-              {{ isSavingProfile ? "Хадгалж байна..." : "Шинэчлэх" }}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-
-    <!-- Email change card -->
-    <Card class="rounded-3xl border-border shadow-none">
-      <CardHeader>
-        <CardTitle>И-мэйл хаяг солих</CardTitle>
-        <CardDescription>
-          Шинэ и-мэйл хаяг руу баталгаажуулах код илгээгдэнэ.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div
-          v-if="emailChangeStep === 'form'"
-          class="grid gap-4 sm:grid-cols-[1fr_auto]"
+    <!-- Tab switcher (recruiter only) -->
+    <div v-if="isRecruiter" class="mb-5">
+      <div
+        class="inline-flex gap-0.5 rounded-full border border-border bg-muted/50 p-1"
+      >
+        <button
+          v-for="tab in [
+            { value: 'user', label: 'Таны профайл', icon: User },
+            { value: 'company', label: 'Компаний профайл', icon: Building2 },
+          ]"
+          :key="tab.value"
+          class="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-100"
+          :class="
+            profileTab === tab.value
+              ? 'bg-background text-foreground shadow-sm ring-1 ring-border'
+              : 'text-muted-foreground hover:text-foreground'
+          "
+          @click="profileTab = tab.value as 'user' | 'company'"
         >
-          <div class="space-y-2">
-            <Label for="new-email">Шинэ и-мэйл хаяг</Label>
-            <Input
-              id="new-email"
-              v-model="newEmail"
-              type="email"
-              :placeholder="user?.email || 'шинэ@хаяг.com'"
-              autocomplete="email"
-            />
-          </div>
-          <div class="flex items-end">
-            <Button :disabled="isSendingEmailCode" @click="sendEmailChangeCode">
-              {{ isSendingEmailCode ? "Илгээж байна..." : "Код илгээх" }}
-            </Button>
-          </div>
-        </div>
+          <component :is="tab.icon" class="h-3.5 w-3.5" />
+          {{ tab.label }}
+        </button>
+      </div>
+    </div>
 
-        <div v-else class="space-y-4">
-          <p class="text-sm text-muted-foreground">
-            Шинэ и-мэйл
-            <span class="font-medium text-foreground">{{ newEmail }}</span>
-            хаягт код илгээгдлээ.
-          </p>
-          <div class="grid gap-4 sm:grid-cols-[1fr_auto]">
-            <div class="space-y-2">
-              <Label for="email-code">Баталгаажуулах код</Label>
-              <Input
-                id="email-code"
-                v-model="emailChangeCode"
-                type="text"
-                inputmode="numeric"
-                maxlength="6"
-                placeholder="000000"
-                class="text-center text-xl tracking-[0.5em] font-bold"
-              />
-            </div>
-            <div class="flex items-end gap-2">
-              <Button variant="outline" @click="emailChangeStep = 'form'"
-                >Буцах</Button
-              >
-              <Button :disabled="isVerifyingEmail" @click="confirmEmailChange">
-                {{
-                  isVerifyingEmail ? "Баталгаажуулж байна..." : "Баталгаажуулах"
-                }}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Password change card -->
-    <Card class="rounded-3xl border-border shadow-none">
-      <CardHeader>
-        <CardTitle>Нууц үг солих</CardTitle>
-        <CardDescription
-          >Одоогийн нууц үгийг оруулж баталгаажуулна уу.</CardDescription
-        >
-      </CardHeader>
-      <CardContent>
-        <form
-          class="grid gap-4 sm:grid-cols-2"
-          @submit.prevent="changePassword"
-        >
-          <div class="space-y-2 sm:col-span-2">
-            <Label for="current-password">Одоогийн нууц үг</Label>
-            <PasswordInput
-              id="current-password"
-              v-model="passwordForm.current"
-              placeholder="Одоогийн нууц үг"
-              autocomplete="current-password"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="new-password">Шинэ нууц үг</Label>
-            <PasswordInput
-              id="new-password"
-              v-model="passwordForm.newPwd"
-              placeholder="Наад зах нь 8 тэмдэгт"
-              autocomplete="new-password"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label for="confirm-password-change">Нууц үг давтах</Label>
-            <PasswordInput
-              id="confirm-password-change"
-              v-model="passwordForm.confirm"
-              placeholder="Нууц үгийг дахин оруулна уу"
-              autocomplete="new-password"
-            />
-          </div>
-          <div class="sm:col-span-2 flex justify-end">
-            <Button type="submit" :disabled="isChangingPassword">
-              {{ isChangingPassword ? "Солиж байна..." : "Нууц үг солих" }}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
-
-    <section
-      v-if="isRecruiter && !hasCompany"
-      class="rounded-3xl border border-dashed border-border bg-muted/20 px-6 py-5"
-    >
-      <p class="text-sm font-semibold">Ажил олгогчийн тохиргоо дуусгах</p>
-      <p class="mt-2 text-sm leading-6 text-muted-foreground">
-        Таны бүртгэл бэлэн боллоо, гэхдээ ажлын зар нийтлэхийн өмнө компанийн
-        мэдээллээ оруулна уу.
-      </p>
-    </section>
-
-    <section class="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
-      <Card class="rounded-3xl border-border shadow-none">
-        <CardHeader>
-          <CardTitle>Бүртгэлийн дэлгэрэнгүй</CardTitle>
-          <CardDescription>Нэвтэрсэн хэрэглэгчийн мэдээлэл.</CardDescription>
-        </CardHeader>
-        <CardContent class="grid gap-4 sm:grid-cols-2">
-          <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p
-              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
-            >
-              Э-мэйл
-            </p>
-            <p class="mt-2 text-sm font-medium">{{ user?.email || "-" }}</p>
-          </div>
-          <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p
-              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
-            >
-              Үүрэг
-            </p>
-            <p class="mt-2 text-sm font-medium capitalize">
-              {{ user?.role === "recruiter" ? "Ажил олгогч" : "Ажил горилогч" }}
-            </p>
-          </div>
-          <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p
-              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
-            >
-              Компани
-            </p>
-            <p class="mt-2 text-sm font-medium">
-              {{ company?.name || user?.company_name || "-" }}
-            </p>
-          </div>
-          <div class="rounded-2xl border border-border bg-muted/30 p-4">
-            <p
-              class="text-xs uppercase tracking-[0.18em] text-muted-foreground"
-            >
-              Албан тушаал
-            </p>
-            <p class="mt-2 text-sm font-medium">{{ user?.position || "-" }}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card class="rounded-3xl border-border shadow-none">
-        <CardHeader>
-          <CardTitle>Дараагийн алхам</CardTitle>
-          <CardDescription>Үүрэгт тохирсон хурдан зам.</CardDescription>
-        </CardHeader>
-        <CardContent class="space-y-3">
-          <button
-            type="button"
-            class="block w-full rounded-2xl border border-border bg-muted/30 p-4 text-left text-sm font-medium transition hover:bg-muted/50"
-            :class="isRecruiter && !hasCompany ? 'opacity-70' : ''"
-            @click="openJobs"
-          >
-            {{
-              user?.role === "recruiter"
-                ? "Ажлын байр удирдах"
-                : "Ажлын байрууд харах"
-            }}
-          </button>
-          <NuxtLink
-            to="/settings"
-            class="block rounded-2xl border border-border bg-muted/30 p-4 text-sm font-medium transition hover:bg-muted/50"
-          >
-            Бүртгэлийн тохиргоо харах
-          </NuxtLink>
-        </CardContent>
-      </Card>
-    </section>
-
-    <Card v-if="isRecruiter" class="rounded-3xl border-border shadow-none">
-      <CardHeader>
-        <CardTitle>{{
-          hasCompany ? "Компанийн профайл" : "Компани үүсгэх"
-        }}</CardTitle>
-        <CardDescription>
-          {{
-            hasCompany
-              ? "Ажил олгогчийн компанийн мэдээллийг шинэчлэн байгаарай."
-              : "Ажлын байр нийтлэхийн өмнө энэ хэсгийг бөглөх шаардлагатай."
-          }}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div
-          v-if="companyError"
-          class="mb-4 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-        >
-          {{ companyError }}
-        </div>
-
-        <div v-if="loadingCompany" class="text-sm text-muted-foreground">
-          Компанийн мэдээлэл ачааллаж байна...
-        </div>
-
-        <form
-          v-else
-          class="grid gap-4 sm:grid-cols-2"
-          @submit.prevent="saveCompany"
-        >
-          <div class="space-y-2 sm:col-span-2">
-            <Label for="company-name">Компанийн нэр</Label>
-            <Input
-              id="company-name"
-              v-model="companyForm.name"
-              placeholder="Таны компани"
-            />
-          </div>
-
-          <div class="space-y-2 sm:col-span-2">
-            <Label for="company-description">Тайлбар</Label>
-            <Textarea
-              id="company-description"
-              v-model="companyForm.description"
-              rows="4"
-              placeholder="Компанийхаа үйл ажиллагааны талаар бичнэ үү."
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="company-register-id">Регистрийн дугаар</Label>
-            <Input
-              id="company-register-id"
-              v-model="companyForm.register_id"
-              placeholder="A1234567"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <Label for="company-contact-info">Холбоо барих мэдээлэл</Label>
-            <Input
-              id="company-contact-info"
-              v-model="companyForm.contact_info"
-              placeholder="hr@company.mn | +976 99000000"
-            />
-            <p class="text-xs text-muted-foreground">
-              Ажлын зарт автоматаар нэмэгдэх холбоо барих мэдээлэл.
-            </p>
-          </div>
-
-          <div class="space-y-2">
-            <Label for="company-city">Хот / Аймаг</Label>
-            <Select v-model="companyForm.city">
-              <SelectTrigger id="company-city" class="w-full">
-                <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="city in cities" :key="city" :value="city">
-                  {{ city }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div class="space-y-2">
-            <Label for="company-district">Дүүрэг / Сум</Label>
-            <Select
-              v-model="companyForm.district"
-              :disabled="!companyForm.city"
-            >
-              <SelectTrigger id="company-district" class="w-full">
-                <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem
-                  v-for="district in districtOptions"
-                  :key="district"
-                  :value="district"
+    <!-- ── User profile section ──────────────────────────────── -->
+    <template v-if="!isRecruiter || profileTab === 'user'">
+      <div class="grid gap-5 lg:grid-cols-[1fr_1.6fr]">
+        <!-- Avatar + account info sidebar -->
+        <Card class="rounded-3xl border-border shadow-none">
+          <CardContent class="pt-6">
+            <div class="flex flex-col items-center gap-3">
+              <label class="relative group block h-24 w-24 cursor-pointer">
+                <div
+                  v-if="avatarURL"
+                  class="h-24 w-24 rounded-full overflow-hidden border border-border"
                 >
-                  {{ district }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div
-            class="sm:col-span-2 rounded-2xl border border-border bg-muted/20 p-4 space-y-2"
-          >
-            <Label>Газрын зураг дээр байршил сонгох</Label>
-            <LocationSearch
-              v-model:model-x="companyForm.location_x"
-              v-model:model-y="companyForm.location_y"
-            />
-          </div>
-
-          <!-- Benefits / Incentives -->
-          <div class="sm:col-span-2 space-y-3">
-            <div class="flex items-center justify-between gap-3">
-              <div>
-                <Label>Урамшуулал / Давуу тал</Label>
-                <p class="mt-1 text-xs text-muted-foreground">
-                  Ажлын зарт нэмэхийн тулд компанийн давуу талуудыг жагсаана уу.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                @click="addBenefit"
-              >
-                <Plus class="mr-1 h-4 w-4" />Нэмэх
-              </Button>
-            </div>
-            <div v-if="companyForm.benefits.length" class="space-y-2">
-              <div
-                v-for="(_, index) in companyForm.benefits"
-                :key="`benefit-${index}`"
-                class="flex items-center gap-2"
-              >
-                <Input
-                  v-model="companyForm.benefits[index]"
-                  placeholder="Жишээ: Эрүүл мэндийн даатгал, Уян хатан цаг..."
+                  <img
+                    :src="avatarURL"
+                    alt="Avatar"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <div
+                  v-else
+                  class="flex h-24 w-24 items-center justify-center rounded-full bg-muted text-2xl font-bold text-muted-foreground"
+                >
+                  {{ initials }}
+                </div>
+                <div
+                  class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Camera class="h-5 w-5 text-white" />
+                </div>
+                <input
+                  ref="avatarInput"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  class="hidden"
+                  :disabled="isSavingProfile"
+                  @change="onAvatarChange"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  @click="removeBenefit(index)"
-                >
-                  <X class="h-4 w-4" />
-                </Button>
+              </label>
+              <div class="text-center">
+                <div class="text-lg font-semibold tracking-tight">
+                  {{ displayName() }}
+                </div>
+                <div class="mt-1 text-sm text-muted-foreground">
+                  {{
+                    isRecruiter
+                      ? user?.position || "Ажил олгогч"
+                      : user?.position || "Ажил горилогч"
+                  }}
+                </div>
               </div>
             </div>
-            <div
-              v-else
-              class="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground"
-            >
-              Одоогоор давуу тал нэмэгдээгүй байна.
+
+            <Separator class="my-5" />
+
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <Mail class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-muted-foreground">Э-мэйл</p>
+                  <p class="truncate text-sm font-medium">
+                    {{ user?.email || "–" }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <User class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="flex-1">
+                  <p class="text-xs text-muted-foreground">Үүрэг</p>
+                  <p class="text-sm font-medium">
+                    {{
+                      user?.role === "recruiter"
+                        ? "Ажил олгогч"
+                        : "Ажил горилогч"
+                    }}
+                  </p>
+                </div>
+              </div>
+              <div v-if="user?.company_name" class="flex items-center gap-3">
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <Building2 class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="flex-1">
+                  <p class="text-xs text-muted-foreground">Компани</p>
+                  <p class="text-sm font-medium">{{ user.company_name }}</p>
+                </div>
+              </div>
+              <div v-if="user?.position" class="flex items-center gap-3">
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <Briefcase class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="flex-1">
+                  <p class="text-xs text-muted-foreground">Албан тушаал</p>
+                  <p class="text-sm font-medium">{{ user.position }}</p>
+                </div>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <!-- Right column -->
+        <div class="flex flex-col gap-4 h-full">
+          <!-- Personal info form -->
+          <Card class="rounded-3xl border-border shadow-none h-full">
+            <CardHeader>
+              <CardTitle>Хувийн мэдээлэл</CardTitle>
+              <CardDescription>Нэр, овгоо шинэчилнэ үү.</CardDescription>
+            </CardHeader>
+            <Form
+              :validation-schema="profileSchema"
+              :initial-values="profileForm"
+              class="contents"
+              @submit="saveProfile"
+            >
+              <CardContent class="h-full">
+                <div class="grid gap-3 sm:grid-cols-2">
+                  <FormField v-slot="{ componentField }" name="firstName">
+                    <FormItem class="space-y-1.5">
+                      <FormLabel>Нэр</FormLabel>
+                      <FormControl>
+                        <Input
+                          v-bind="componentField"
+                          placeholder="Нэр"
+                          autocomplete="given-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+
+                  <FormField v-slot="{ componentField }" name="lastName">
+                    <FormItem class="space-y-1.5">
+                      <FormLabel>Овог</FormLabel>
+                      <FormControl>
+                        <Input
+                          v-bind="componentField"
+                          placeholder="Овог"
+                          autocomplete="family-name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  </FormField>
+
+                  <div class="space-y-1.5">
+                    <Label>Э-мэйл</Label>
+                    <div
+                      class="rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground"
+                    >
+                      {{ user?.email }}
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                      Э-мэйл солихыг
+                      <NuxtLink
+                        to="/settings"
+                        class="text-primary underline-offset-4 hover:underline"
+                        >Тохиргоо</NuxtLink
+                      >-с хийнэ үү.
+                    </p>
+                  </div>
+                  <div v-if="user?.phone_number" class="space-y-1.5">
+                    <Label>Утас</Label>
+                    <div
+                      class="rounded-xl border border-border bg-muted/30 px-3 py-2.5 text-sm text-muted-foreground"
+                    >
+                      {{ user.phone_number }}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter class="justify-end items-end">
+                <Button type="submit" :disabled="isSavingProfile">
+                  {{
+                    isSavingProfile ? "Хадгалж байна..." : "Өөрчлөлт хадгалах"
+                  }}
+                </Button>
+              </CardFooter>
+            </Form>
+          </Card>
+        </div>
+      </div>
+    </template>
+
+    <!-- ── Company profile section (recruiter) ──────────────── -->
+    <template v-else-if="isRecruiter && profileTab === 'company'">
+      <section
+        v-if="!hasCompany"
+        class="mb-5 rounded-3xl border border-dashed border-border bg-muted/20 px-6 py-5"
+      >
+        <p class="text-sm font-semibold">Ажил олгогчийн тохиргоо дуусгах</p>
+        <p class="mt-2 text-sm leading-6 text-muted-foreground">
+          Таны бүртгэл бэлэн боллоо, гэхдээ ажлын зар нийтлэхийн өмнө компанийн
+          мэдээллээ оруулна уу.
+        </p>
+      </section>
+
+      <div class="grid gap-5 lg:grid-cols-[1fr_1.6fr]">
+        <!-- Company mark sidebar -->
+        <Card class="rounded-3xl border-border shadow-none">
+          <CardContent class="pt-6">
+            <div class="flex flex-col items-center gap-3">
+              <label
+                class="relative group block h-24 w-24"
+                :class="hasCompany ? 'cursor-pointer' : 'cursor-default'"
+              >
+                <div
+                  v-if="logoURL"
+                  class="h-24 w-24 rounded-[26px] overflow-hidden border border-border"
+                >
+                  <img
+                    :src="logoURL"
+                    alt="Logo"
+                    class="h-full w-full object-cover"
+                  />
+                </div>
+                <div
+                  v-else
+                  class="flex h-24 w-24 items-center justify-center rounded-full bg-muted text-3xl font-bold text-muted-foreground"
+                >
+                  {{ companyInitial }}
+                </div>
+                <div
+                  v-if="hasCompany"
+                  class="absolute inset-0 flex items-center justify-center rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Camera class="h-5 w-5 text-white" />
+                </div>
+                <input
+                  ref="logoInput"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  class="hidden"
+                  :disabled="!hasCompany || isSavingCompany"
+                  @change="onLogoChange"
+                />
+              </label>
+              <div class="text-center">
+                <div class="text-lg font-semibold tracking-tight">
+                  {{ company?.name || companyForm.name || "Компани" }}
+                </div>
+                <div class="mt-1 text-sm text-muted-foreground">
+                  {{
+                    [companyForm.city, companyForm.district]
+                      .filter(Boolean)
+                      .join(" · ") || "Байршил тодорхойгүй"
+                  }}
+                </div>
+              </div>
+            </div>
+
+            <Separator class="my-5" />
+
+            <div class="flex flex-col gap-3">
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <Briefcase class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="flex-1">
+                  <p class="text-xs text-muted-foreground">Регистр</p>
+                  <p class="text-sm font-medium">
+                    {{ company?.register_id || companyForm.register_id || "–" }}
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <Mail class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-muted-foreground">Холбоо барих</p>
+                  <p class="truncate text-sm font-medium">
+                    {{
+                      company?.contact_info || companyForm.contact_info || "–"
+                    }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Company form -->
+        <div class="flex flex-col gap-4">
+          <div
+            v-if="companyError"
+            class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+          >
+            {{ companyError }}
           </div>
 
-          <div class="sm:col-span-2 flex justify-end">
-            <Button type="submit" :disabled="isSavingCompany">
-              {{
-                isSavingCompany
-                  ? "Хадгалж байна..."
-                  : hasCompany
-                    ? "Шинэчлэх"
-                    : "Компани үүсгэх"
-              }}
-            </Button>
+          <div v-if="loadingCompany" class="text-sm text-muted-foreground">
+            Компанийн мэдээлэл ачааллаж байна...
           </div>
-        </form>
-      </CardContent>
-    </Card>
+
+          <template v-else>
+            <!-- About company -->
+            <Card class="rounded-3xl border-border shadow-none">
+              <CardHeader>
+                <CardTitle>Компанийн тухай</CardTitle>
+              </CardHeader>
+              <CardContent class="grid gap-3 sm:grid-cols-2">
+                <div class="space-y-1.5 sm:col-span-2">
+                  <Label for="company-name">Компанийн нэр</Label>
+                  <Input
+                    id="company-name"
+                    v-model="companyForm.name"
+                    placeholder="Таны компани"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <Label for="company-register-id">Регистрийн дугаар</Label>
+                  <Input
+                    id="company-register-id"
+                    v-model="companyForm.register_id"
+                    placeholder="A1234567"
+                  />
+                </div>
+                <div class="space-y-1.5">
+                  <Label for="company-contact-info">Холбоо барих</Label>
+                  <Input
+                    id="company-contact-info"
+                    v-model="companyForm.contact_info"
+                    placeholder="hr@company.mn | +976 99000000"
+                  />
+                </div>
+                <div class="space-y-1.5 sm:col-span-2">
+                  <Label for="company-description">Тайлбар</Label>
+                  <Textarea
+                    id="company-description"
+                    v-model="companyForm.description"
+                    :rows="3"
+                    placeholder="Компанийхаа үйл ажиллагааны талаар бичнэ үү."
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <!-- Office location -->
+            <Card
+              class="overflow-hidden rounded-3xl border-border p-0 shadow-none"
+            >
+              <div
+                class="flex items-center justify-between border-b border-border px-6 py-4"
+              >
+                <div>
+                  <p class="text-sm font-semibold">Оффисын байршил</p>
+                  <p class="mt-0.5 text-xs text-muted-foreground">
+                    Хот, дүүрэг болон газрын зурган дээрх байршлыг тохируулна
+                    уу.
+                  </p>
+                </div>
+              </div>
+              <div class="grid gap-3 p-6 sm:grid-cols-2">
+                <div class="space-y-1.5">
+                  <Label for="company-city">Хот / Аймаг</Label>
+                  <Select v-model="companyForm.city">
+                    <SelectTrigger id="company-city" class="w-full">
+                      <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="city in cities"
+                        :key="city"
+                        :value="city"
+                      >
+                        {{ city }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div class="space-y-1.5">
+                  <Label for="company-district">Дүүрэг / Сум</Label>
+                  <Select
+                    v-model="companyForm.district"
+                    :disabled="!companyForm.city"
+                  >
+                    <SelectTrigger id="company-district" class="w-full">
+                      <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="district in districtOptions"
+                        :key="district"
+                        :value="district"
+                      >
+                        {{ district }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div
+                  class="space-y-2 rounded-2xl border border-border bg-muted/20 p-4 sm:col-span-2"
+                >
+                  <Label>Газрын зураг дээр байршил сонгох</Label>
+                  <LocationSearch
+                    v-model:model-x="companyForm.location_x"
+                    v-model:model-y="companyForm.location_y"
+                  />
+                </div>
+              </div>
+            </Card>
+
+            <!-- Benefits -->
+            <Card class="rounded-3xl border-border shadow-none">
+              <CardHeader>
+                <div class="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Урамшуулал / Давуу тал</CardTitle>
+                    <CardDescription class="mt-0.5">
+                      Ажлын зарт нэмэхийн тулд компаний давуу талуудыг жагсаана
+                      уу.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    @click="addBenefit"
+                  >
+                    <Plus class="mr-1 h-4 w-4" />Нэмэх
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent class="space-y-2">
+                <div v-if="companyForm.benefits.length" class="space-y-2">
+                  <div
+                    v-for="(_, index) in companyForm.benefits"
+                    :key="`benefit-${index}`"
+                    class="flex items-center gap-2"
+                  >
+                    <Input
+                      v-model="companyForm.benefits[index]"
+                      placeholder="Жишээ: Эрүүл мэндийн даатгал, Уян хатан цаг..."
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      @click="removeBenefit(index)"
+                    >
+                      <X class="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div
+                  v-else
+                  class="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground"
+                >
+                  Одоогоор давуу тал нэмэгдээгүй байна.
+                </div>
+              </CardContent>
+            </Card>
+          </template>
+        </div>
+      </div>
+    </template>
   </div>
 </template>

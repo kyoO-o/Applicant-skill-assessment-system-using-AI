@@ -46,10 +46,12 @@ func main() {
 	// Mark users created before email verification was introduced as already verified
 	app.DB.Exec("UPDATE users SET email_verified = true WHERE email_verified = false AND (verify_code = '' OR verify_code IS NULL)")
 
-	// Ensure CV upload directory exists
+	// Ensure upload directories exist
 	if app.Config.StoragePath != "" {
-		if err := os.MkdirAll(app.Config.StoragePath+"/cvs", 0755); err != nil {
-			app.ErrorLog.Printf("warning: could not create storage dir: %v", err)
+		for _, sub := range []string{"cvs", "avatars", "logos"} {
+			if err := os.MkdirAll(app.Config.StoragePath+"/"+sub, 0755); err != nil {
+				app.ErrorLog.Printf("warning: could not create storage dir %s: %v", sub, err)
+			}
 		}
 	}
 

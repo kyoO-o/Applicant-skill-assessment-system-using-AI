@@ -39,6 +39,12 @@ export class CompanyAPI {
       body: payload,
     });
   }
+
+  uploadLogo(file: File) {
+    const form = new FormData();
+    form.set("file", file);
+    return this.fetch<Company>("/api/company/logo", { method: "POST", body: form });
+  }
 }
 
 export const useCompanyAPI = () => {

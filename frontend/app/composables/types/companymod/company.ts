@@ -14,5 +14,6 @@ export interface Company extends BaseModel {
   district: string;
   location_x: number;
   location_y: number;
+  logo_url?: string;
   benefits: CompanyBenefit[];
 }

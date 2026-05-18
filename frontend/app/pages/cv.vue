@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { toast } from "vue-sonner";
+import * as z from "zod";
 import {
   Loader2,
   Plus,
@@ -48,6 +49,11 @@ const parsing = ref(false);
 
 const cv = ref<CVProfile>(emptyCV());
 
+const cvRequiredSchema = z.object({
+  last_name: z.string().min(1, "Овог шаардлагатай"),
+  first_name: z.string().min(1, "Нэр шаардлагатай"),
+});
+
 const DRIVER_LICENSES = ["A", "B", "C", "D", "E", "M"];
 const GENDERS = ["Эрэгтэй", "Эмэгтэй"];
 const MARITAL_STATUSES = ["Гэрлэсэн", "Гэрлээгүй", "Салсан", "Бэлэвсэн"];
@@ -73,6 +79,11 @@ async function load() {
 await load();
 
 async function save() {
+  const validation = cvRequiredSchema.safeParse(cv.value);
+  if (!validation.success) {
+    toast.error(validation.error.issues[0]?.message ?? "Мэдээлэл дутуу байна");
+    return;
+  }
   saving.value = true;
   try {
     const saved = await cvAPI.save(cv.value);
@@ -327,7 +338,7 @@ const fullName = computed(() =>
                   <Input v-model="cv.phone" placeholder="+976 9900 0000" />
                 </div>
                 <div class="space-y-1.5">
-                  <label class="text-sm font-medium">И-мэйл</label>
+                  <label class="text-sm font-medium">Э-мэйл</label>
                   <Input
                     v-model="cv.email"
                     type="email"

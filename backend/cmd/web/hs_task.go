@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/oapi"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/taskman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
@@ -146,6 +148,12 @@ func sendTask(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		oapi.ServerError(w, err)
 		return
+	}
+
+	if saved.ApplicationID != nil {
+		if a, err := app.Applications.Get(int(*saved.ApplicationID)); err == nil {
+			socket.NotifyUser(int(a.ApplicantID), "Шинэ даалгавар ирлээ", saved.Title, "task_sent")
+		}
 	}
 
 	oapi.SendResp(w, saved)
@@ -294,6 +302,9 @@ func gradeSubmission(w http.ResponseWriter, r *http.Request) {
 		oapi.ServerError(w, err)
 		return
 	}
+
+	socket.NotifyUser(int(saved.ApplicantID), "Даалгавар үнэлэгдлээ",
+		fmt.Sprintf("Таны даалгавар үнэлэгдлээ. Оноо: %d/100", *saved.Grade), "task_graded")
 
 	oapi.SendResp(w, saved)
 }

@@ -28,8 +28,13 @@ const hasRecruiterCompany = computed(() => recruiterCompanyID.value > 0);
 
 const recruiterStats = computed(() => {
   const totalJobs = jobs.value.length;
-  const activeJobs = jobs.value.filter((job) => job.status === JobStatus.Posted).length;
-  const totalApplicants = jobs.value.reduce((sum, job) => sum + job.applicants_count, 0);
+  const activeJobs = jobs.value.filter(
+    (job) => job.status === JobStatus.Posted,
+  ).length;
+  const totalApplicants = jobs.value.reduce(
+    (sum, job) => sum + job.applicants_count,
+    0,
+  );
   return { totalJobs, activeJobs, totalApplicants };
 });
 
@@ -44,7 +49,9 @@ function statusLabel(status: Job["status"]) {
 }
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(new Date(value));
+  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(
+    new Date(value),
+  );
 }
 
 function openCreatePage() {
@@ -83,7 +90,11 @@ async function confirmDelete() {
     selectedJob.value = null;
     await loadJobs();
   } catch (error: any) {
-    toast.error(error?.data?.message || error?.message || "Ажлын байр устгахад алдаа гарлаа.");
+    toast.error(
+      error?.data?.message ||
+        error?.message ||
+        "Ажлын байр устгахад алдаа гарлаа.",
+    );
   } finally {
     isDeleting.value = false;
   }
@@ -96,15 +107,24 @@ await loadJobs();
   <!-- ── RECRUITER VIEW ──────────────────────────────────── -->
   <div v-if="isRecruiter" class="space-y-5">
     <!-- Page header -->
-    <div class="flex items-end justify-between gap-4">
+    <div class="flex items-center justify-between gap-4">
       <div>
-        <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Ажил олгогч</p>
-        <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">Ажлын байрны удирдлага</h1>
-        <p class="mt-1 text-[13.5px] text-muted-foreground">Ажлын зар, анкетуудыг нэг дор хянаарай.</p>
+        <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">
+          Ажлын байрны удирдлага
+        </h1>
+        <p class="mt-1 text-[13.5px] text-muted-foreground">
+          Ажлын зар, анкетуудыг нэг дор хянаарай.
+        </p>
       </div>
       <button
         class="inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-        style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+        style="
+          background: linear-gradient(
+            135deg,
+            var(--primary),
+            oklch(0.348 0.106 295)
+          );
+        "
         @click="openCreatePage"
       >
         <Plus class="h-4 w-4" />
@@ -117,19 +137,24 @@ await loadJobs();
       v-if="!hasRecruiterCompany"
       class="rounded-2xl border border-warning/40 bg-warning-bg px-5 py-4 text-[13.5px] text-warning-foreground"
     >
-      Ажлын байр нэмэх эсвэл удирдахаас өмнө профайл хэсгээс компанийн мэдээллээ бүртгэнэ үү.
+      Ажлын байр нэмэх эсвэл удирдахаас өмнө профайл хэсгээс компанийн мэдээллээ
+      бүртгэнэ үү.
     </div>
 
     <!-- Stats -->
     <div class="grid grid-cols-3 gap-3.5">
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted"
+          >
             <BriefcaseBusiness class="h-4 w-4 text-muted-foreground" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Нийт ажлын байр</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
               {{ loading ? "…" : recruiterStats.totalJobs }}
             </p>
           </div>
@@ -141,27 +166,37 @@ await loadJobs();
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted"
+          >
             <Users class="h-4 w-4 text-muted-foreground" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Нийт горилогч</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
               {{ loading ? "…" : recruiterStats.totalApplicants }}
             </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">Нийт илгээлт</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">
+          Нийт илгээлт
+        </p>
       </div>
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted"
+          >
             <Eye class="h-4 w-4 text-muted-foreground" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Идэвхтэй зар</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
               {{ loading ? "…" : recruiterStats.activeJobs }}
             </p>
           </div>
@@ -172,9 +207,13 @@ await loadJobs();
 
     <!-- Jobs list -->
     <div class="rounded-2xl border border-border bg-card">
-      <div class="flex items-center justify-between border-b border-border px-5 py-4">
+      <div
+        class="flex items-center justify-between border-b border-border px-5 py-4"
+      >
         <div>
-          <p class="text-[15px] font-semibold tracking-[-0.2px]">Таны ажлын байрууд</p>
+          <p class="text-[15px] font-semibold tracking-[-0.2px]">
+            Таны ажлын байрууд
+          </p>
           <p class="mt-0.5 text-[12px] text-muted-foreground">
             {{ loading ? "Ачааллаж байна…" : `${jobs.length} ажлын байр` }}
           </p>
@@ -191,14 +230,24 @@ await loadJobs();
         v-else-if="!jobs.length"
         class="flex flex-col items-center py-16 text-center"
       >
-        <div class="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted">
+        <div
+          class="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-muted"
+        >
           <BriefcaseBusiness class="h-5 w-5 text-muted-foreground" />
         </div>
         <p class="text-[15px] font-semibold">Ажлын байр байхгүй</p>
-        <p class="mt-1.5 text-[13px] text-muted-foreground">Эхний ажлын байраа нэмнэ үү.</p>
+        <p class="mt-1.5 text-[13px] text-muted-foreground">
+          Эхний ажлын байраа нэмнэ үү.
+        </p>
         <button
           class="mt-5 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90"
-          style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+          style="
+            background: linear-gradient(
+              135deg,
+              var(--primary),
+              oklch(0.348 0.106 295)
+            );
+          "
           @click="openCreatePage"
         >
           <Plus class="h-3.5 w-3.5" />
@@ -215,27 +264,36 @@ await loadJobs();
           @click="router.push(`/jobs/${job.id}`)"
         >
           <!-- Logo placeholder -->
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-sm font-bold text-muted-foreground">
+          <div
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-sm font-bold text-muted-foreground"
+          >
             {{ (job.company_name || job.title || "?")[0]?.toUpperCase() }}
           </div>
 
           <!-- Job info -->
           <div class="flex-1 min-w-0">
             <p class="truncate text-[14.5px] font-semibold">{{ job.title }}</p>
-            <p class="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <p
+              class="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground"
+            >
               <MapPin class="h-3 w-3 shrink-0" />
-              {{ job.location }} · {{ job.employment_type || job.type || "Тогтоогдоогүй" }}
+              {{ job.location }} ·
+              {{ job.employment_type || job.type || "Тогтоогдоогүй" }}
             </p>
           </div>
 
           <!-- Applicant count -->
-          <div class="hidden shrink-0 items-center gap-1 text-[13px] text-muted-foreground sm:flex">
+          <div
+            class="hidden shrink-0 items-center gap-1 text-[13px] text-muted-foreground sm:flex"
+          >
             <Users class="h-3.5 w-3.5" />
             {{ job.applicants_count }}
           </div>
 
           <!-- Date -->
-          <p class="hidden shrink-0 text-[12.5px] text-muted-foreground lg:block">
+          <p
+            class="hidden shrink-0 text-[12.5px] text-muted-foreground lg:block"
+          >
             {{ formatDate(job.created_at) }}
           </p>
 
@@ -246,8 +304,8 @@ await loadJobs();
               job.status === JobStatus.Posted
                 ? 'badge-success'
                 : job.status === JobStatus.Closed
-                ? 'bg-muted text-muted-foreground'
-                : 'badge-warning'
+                  ? 'bg-muted text-muted-foreground'
+                  : 'badge-warning'
             "
           >
             <span
@@ -294,9 +352,17 @@ await loadJobs();
   <div v-else class="space-y-5">
     <!-- Page header -->
     <div>
-      <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Ажлын байр</p>
-      <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">Нээлттэй ажлын байрууд</h1>
-      <p class="mt-1 text-[13.5px] text-muted-foreground">Идэвхтэй нийтлэгдсэн ажлын байруудыг харж, анкетаа илгээгээрэй.</p>
+      <p
+        class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground"
+      >
+        Ажлын байр
+      </p>
+      <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">
+        Нээлттэй ажлын байрууд
+      </h1>
+      <p class="mt-1 text-[13.5px] text-muted-foreground">
+        Идэвхтэй нийтлэгдсэн ажлын байруудыг харж, анкетаа илгээгээрэй.
+      </p>
     </div>
 
     <!-- Loading -->
@@ -309,11 +375,15 @@ await loadJobs();
       v-else-if="!applicantJobs.length"
       class="flex flex-col items-center py-20 text-center"
     >
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
+      >
         <BriefcaseBusiness class="h-7 w-7 text-muted-foreground" />
       </div>
       <p class="text-[16px] font-semibold">Идэвхтэй ажлын байр байхгүй байна</p>
-      <p class="mt-2 text-[13.5px] text-muted-foreground">Дараа дахин шалгана уу.</p>
+      <p class="mt-2 text-[13.5px] text-muted-foreground">
+        Дараа дахин шалгана уу.
+      </p>
     </div>
 
     <!-- Job cards grid -->
@@ -327,10 +397,16 @@ await loadJobs();
         <!-- Header -->
         <div class="flex items-start justify-between gap-3">
           <div class="flex-1 min-w-0">
-            <h3 class="text-[16px] font-semibold leading-snug">{{ job.title }}</h3>
-            <p class="mt-0.5 text-[13px] text-muted-foreground">{{ job.company_name || "Компани" }}</p>
+            <h3 class="text-[16px] font-semibold leading-snug">
+              {{ job.title }}
+            </h3>
+            <p class="mt-0.5 text-[13px] text-muted-foreground">
+              {{ job.company_name || "Компани" }}
+            </p>
           </div>
-          <span class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold badge-success">
+          <span
+            class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold badge-success"
+          >
             <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-success" />
             Нийтлэгдсэн
           </span>
@@ -338,32 +414,53 @@ await loadJobs();
 
         <!-- Tags -->
         <div class="mt-3 flex flex-wrap gap-1.5">
-          <span class="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+          <span
+            class="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+          >
             <MapPin class="h-3 w-3" /> {{ job.location }}
           </span>
-          <span v-if="job.employment_type" class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+          <span
+            v-if="job.employment_type"
+            class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+          >
             {{ job.employment_type }}
           </span>
-          <span v-if="job.seniority" class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+          <span
+            v-if="job.seniority"
+            class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+          >
             {{ job.seniority }}
           </span>
         </div>
 
         <!-- Salary -->
-        <p v-if="job.min_salary || job.max_salary" class="mt-3 text-[14px] font-semibold text-foreground">
+        <p
+          v-if="job.min_salary || job.max_salary"
+          class="mt-3 text-[14px] font-semibold text-foreground"
+        >
           {{ job.min_salary?.toLocaleString() }}₮
-          <span v-if="job.max_salary"> – {{ job.max_salary?.toLocaleString() }}₮</span>
+          <span v-if="job.max_salary">
+            – {{ job.max_salary?.toLocaleString() }}₮</span
+          >
         </p>
 
         <!-- Description -->
-        <p class="mt-2.5 flex-1 text-[13.5px] leading-[1.55] text-muted-foreground line-clamp-3">
+        <p
+          class="mt-2.5 flex-1 text-[13.5px] leading-[1.55] text-muted-foreground line-clamp-3"
+        >
           {{ job.description }}
         </p>
 
         <!-- CTA -->
-        <div class="mt-4 flex items-center justify-between border-t border-border pt-3.5">
-          <p class="text-[12px] text-muted-foreground">{{ formatDate(job.created_at) }}</p>
-          <span class="text-[13px] font-semibold text-primary group-hover:underline">
+        <div
+          class="mt-4 flex items-center justify-between border-t border-border pt-3.5"
+        >
+          <p class="text-[12px] text-muted-foreground">
+            {{ formatDate(job.created_at) }}
+          </p>
+          <span
+            class="text-[13px] font-semibold text-primary group-hover:underline"
+          >
             Дэлгэрэнгүй →
           </span>
         </div>
@@ -377,7 +474,9 @@ await loadJobs();
       <AlertDialogHeader>
         <AlertDialogTitle>Ажлын байр устгах уу?</AlertDialogTitle>
         <AlertDialogDescription>
-          <span class="font-medium text-foreground">{{ selectedJob?.title }}</span>
+          <span class="font-medium text-foreground">{{
+            selectedJob?.title
+          }}</span>
           ажлын байрыг устгана. Энэ үйлдлийг буцаах боломжгүй.
         </AlertDialogDescription>
       </AlertDialogHeader>

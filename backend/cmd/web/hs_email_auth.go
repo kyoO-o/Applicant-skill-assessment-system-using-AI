@@ -32,18 +32,18 @@ func verifyEmailHandler(w http.ResponseWriter, r *http.Request) {
 	req.Code = strings.TrimSpace(req.Code)
 
 	if req.Email == "" || req.Code == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл болон код шаардлагатай"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл болон код шаардлагатай"})
 		return
 	}
 
 	user, err := app.Users.GetWithEmail(req.Email)
 	if err != nil {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл олдсонгүй"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл олдсонгүй"})
 		return
 	}
 
 	if user.EmailVerified {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл аль хэдийн баталгаажсан байна"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл аль хэдийн баталгаажсан байна"})
 		return
 	}
 
@@ -67,7 +67,7 @@ func verifyEmailHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	startSession(r, saved, "local")
-	oapi.SendResp(w, &authResponse{User: saved, Message: "И-мэйл амжилттай баталгаажлаа"})
+	oapi.SendResp(w, &authResponse{User: saved, Message: "Э-мэйл амжилттай баталгаажлаа"})
 }
 
 // POST /pub/resend-verification — resend registration verification code
@@ -86,7 +86,7 @@ func resendVerificationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.EmailVerified {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл аль хэдийн баталгаажсан байна"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл аль хэдийн баталгаажсан байна"})
 		return
 	}
 
@@ -154,7 +154,7 @@ func resetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 
 	user, err := app.Users.GetWithEmail(req.Email)
 	if err != nil {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл олдсонгүй"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл олдсонгүй"})
 		return
 	}
 
@@ -195,7 +195,7 @@ func initiateEmailChangeHandler(w http.ResponseWriter, r *http.Request) {
 	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 
 	if req.Email == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл хаяг шаардлагатай"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл хаяг шаардлагатай"})
 		return
 	}
 
@@ -233,7 +233,7 @@ func verifyEmailChangeHandler(w http.ResponseWriter, r *http.Request) {
 	req.Code = strings.TrimSpace(req.Code)
 
 	if user.PendingEmail == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "И-мэйл солих хүсэлт эхлүүлээгүй байна"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Э-мэйл солих хүсэлт эхлүүлээгүй байна"})
 		return
 	}
 

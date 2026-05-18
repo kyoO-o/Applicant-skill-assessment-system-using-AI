@@ -3,8 +3,13 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/oapi"
@@ -128,5 +133,70 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 	if isNew {
 		w.WriteHeader(http.StatusCreated)
 	}
+	oapi.SendResp(w, &company)
+}
+
+func UploadCompanyLogo(w http.ResponseWriter, r *http.Request) {
+	user, ok := recruiterUser(r)
+	if !ok {
+		oapi.Forbidden(w)
+		return
+	}
+	if user.CompanyID == nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Компани олдсонгүй"})
+		return
+	}
+
+	if err := r.ParseMultipartForm(5 << 20); err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Файл 5МБ-аас их байж болохгүй"})
+		return
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Файл шаардлагатай"})
+		return
+	}
+	defer file.Close()
+
+	ext := strings.ToLower(filepath.Ext(header.Filename))
+	if !allowedImageExts[ext] {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Зөвхөн jpg, png, webp файл зөвшөөрөгдөнө"})
+		return
+	}
+
+	logoDir := filepath.Join(app.Config.StoragePath, "logos")
+	if err := os.MkdirAll(logoDir, 0755); err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	filename := fmt.Sprintf("%d_%d%s", *user.CompanyID, time.Now().Unix(), ext)
+	dst := filepath.Join(logoDir, filename)
+
+	out, err := os.Create(dst)
+	if err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+	defer out.Close()
+
+	if _, err := io.Copy(out, file); err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	var company companyman.Company
+	if err := app.DB.First(&company, *user.CompanyID).Error; err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+
+	company.Logo = "/storage/logos/" + filename
+	if err := app.DB.Save(&company).Error; err != nil {
+		oapi.ServerError(w, err)
+		return
+	}
+	app.DB.Preload("Benefits").First(&company, company.ID)
 	oapi.SendResp(w, &company)
 }
