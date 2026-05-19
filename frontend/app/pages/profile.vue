@@ -8,6 +8,7 @@ import {
   Mail,
   Briefcase,
   Camera,
+  Globe,
 } from "lucide-vue-next";
 
 import type { Company } from "../composables/types";
@@ -92,6 +93,7 @@ const companyForm = reactive({
   description: "",
   register_id: "",
   contact_info: "",
+  profile_url: "",
   city: "",
   district: "",
   location_x: "",
@@ -157,6 +159,7 @@ function fillCompanyForm(value: Company | null) {
   companyForm.description = value?.description || "";
   companyForm.register_id = value?.register_id || "";
   companyForm.contact_info = value?.contact_info || "";
+  companyForm.profile_url = value?.profile_url || "";
   companyForm.city = value?.city || "";
   companyForm.district = value?.district || "";
   companyForm.location_x =
@@ -180,6 +183,7 @@ function buildCompanyPayload(): SaveCompanyPayload {
     description: companyForm.description.trim(),
     register_id: companyForm.register_id.trim(),
     contact_info: companyForm.contact_info.trim(),
+    profile_url: companyForm.profile_url.trim() || undefined,
     city: companyForm.city.trim(),
     district: companyForm.district.trim(),
     location_x: companyForm.location_x.trim()
@@ -267,7 +271,7 @@ fillProfileForm();
           <template v-if="isRecruiter && profileTab === 'company'">
             Ажил горилогчид компаний мэдээллийг харуулна.
           </template>
-          <template v-else> Таны MatchHire дахь бүртгэл. </template>
+          <template v-else> Таны бүртгэл. </template>
         </p>
       </div>
     </div>
@@ -515,7 +519,7 @@ fillProfileForm();
               >
                 <div
                   v-if="logoURL"
-                  class="h-24 w-24 rounded-[26px] overflow-hidden border border-border"
+                  class="h-24 w-24 rounded-full overflow-hidden border border-border"
                 >
                   <img
                     :src="logoURL"
@@ -589,6 +593,27 @@ fillProfileForm();
                   </p>
                 </div>
               </div>
+              <div
+                v-if="company?.profile_url || companyForm.profile_url"
+                class="flex items-center gap-3"
+              >
+                <div
+                  class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-muted"
+                >
+                  <Globe class="h-3.5 w-3.5 text-muted-foreground" />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <p class="text-xs text-muted-foreground">Вэбсайт</p>
+                  <a
+                    :href="company?.profile_url || companyForm.profile_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="truncate text-sm font-medium text-primary hover:underline underline-offset-2"
+                  >
+                    {{ company?.profile_url || companyForm.profile_url }}
+                  </a>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -635,6 +660,17 @@ fillProfileForm();
                     id="company-contact-info"
                     v-model="companyForm.contact_info"
                     placeholder="hr@company.mn | +976 99000000"
+                  />
+                </div>
+                <div class="space-y-1.5 sm:col-span-2">
+                  <Label for="company-profile-url"
+                    >Вэбсайт / Профайл холбоос</Label
+                  >
+                  <Input
+                    id="company-profile-url"
+                    v-model="companyForm.profile_url"
+                    type="url"
+                    placeholder="https://company.mn"
                   />
                 </div>
                 <div class="space-y-1.5 sm:col-span-2">
@@ -764,6 +800,18 @@ fillProfileForm();
                 </div>
               </CardContent>
             </Card>
+
+            <div class="flex justify-end">
+              <Button :disabled="isSavingCompany" @click="saveCompany">
+                {{
+                  isSavingCompany
+                    ? "Хадгалж байна..."
+                    : hasCompany
+                      ? "Өөрчлөлт хадгалах"
+                      : "Компани үүсгэх"
+                }}
+              </Button>
+            </div>
           </template>
         </div>
       </div>

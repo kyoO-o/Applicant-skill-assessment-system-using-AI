@@ -8,6 +8,7 @@ import (
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/oapi"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/companyman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/jobman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 )
@@ -36,10 +37,12 @@ type jobRequest struct {
 }
 
 type jobResponse struct {
-	ID              int       `json:"id"`
-	RecruiterID     int       `json:"recruiter_id"`
-	CompanyID       int       `json:"company_id"`
-	CompanyName     string    `json:"company_name"`
+	ID                 int       `json:"id"`
+	RecruiterID        int       `json:"recruiter_id"`
+	CompanyID          int       `json:"company_id"`
+	CompanyName        string    `json:"company_name"`
+	CompanyLogoURL     string    `json:"company_logo_url"`
+	CompanyProfileURL  string    `json:"company_profile_url"`
 	Title           string    `json:"title"`
 	Location        string    `json:"location"`
 	AdditionalInfo  string    `json:"additional_info"`
@@ -159,6 +162,35 @@ func cleanList(values []string) []string {
 	return items
 }
 
+func enrichJobsWithCompany(items []*jobResponse) {
+	if len(items) == 0 {
+		return
+	}
+	ids := make([]int, 0, len(items))
+	seen := map[int]bool{}
+	for _, item := range items {
+		if !seen[item.CompanyID] {
+			ids = append(ids, item.CompanyID)
+			seen[item.CompanyID] = true
+		}
+	}
+	var companies []companyman.Company
+	if err := app.DB.Where("id IN ?", ids).Find(&companies).Error; err != nil {
+		return
+	}
+	byID := make(map[int]*companyman.Company, len(companies))
+	for i := range companies {
+		byID[companies[i].ID] = &companies[i]
+	}
+	for _, item := range items {
+		if co, ok := byID[item.CompanyID]; ok {
+			item.CompanyName = co.Name
+			item.CompanyLogoURL = co.Logo
+			item.CompanyProfileURL = co.ProfileURL
+		}
+	}
+}
+
 func chosenJob(r *http.Request) (*jobman.JobPosting, bool) {
 	job, ok := r.Context().Value(app.ContextKeyChosenJob).(*jobman.JobPosting)
 	return job, ok
@@ -187,6 +219,7 @@ func getJobs(w http.ResponseWriter, r *http.Request) {
 	for _, job := range jobs {
 		items = append(items, mapJobResponse(job))
 	}
+	enrichJobsWithCompany(items)
 
 	oapi.SendResp(w, items)
 }
@@ -214,6 +247,7 @@ func getCompanyJobs(w http.ResponseWriter, r *http.Request) {
 	for _, job := range jobs {
 		items = append(items, mapJobResponse(job))
 	}
+	enrichJobsWithCompany(items)
 
 	oapi.SendResp(w, items)
 }

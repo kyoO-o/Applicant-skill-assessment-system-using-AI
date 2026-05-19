@@ -17,10 +17,12 @@ import {
   ChevronRight,
   ChevronLeft,
   Loader2,
+  Users,
   Search,
   Pencil,
   Sparkles,
 } from "lucide-vue-next";
+import { success } from "zod/v4";
 
 definePageMeta({ middleware: "auth" });
 
@@ -68,7 +70,8 @@ const storageKey = computed(
 
 const displayResult = computed<AssessmentResult | null>(() => {
   if (!isApplicant.value) return null;
-  if (showAnalyzePreview.value && analyzeResult.value) return analyzeResult.value;
+  if (showAnalyzePreview.value && analyzeResult.value)
+    return analyzeResult.value;
   if (application.value && application.value.status !== "pending") {
     return application.value as unknown as AssessmentResult;
   }
@@ -77,7 +80,10 @@ const displayResult = computed<AssessmentResult | null>(() => {
 });
 
 const isPreview = computed(
-  () => showAnalyzePreview.value || !application.value || application.value.status === "pending",
+  () =>
+    showAnalyzePreview.value ||
+    !application.value ||
+    application.value.status === "pending",
 );
 
 // ── Recruiter functions ────────────────────────────────────────────────────
@@ -139,7 +145,12 @@ async function checkSavedCV() {
   if (!isApplicant.value) return;
   try {
     const cv = await cvAPI.get();
-    hasSavedCV.value = !!(cv.first_name || cv.last_name || cv.about || cv.work_experiences?.length);
+    hasSavedCV.value = !!(
+      cv.first_name ||
+      cv.last_name ||
+      cv.about ||
+      cv.work_experiences?.length
+    );
   } catch {
     hasSavedCV.value = false;
   }
@@ -168,13 +179,11 @@ function clearCachedAnalyze() {
 }
 
 function onApplyFileChange(e: Event) {
-  applyCvFile.value =
-    (e.target as HTMLInputElement).files?.[0] ?? null;
+  applyCvFile.value = (e.target as HTMLInputElement).files?.[0] ?? null;
 }
 
 function onAnalyzeFileChange(e: Event) {
-  analyzeCvFile.value =
-    (e.target as HTMLInputElement).files?.[0] ?? null;
+  analyzeCvFile.value = (e.target as HTMLInputElement).files?.[0] ?? null;
 }
 
 async function submitApplication() {
@@ -217,7 +226,10 @@ async function runAnalyze() {
     if (analyzeUseProfile.value) {
       result = await applicationsAPI.analyzeFromProfile(jobID.value);
     } else {
-      result = await applicationsAPI.analyzeJob(jobID.value, analyzeCvFile.value!);
+      result = await applicationsAPI.analyzeJob(
+        jobID.value,
+        analyzeCvFile.value!,
+      );
     }
     analyzeResult.value = result;
     showAnalyzePreview.value = true;
@@ -270,24 +282,6 @@ loading.value = false;
 if (application.value?.status === "pending") startPolling();
 
 // ── Helpers ────────────────────────────────────────────────────────────────
-function scoreColor(score: number) {
-  if (score >= 75) return "text-success-foreground";
-  if (score >= 50) return "text-warning-foreground";
-  return "text-destructive";
-}
-
-function scoreBorderBg(score: number) {
-  if (score >= 75) return "border-success bg-success-bg";
-  if (score >= 50) return "border-warning bg-warning-bg";
-  return "border-destructive/40 bg-destructive/5";
-}
-
-function scoreBannerBg(score: number) {
-  if (score >= 75) return "bg-success-bg border-success/30";
-  if (score >= 50) return "bg-warning-bg border-warning/30";
-  return "bg-destructive/5 border-destructive/20";
-}
-
 function assessIcon(s: string) {
   if (s === "met") return CheckCircle2;
   if (s === "partial") return MinusCircle;
@@ -336,10 +330,7 @@ function jobStatusLabel(status: string) {
   </div>
 
   <!-- Not found -->
-  <div
-    v-else-if="!job"
-    class="flex flex-col items-center py-20 text-center"
-  >
+  <div v-else-if="!job" class="flex flex-col items-center py-20 text-center">
     <p class="text-[16px] font-semibold">Ажлын байр олдсонгүй</p>
   </div>
 
@@ -347,15 +338,23 @@ function jobStatusLabel(status: string) {
   <template v-else-if="isRecruiter && isEditing">
     <div class="space-y-5">
       <div class="flex items-center gap-3">
-        <button
-          class="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
+        <!-- <Button
+          variant="outline"
+          size="icon"
+          class="h-9 w-9 rounded-xl text-muted-foreground hover:text-foreground"
           @click="isEditing = false"
         >
           <ChevronLeft class="h-4 w-4" />
-        </button>
+        </Button> -->
         <div>
-          <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Засах</p>
-          <h1 class="text-[22px] font-semibold tracking-[-0.5px]">{{ job.title }}</h1>
+          <p
+            class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground"
+          >
+            Засах
+          </p>
+          <h1 class="text-[22px] font-semibold tracking-[-0.5px]">
+            {{ job.title }}
+          </h1>
         </div>
       </div>
 
@@ -383,22 +382,29 @@ function jobStatusLabel(status: string) {
           @submit="handleEditSubmit"
         >
           <template #actions>
-            <button
+            <Button
               type="button"
-              class="rounded-full border border-border px-4 py-2 text-[13.5px] font-medium transition hover:bg-muted"
+              variant="outline"
+              class="rounded-full text-[13.5px]"
               :disabled="isSubmitting"
               @click="isEditing = false"
             >
               Болих
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              class="rounded-full px-5 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-              style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+              class="rounded-full text-[13.5px] text-white hover:opacity-90"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--primary),
+                  oklch(0.348 0.106 295)
+                );
+              "
               :disabled="isSubmitting"
             >
               {{ isSubmitting ? "Хадгалж байна..." : "Шинэчлэх" }}
-            </button>
+            </Button>
           </template>
         </JobForm>
       </div>
@@ -408,199 +414,208 @@ function jobStatusLabel(status: string) {
   <!-- ── View mode ──────────────────────────────────────────────────────── -->
   <template v-else>
     <div class="space-y-5">
-
       <!-- ── Recruiter header ── -->
       <div v-if="isRecruiter">
-        <div class="mb-3 flex items-center gap-2 text-[13px] text-muted-foreground">
+        <!-- <div class="mb-3 flex items-center gap-2 text-[13px] text-muted-foreground">
           <button class="flex items-center gap-1 hover:text-foreground transition" @click="router.push('/jobs')">
             <ChevronLeft class="h-4 w-4" /> Ажлын байрууд
           </button>
-        </div>
+        </div> -->
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 min-w-0">
-            <h1 class="text-[26px] font-semibold tracking-[-0.6px]">{{ job.title }}</h1>
+            <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
+              {{ job.title }}
+            </h1>
             <div class="mt-2 flex flex-wrap items-center gap-2">
-              <span class="flex items-center gap-1 text-[13px] text-muted-foreground">
+              <span
+                class="flex items-center gap-1 text-[13px] text-muted-foreground"
+              >
                 <MapPin class="h-3.5 w-3.5 shrink-0" /> {{ job.location }}
               </span>
-              <span class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+              <span
+                class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+              >
                 {{ job.type || job.employment_type }}
               </span>
-              <span class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+              <span
+                class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+              >
                 {{ job.level || job.seniority }}
               </span>
               <span
                 class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[12px] font-semibold"
-                :class="job.status === 'posted' ? 'badge-success' : 'bg-muted text-muted-foreground'"
+                :class="
+                  job.status === 'posted'
+                    ? 'badge-success'
+                    : 'bg-muted text-muted-foreground'
+                "
               >
                 {{ jobStatusLabel(job.status) }}
               </span>
             </div>
           </div>
-          <button
-            class="inline-flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-foreground transition hover:bg-muted"
-            @click="isEditing = true"
-          >
-            <Pencil class="h-3.5 w-3.5" /> Засах
-          </button>
+          <div class="flex items-center gap-2">
+            <Button
+              variant="outline"
+              class="h-full rounded-full"
+              title="Горилогчид"
+              @click="router.push(`/jobs/${job.id}/applicants`)"
+            >
+              <Users class="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="outline"
+              class="rounded-full"
+              @click="isEditing = true"
+            >
+              <Pencil class="h-3.5 w-3.5" /> Засах
+            </Button>
+          </div>
         </div>
       </div>
 
       <!-- ── Applicant header ── -->
-      <div v-else class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div
+        v-else
+        class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
+      >
         <div class="flex-1 min-w-0">
-          <h1 class="text-[26px] font-semibold tracking-[-0.6px]">{{ job.title }}</h1>
+          <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
+            {{ job.title }}
+          </h1>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <span class="flex items-center gap-1 text-[13px] text-muted-foreground">
+            <span
+              class="flex items-center gap-1 text-[13px] text-muted-foreground"
+            >
               <MapPin class="h-3.5 w-3.5 shrink-0" /> {{ job.location }}
             </span>
-            <span v-if="job.type || job.employment_type" class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+            <span
+              v-if="job.type || job.employment_type"
+              class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+            >
               {{ job.type || job.employment_type }}
             </span>
-            <span v-if="job.level || job.seniority" class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground">
+            <span
+              v-if="job.level || job.seniority"
+              class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+            >
               {{ job.level || job.seniority }}
             </span>
           </div>
-          <p v-if="job.min_salary || job.max_salary" class="mt-2 text-[15px] font-semibold">
-            {{ job.min_salary?.toLocaleString() }}₮ – {{ job.max_salary?.toLocaleString() }}₮
+          <p
+            v-if="job.min_salary || job.max_salary"
+            class="mt-2 text-[15px] font-semibold"
+          >
+            {{ job.min_salary?.toLocaleString() }}₮ –
+            {{ job.max_salary?.toLocaleString() }}₮
           </p>
         </div>
 
         <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <button
-            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-foreground transition hover:bg-muted"
-            @click="analyzeOpen = true"
-          >
-            <Search class="h-4 w-4" /> Нийтлэл шалгах
-          </button>
-
           <template v-if="!application">
-            <button
-              class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-              style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+            <Button
+              variant="outline"
+              class="rounded-full"
+              @click="analyzeOpen = true"
+            >
+              <Search class="h-4 w-4" /> Нийцэл шалгах
+            </Button>
+            <Button
+              class="rounded-full text-white hover:opacity-90"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--primary),
+                  oklch(0.348 0.106 295)
+                );
+              "
               @click="applyOpen = true"
             >
               <Upload class="h-4 w-4" /> CV илгээх
-            </button>
+            </Button>
           </template>
           <template v-else-if="application.status === 'pending'">
-            <div class="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] text-muted-foreground">
-              <Loader2 class="h-4 w-4 animate-spin text-primary" /> Үнэлгээ хийгдэж байна...
+            <div
+              class="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] text-muted-foreground"
+            >
+              <Loader2 class="h-4 w-4 animate-spin text-primary" /> Үнэлгээ
+              хийгдэж байна...
             </div>
           </template>
-          <template v-else>
-            <div class="flex flex-col gap-1 sm:items-end">
-              <span class="inline-flex items-center rounded-full px-3 py-1.5 text-[12.5px] font-semibold badge-info">
+          <template v-else-if="application?.status == 'assessed'">
+            <div class="flex mt-1 flex-col gap-1 sm:items-end">
+              <span
+                class="inline-flex items-center rounded-full px-3 py-1.5 text-[12.5px] font-semibold badge-success"
+              >
                 Анкет илгээсэн
               </span>
-              <button
-                class="text-[12px] text-muted-foreground hover:text-foreground underline underline-offset-2"
-                @click="applyOpen = true"
-              >
-                Дахин илгээх
-              </button>
             </div>
           </template>
         </div>
       </div>
 
-      <!-- ── AI Evaluation Banner ─────────────────────────────────────── -->
-      <div
+      <!-- ── AI Evaluation Result ──────────────────────────────────────── -->
+      <JobEvaluationResult
         v-if="displayResult"
-        class="rounded-2xl border p-5"
-        :class="scoreBannerBg(displayResult.overall_score)"
-      >
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-          <!-- Score circle -->
-          <div class="flex shrink-0 flex-col items-center gap-1.5">
-            <div
-              class="flex h-20 w-20 items-center justify-center rounded-full border-[3px]"
-              :class="scoreBorderBg(displayResult.overall_score)"
-            >
-              <div class="text-center">
-                <p class="text-[22px] font-bold leading-none" :class="scoreColor(displayResult.overall_score)">
-                  {{ displayResult.overall_score }}
-                </p>
-                <p class="text-[11px] font-medium" :class="scoreColor(displayResult.overall_score)">/100</p>
-              </div>
-            </div>
-            <p class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground">
-              {{ isPreview ? 'Урьдчилсан' : 'Таны оноо' }}
-            </p>
-          </div>
-
-          <!-- Summary -->
-          <div class="flex-1 space-y-2">
-            <div class="flex items-center gap-2">
-              <Sparkles class="h-4 w-4 shrink-0 text-primary" />
-              <p class="text-[14px] font-semibold">
-                {{ isPreview ? 'Нийтлэлтэй тохирол' : 'AI үнэлгээний дүгнэлт' }}
-              </p>
-              <span
-                v-if="!isPreview"
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold"
-                :class="{
-                  'badge-success': application?.status === 'shortlisted',
-                  'bg-destructive/10 text-destructive': application?.status === 'rejected',
-                  'badge-info': application?.status === 'assessed',
-                }"
-              >
-                {{ application?.status === 'shortlisted' ? 'Сонгогдсон' :
-                   application?.status === 'rejected' ? 'Татгалзсан' : 'Үнэлэгдсэн' }}
-              </span>
-            </div>
-            <p class="text-[13.5px] leading-[1.6] text-muted-foreground">{{ displayResult.summary }}</p>
-          </div>
-        </div>
-
-        <!-- Skill chips summary -->
-        <div v-if="displayResult.matched_skills?.length || displayResult.missing_skills?.length" class="mt-4 flex flex-wrap gap-1.5 border-t border-current/10 pt-4">
-          <span
-            v-for="s in displayResult.matched_skills?.slice(0, 6)"
-            :key="s.skill"
-            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium badge-success"
-          >
-            ✓ {{ s.skill }}
-          </span>
-          <span
-            v-for="s in displayResult.missing_skills?.slice(0, 4)"
-            :key="'m-' + s.skill"
-            class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium bg-destructive/10 text-destructive"
-          >
-            ✗ {{ s.skill }}
-          </span>
-        </div>
-      </div>
+        :result="displayResult"
+        :mode="isPreview ? 'preview' : 'submitted'"
+        :application-status="application?.status"
+        @apply="applyOpen = true"
+        @reload-cv="analyzeOpen = true"
+      />
 
       <!-- ── Body: 2-col layout ─────────────────────────────────────────── -->
       <div class="grid gap-5 lg:grid-cols-3">
         <div class="space-y-5 lg:col-span-2">
-
           <!-- Description -->
           <div class="rounded-2xl border border-border bg-card p-5">
             <p class="mb-3 text-[15px] font-semibold">Тайлбар</p>
-            <p class="whitespace-pre-line text-[13.5px] leading-[1.7] text-muted-foreground">
+            <p
+              class="whitespace-pre-line text-[13.5px] leading-[1.7] text-muted-foreground"
+            >
               {{ job.additional_info || job.description }}
             </p>
           </div>
 
           <!-- Duties -->
-          <div v-if="job.duties?.length" class="rounded-2xl border border-border bg-card p-5">
+          <div
+            v-if="job.duties?.length"
+            class="rounded-2xl border border-border bg-card p-5"
+          >
             <p class="mb-3 text-[15px] font-semibold">Үүрэг хариуцлага</p>
             <div class="space-y-2">
               <div
                 v-for="duty in job.duties"
                 :key="duty"
                 class="flex items-start gap-3 rounded-xl border p-3.5 transition"
-                :class="dutyAssessFor(duty) ? assessRowBg(dutyAssessFor(duty)!.status) : 'border-border bg-muted/20'"
+                :class="
+                  dutyAssessFor(duty)
+                    ? assessRowBg(dutyAssessFor(duty)!.status)
+                    : 'border-border bg-muted/20'
+                "
               >
                 <component
-                  :is="dutyAssessFor(duty) ? assessIcon(dutyAssessFor(duty)!.status) : ChevronRight"
+                  :is="
+                    dutyAssessFor(duty)
+                      ? assessIcon(dutyAssessFor(duty)!.status)
+                      : ChevronRight
+                  "
                   class="mt-0.5 h-4 w-4 shrink-0"
-                  :class="dutyAssessFor(duty) ? assessColor(dutyAssessFor(duty)!.status) : 'text-primary'"
+                  :class="
+                    dutyAssessFor(duty)
+                      ? assessColor(dutyAssessFor(duty)!.status)
+                      : 'text-primary'
+                  "
                 />
                 <div class="flex-1">
-                  <p class="text-[13.5px]" :class="dutyAssessFor(duty) ? 'font-medium' : 'text-muted-foreground'">
+                  <p
+                    class="text-[13.5px]"
+                    :class="
+                      dutyAssessFor(duty)
+                        ? 'font-medium'
+                        : 'text-muted-foreground'
+                    "
+                  >
                     {{ duty }}
                   </p>
                   <p
@@ -616,22 +631,44 @@ function jobStatusLabel(status: string) {
           </div>
 
           <!-- Requirements -->
-          <div v-if="job.requirements?.length" class="rounded-2xl border border-border bg-card p-5">
+          <div
+            v-if="job.requirements?.length"
+            class="rounded-2xl border border-border bg-card p-5"
+          >
             <p class="mb-3 text-[15px] font-semibold">Шаардлагууд</p>
             <div class="space-y-2">
               <div
                 v-for="req in job.requirements"
                 :key="req"
                 class="flex items-start gap-3 rounded-xl border p-3.5 transition"
-                :class="reqAssessFor(req) ? assessRowBg(reqAssessFor(req)!.status) : 'border-border bg-muted/20'"
+                :class="
+                  reqAssessFor(req)
+                    ? assessRowBg(reqAssessFor(req)!.status)
+                    : 'border-border bg-muted/20'
+                "
               >
                 <component
-                  :is="reqAssessFor(req) ? assessIcon(reqAssessFor(req)!.status) : ChevronRight"
+                  :is="
+                    reqAssessFor(req)
+                      ? assessIcon(reqAssessFor(req)!.status)
+                      : ChevronRight
+                  "
                   class="mt-0.5 h-4 w-4 shrink-0"
-                  :class="reqAssessFor(req) ? assessColor(reqAssessFor(req)!.status) : 'text-primary'"
+                  :class="
+                    reqAssessFor(req)
+                      ? assessColor(reqAssessFor(req)!.status)
+                      : 'text-primary'
+                  "
                 />
                 <div class="flex-1">
-                  <p class="text-[13.5px]" :class="reqAssessFor(req) ? 'font-medium' : 'text-muted-foreground'">
+                  <p
+                    class="text-[13.5px]"
+                    :class="
+                      reqAssessFor(req)
+                        ? 'font-medium'
+                        : 'text-muted-foreground'
+                    "
+                  >
                     {{ req }}
                   </p>
                   <p
@@ -645,7 +682,10 @@ function jobStatusLabel(status: string) {
               </div>
             </div>
           </div>
+        </div>
 
+        <!-- ── Right column ───────────────────────────────────────────── -->
+        <div class="space-y-5">
           <!-- Recommendations -->
           <div
             v-if="displayResult?.recommendations?.length"
@@ -661,83 +701,61 @@ function jobStatusLabel(status: string) {
                 :key="rec"
                 class="flex items-start gap-2 text-[13.5px] text-muted-foreground"
               >
-                <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {{ rec }}
+                <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                {{ rec }}
               </li>
             </ul>
           </div>
-        </div>
-
-        <!-- ── Right column ───────────────────────────────────────────── -->
-        <div class="space-y-5">
-
-          <!-- Skills -->
-          <div v-if="job.skills?.length" class="rounded-2xl border border-border bg-card p-5">
-            <p class="mb-3 text-[15px] font-semibold">Шаардлагатай ур чадвар</p>
-            <div v-if="displayResult" class="space-y-4">
-              <div v-if="displayResult.matched_skills?.length">
-                <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.6px] text-success-foreground">
-                  Тохирсон
-                </p>
-                <div class="space-y-2">
-                  <div
-                    v-for="s in displayResult.matched_skills"
-                    :key="s.skill"
-                    class="rounded-xl border border-success/20 bg-success-bg p-3"
-                  >
-                    <p class="flex items-center gap-1.5 text-[12.5px] font-semibold text-success-foreground">
-                      <CheckCircle2 class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
-                    </p>
-                    <p v-if="s.explanation" class="mt-0.5 text-[12px] text-muted-foreground">{{ s.explanation }}</p>
-                  </div>
-                </div>
-              </div>
-              <div v-if="displayResult.missing_skills?.length">
-                <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.6px] text-destructive">
-                  Дутуу
-                </p>
-                <div class="space-y-2">
-                  <div
-                    v-for="s in displayResult.missing_skills"
-                    :key="s.skill"
-                    class="rounded-xl border border-destructive/15 bg-destructive/5 p-3"
-                  >
-                    <p class="flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive">
-                      <XCircle class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
-                    </p>
-                    <p v-if="s.explanation" class="mt-0.5 text-[12px] text-muted-foreground">{{ s.explanation }}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div v-else class="flex flex-wrap gap-1.5">
-              <span
-                v-for="skill in job.skills"
-                :key="skill"
-                class="inline-flex items-center rounded-full border border-border px-3 py-1 text-[12.5px] text-muted-foreground"
-              >
-                {{ skill }}
-              </span>
-            </div>
-          </div>
-
           <!-- Bonuses -->
-          <div v-if="job.bonuses?.length" class="rounded-2xl border border-border bg-card p-5">
+          <div
+            v-if="job.bonuses?.length"
+            class="rounded-2xl border border-border bg-card p-5"
+          >
             <p class="mb-3 text-[15px] font-semibold">Нэмэлт давуу тал</p>
             <ul class="space-y-1.5">
-              <li v-for="bonus in job.bonuses" :key="bonus" class="flex items-start gap-2 text-[13.5px] text-muted-foreground">
-                <span class="mt-0.5 text-success-foreground font-bold">✓</span> {{ bonus }}
+              <li
+                v-for="bonus in job.bonuses"
+                :key="bonus"
+                class="flex items-start gap-2 text-[13.5px] text-muted-foreground"
+              >
+                <span class="mt-0.5 text-success-foreground font-bold">✓</span>
+                {{ bonus }}
               </li>
             </ul>
           </div>
 
           <!-- Contact -->
-          <div v-if="job.contact_info" class="rounded-2xl border border-border bg-card p-5">
+          <div
+            v-if="job.contact_info"
+            class="rounded-2xl border border-border bg-card p-5"
+          >
             <p class="mb-2 text-[15px] font-semibold">Холбоо барих</p>
-            <p class="text-[13.5px] text-muted-foreground">{{ job.contact_info }}</p>
+            <p class="text-[13.5px] text-muted-foreground">
+              {{ job.contact_info }}
+            </p>
+          </div>
+
+          <!-- Company profile URL -->
+          <div
+            v-if="job.company_profile_url"
+            class="rounded-2xl border border-border bg-card p-5"
+          >
+            <p class="mb-2 text-[15px] font-semibold">Компанийн вэбсайт</p>
+            <a
+              :href="job.company_profile_url"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-[13.5px] text-primary underline-offset-2 hover:underline break-all"
+            >
+              {{ job.company_profile_url }}
+            </a>
           </div>
 
           <!-- Location -->
-          <div v-if="job.location" class="rounded-2xl border border-border bg-card p-5">
+          <div
+            v-if="job.location"
+            class="rounded-2xl border border-border bg-card p-5"
+          >
             <div class="mb-3 flex items-center justify-between gap-2">
               <p class="text-[15px] font-semibold">Байршил</p>
               <label
@@ -748,7 +766,9 @@ function jobStatusLabel(status: string) {
                 Газрын зураг
               </label>
             </div>
-            <div class="flex items-start gap-1.5 text-[13.5px] text-muted-foreground">
+            <div
+              class="flex items-start gap-1.5 text-[13.5px] text-muted-foreground"
+            >
               <MapPin class="mt-0.5 h-4 w-4 shrink-0" />
               <span>{{ job.location }}</span>
             </div>
@@ -777,40 +797,71 @@ function jobStatusLabel(status: string) {
       <div class="space-y-4 py-2">
         <!-- Use saved profile option -->
         <div v-if="hasSavedCV" class="space-y-3">
-          <button
+          <Button
             type="button"
-            class="w-full flex items-center gap-3 rounded-xl border p-3.5 text-left transition"
-            :class="applyUseProfile ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'"
-            @click="applyUseProfile = true; applyCvFile = null"
+            variant="ghost"
+            class="h-auto w-full justify-start gap-3 rounded-xl border p-3.5 text-left"
+            :class="
+              applyUseProfile
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:bg-muted/40'
+            "
+            @click="
+              applyUseProfile = true;
+              applyCvFile = null;
+            "
           >
             <div
               class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition"
-              :class="applyUseProfile ? 'border-primary bg-primary' : 'border-muted-foreground'"
+              :class="
+                applyUseProfile
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              "
             >
-              <div v-if="applyUseProfile" class="h-1.5 w-1.5 rounded-full bg-white" />
+              <div
+                v-if="applyUseProfile"
+                class="h-1.5 w-1.5 rounded-full bg-white"
+              />
             </div>
             <div>
               <p class="text-[13.5px] font-medium">Хадгалагдсан CV ашиглах</p>
-              <p class="text-[12px] text-muted-foreground">CV бүрдүүлэгч хэсэгт оруулсан мэдээлэл</p>
+              <p class="text-[12px] text-muted-foreground">
+                CV бүрдүүлэгч хэсэгт оруулсан мэдээлэл
+              </p>
             </div>
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="w-full flex items-center gap-3 rounded-xl border p-3.5 text-left transition"
-            :class="!applyUseProfile ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'"
+            variant="ghost"
+            class="h-auto w-full justify-start gap-3 rounded-xl border p-3.5 text-left"
+            :class="
+              !applyUseProfile
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:bg-muted/40'
+            "
             @click="applyUseProfile = false"
           >
             <div
               class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition"
-              :class="!applyUseProfile ? 'border-primary bg-primary' : 'border-muted-foreground'"
+              :class="
+                !applyUseProfile
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              "
             >
-              <div v-if="!applyUseProfile" class="h-1.5 w-1.5 rounded-full bg-white" />
+              <div
+                v-if="!applyUseProfile"
+                class="h-1.5 w-1.5 rounded-full bg-white"
+              />
             </div>
             <div>
               <p class="text-[13.5px] font-medium">PDF файл оруулах</p>
-              <p class="text-[12px] text-muted-foreground">Өөрийн PDF CV файлыг upload хийх</p>
+              <p class="text-[12px] text-muted-foreground">
+                Өөрийн PDF CV файлыг upload хийх
+              </p>
             </div>
-          </button>
+          </Button>
         </div>
 
         <!-- PDF upload (shown when not using profile, or no saved profile) -->
@@ -821,27 +872,43 @@ function jobStatusLabel(status: string) {
             class="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2"
           >
             <p class="truncate text-[12.5px] text-muted-foreground">
-              <span class="font-medium text-foreground">{{ applyCvFile.name }}</span>
-              <span class="ml-2 text-success-foreground">— нийтлэл шалгасан CV</span>
+              <span class="font-medium text-foreground">{{
+                applyCvFile.name
+              }}</span>
+              <span class="ml-2 text-success-foreground"
+                >— нийтлэл шалгасан CV</span
+              >
             </p>
-            <button
+            <Button
               type="button"
-              class="shrink-0 text-[12px] text-primary underline underline-offset-2"
+              variant="link"
+              class="h-auto shrink-0 p-0 text-[12px]"
               @click="applyCvFile = null"
             >
               Өөр файл
-            </button>
+            </Button>
           </div>
           <Input v-else type="file" accept=".pdf" @change="onApplyFileChange" />
         </div>
 
-        <p v-if="application" class="rounded-xl bg-muted/30 px-3 py-2 text-[12.5px] text-muted-foreground">
+        <p
+          v-if="application"
+          class="rounded-xl bg-muted/30 px-3 py-2 text-[12.5px] text-muted-foreground"
+        >
           Өмнөх анкет шинэ CV-гээр солигдоно.
         </p>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isApplying" @click="applyOpen = false">Болих</Button>
-        <Button :disabled="isApplying || (!applyUseProfile && !applyCvFile)" @click="submitApplication">
+        <Button
+          variant="outline"
+          :disabled="isApplying"
+          @click="applyOpen = false"
+          >Болих</Button
+        >
+        <Button
+          :disabled="isApplying || (!applyUseProfile && !applyCvFile)"
+          @click="submitApplication"
+        >
           <Loader2 v-if="isApplying" class="mr-2 h-4 w-4 animate-spin" />
           {{ isApplying ? "Илгээж байна..." : "Илгээх" }}
         </Button>
@@ -853,55 +920,89 @@ function jobStatusLabel(status: string) {
   <Dialog v-model:open="analyzeOpen">
     <DialogContent class="rounded-2xl sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>Нийтлэл шалгах</DialogTitle>
+        <DialogTitle>Нийцэл шалгах</DialogTitle>
         <DialogDescription>
-          Ажлын байранд хэр тохирохыг урьдчилан үнэлүүлнэ үү. Анкет илгээхгүй — үр дүн хуудсанд харагдана.
+          Ажлын байранд хэр тохирохыг урьдчилан үнэлүүлнэ үү. Анкет илгээхгүй —
+          үр дүн хуудсанд харагдана.
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
         <!-- Use saved profile option -->
         <div v-if="hasSavedCV" class="space-y-3">
-          <button
+          <Button
             type="button"
-            class="w-full flex items-center gap-3 rounded-xl border p-3.5 text-left transition"
-            :class="analyzeUseProfile ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'"
-            @click="analyzeUseProfile = true; analyzeCvFile = null"
+            variant="ghost"
+            class="h-auto w-full justify-start gap-3 rounded-xl border p-3.5 text-left"
+            :class="
+              analyzeUseProfile
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:bg-muted/40'
+            "
+            @click="
+              analyzeUseProfile = true;
+              analyzeCvFile = null;
+            "
           >
             <div
               class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition"
-              :class="analyzeUseProfile ? 'border-primary bg-primary' : 'border-muted-foreground'"
+              :class="
+                analyzeUseProfile
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              "
             >
-              <div v-if="analyzeUseProfile" class="h-1.5 w-1.5 rounded-full bg-white" />
+              <div
+                v-if="analyzeUseProfile"
+                class="h-1.5 w-1.5 rounded-full bg-white"
+              />
             </div>
             <div>
               <p class="text-[13.5px] font-medium">Хадгалагдсан CV ашиглах</p>
-              <p class="text-[12px] text-muted-foreground">CV бүрдүүлэгч хэсэгт оруулсан мэдээлэл</p>
+              <p class="text-[12px] text-muted-foreground">
+                CV бүрдүүлэгч хэсэгт оруулсан мэдээлэл
+              </p>
             </div>
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            class="w-full flex items-center gap-3 rounded-xl border p-3.5 text-left transition"
-            :class="!analyzeUseProfile ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/40'"
+            variant="ghost"
+            class="h-auto w-full justify-start gap-3 rounded-xl border p-3.5 text-left"
+            :class="
+              !analyzeUseProfile
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:bg-muted/40'
+            "
             @click="analyzeUseProfile = false"
           >
             <div
               class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition"
-              :class="!analyzeUseProfile ? 'border-primary bg-primary' : 'border-muted-foreground'"
+              :class="
+                !analyzeUseProfile
+                  ? 'border-primary bg-primary'
+                  : 'border-muted-foreground'
+              "
             >
-              <div v-if="!analyzeUseProfile" class="h-1.5 w-1.5 rounded-full bg-white" />
+              <div
+                v-if="!analyzeUseProfile"
+                class="h-1.5 w-1.5 rounded-full bg-white"
+              />
             </div>
             <div>
               <p class="text-[13.5px] font-medium">PDF файл оруулах</p>
-              <p class="text-[12px] text-muted-foreground">Өөрийн PDF CV файлыг upload хийх</p>
+              <p class="text-[12px] text-muted-foreground">
+                Өөрийн PDF CV файлыг upload хийх
+              </p>
             </div>
-          </button>
+          </Button>
         </div>
 
         <!-- PDF upload -->
         <div v-if="!analyzeUseProfile" class="space-y-2">
           <Label>CV файл (PDF)</Label>
           <Input type="file" accept=".pdf" @change="onAnalyzeFileChange" />
-          <p v-if="analyzeCvFile" class="text-[12.5px] text-muted-foreground">Сонгосон: {{ analyzeCvFile.name }}</p>
+          <p v-if="analyzeCvFile" class="text-[12.5px] text-muted-foreground">
+            Сонгосон: {{ analyzeCvFile.name }}
+          </p>
         </div>
 
         <div
@@ -913,8 +1014,16 @@ function jobStatusLabel(status: string) {
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isAnalyzing" @click="analyzeOpen = false">Болих</Button>
-        <Button :disabled="isAnalyzing || (!analyzeUseProfile && !analyzeCvFile)" @click="runAnalyze">
+        <Button
+          variant="outline"
+          :disabled="isAnalyzing"
+          @click="analyzeOpen = false"
+          >Болих</Button
+        >
+        <Button
+          :disabled="isAnalyzing || (!analyzeUseProfile && !analyzeCvFile)"
+          @click="runAnalyze"
+        >
           <Loader2 v-if="isAnalyzing" class="mr-2 h-4 w-4 animate-spin" />
           {{ isAnalyzing ? "Үнэлж байна..." : "Үнэлгээ хийх" }}
         </Button>

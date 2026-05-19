@@ -208,7 +208,8 @@ function derivedStatus(app: Application): DerivedStatus {
   if (app.status === "rejected") return "failed";
   const task = taskForApp(app.id);
   if (task) {
-    if (task.status === "completed" || task.status === "graded") return "task_completed";
+    if (task.status === "completed" || task.status === "graded")
+      return "task_completed";
     if (task.status === "sent") return "task_sent";
   }
   if (app.interview_at) return "interview_scheduled";
@@ -217,9 +218,15 @@ function derivedStatus(app: Application): DerivedStatus {
 
 const statusConfig: Record<DerivedStatus, { label: string; cls: string }> = {
   applied: { label: "Анкет илгээсэн", cls: "badge-info" },
-  interview_scheduled: { label: "Ярилцлага товлосон", cls: "bg-primary/10 text-primary" },
+  interview_scheduled: {
+    label: "Ярилцлага товлосон",
+    cls: "bg-primary/10 text-primary",
+  },
   task_sent: { label: "Даалгавар илгээсэн", cls: "badge-warning" },
-  task_completed: { label: "Даалгавар гүйцэтгэсэн", cls: "bg-success-bg text-success-foreground border border-success/20" },
+  task_completed: {
+    label: "Даалгавар гүйцэтгэсэн",
+    cls: "bg-success-bg text-success-foreground border border-success/20",
+  },
   hired: { label: "Ажилд авсан", cls: "badge-success" },
   failed: { label: "Тэнцээгүй", cls: "bg-destructive/10 text-destructive" },
 };
@@ -246,12 +253,12 @@ const sortedApplications = computed(() => {
       );
     case "status":
       return arr.sort(
-        (a, b) =>
-          statusOrder[derivedStatus(a)] - statusOrder[derivedStatus(b)],
+        (a, b) => statusOrder[derivedStatus(a)] - statusOrder[derivedStatus(b)],
       );
     case "date":
       return arr.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
       );
     default:
       return arr;
@@ -312,7 +319,9 @@ function assessRowBg(s: string) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "—";
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(new Date(d));
+  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(
+    new Date(d),
+  );
 }
 
 function formatDateTime(d: string | null | undefined) {
@@ -329,14 +338,12 @@ function formatDateTime(d: string | null | undefined) {
     <!-- Page header -->
     <div class="flex items-center justify-between gap-4">
       <div class="flex items-center gap-3">
-        <button
-          class="flex h-9 w-9 items-center justify-center rounded-xl border border-border text-muted-foreground transition hover:bg-muted hover:text-foreground"
-          @click="router.back()"
-        >
-          <ChevronLeft class="h-4 w-4" />
-        </button>
         <div>
-          <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Горилогчид</p>
+          <p
+            class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground"
+          >
+            Горилогчид
+          </p>
           <h1 class="text-[22px] font-semibold tracking-[-0.5px]">
             {{ loading ? "…" : `${applications.length} горилогч` }}
           </h1>
@@ -351,7 +358,11 @@ function formatDateTime(d: string | null | undefined) {
             <SelectValue placeholder="Эрэмбэлэх" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="opt in sortOptions" :key="opt.value" :value="opt.value">
+            <SelectItem
+              v-for="opt in sortOptions"
+              :key="opt.value"
+              :value="opt.value"
+            >
               {{ opt.label }}
             </SelectItem>
           </SelectContent>
@@ -365,12 +376,19 @@ function formatDateTime(d: string | null | undefined) {
     </div>
 
     <!-- Empty -->
-    <div v-else-if="!applications.length" class="flex flex-col items-center py-20 text-center">
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+    <div
+      v-else-if="!applications.length"
+      class="flex flex-col items-center py-20 text-center"
+    >
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
+      >
         <Users class="h-7 w-7 text-muted-foreground" />
       </div>
       <p class="text-[16px] font-semibold">Горилогч байхгүй байна</p>
-      <p class="mt-2 text-[13.5px] text-muted-foreground">Горилогчид анкет илгээх үед энд харагдана.</p>
+      <p class="mt-2 text-[13.5px] text-muted-foreground">
+        Горилогчид анкет илгээх үед энд харагдана.
+      </p>
     </div>
 
     <!-- Applicant cards -->
@@ -387,7 +405,10 @@ function formatDateTime(d: string | null | undefined) {
             class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-[3px]"
             :class="scoreBorderBg(app.overall_score)"
           >
-            <span class="text-[13px] font-bold leading-none" :class="scoreColor(app.overall_score)">
+            <span
+              class="text-[13px] font-bold leading-none"
+              :class="scoreColor(app.overall_score)"
+            >
               {{ app.overall_score }}<span class="text-[9px]">%</span>
             </span>
           </div>
@@ -395,7 +416,9 @@ function formatDateTime(d: string | null | undefined) {
           <!-- Applicant info -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <p class="text-[15px] font-semibold">{{ app.applicant_name || "Хэрэглэгч" }}</p>
+              <p class="text-[15px] font-semibold">
+                {{ app.applicant_name || "Хэрэглэгч" }}
+              </p>
               <span
                 class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold"
                 :class="statusConfig[derivedStatus(app)].cls"
@@ -403,10 +426,15 @@ function formatDateTime(d: string | null | undefined) {
                 {{ statusConfig[derivedStatus(app)].label }}
               </span>
             </div>
-            <p class="mt-0.5 text-[12.5px] text-muted-foreground">{{ app.applicant_email }}</p>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground">
+              {{ app.applicant_email }}
+            </p>
 
             <!-- Skill chips preview -->
-            <div v-if="app.matched_skills?.length" class="mt-2 flex flex-wrap gap-1">
+            <!-- <div
+              v-if="app.matched_skills?.length"
+              class="mt-2 flex flex-wrap gap-1"
+            >
               <span
                 v-for="s in app.matched_skills.slice(0, 4)"
                 :key="s.skill"
@@ -421,16 +449,20 @@ function formatDateTime(d: string | null | undefined) {
               >
                 ✗ {{ s.skill }}
               </span>
-            </div>
+            </div> -->
           </div>
 
           <!-- Date + actions -->
           <div class="shrink-0 flex flex-col items-end gap-2" @click.stop>
-            <p class="text-[12px] text-muted-foreground">{{ formatDate(app.created_at) }}</p>
+            <p class="text-[12px] text-muted-foreground">
+              {{ formatDate(app.created_at) }}
+            </p>
             <div class="flex items-center gap-1.5">
               <button
                 class="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                :title="app.interview_at ? 'Ярилцлага товлогдсон' : 'Ярилцлага товлох'"
+                :title="
+                  app.interview_at ? 'Ярилцлага товлогдсон' : 'Ярилцлага товлох'
+                "
                 @click="openInterviewDialog(app)"
               >
                 <CalendarDays class="h-3.5 w-3.5" />
@@ -439,7 +471,11 @@ function formatDateTime(d: string | null | undefined) {
               <button
                 class="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
                 :disabled="!!taskForApp(app.id)"
-                :title="taskForApp(app.id) ? 'Даалгавар илгээгдсэн' : 'Даалгавар илгээх'"
+                :title="
+                  taskForApp(app.id)
+                    ? 'Даалгавар илгээгдсэн'
+                    : 'Даалгавар илгээх'
+                "
                 @click="openTaskDialog(app)"
               >
                 <ClipboardList class="h-3.5 w-3.5" />
@@ -454,23 +490,45 @@ function formatDateTime(d: string | null | undefined) {
 
   <!-- ── Detail dialog ──────────────────────────────────────────────────── -->
   <Dialog v-model:open="detailOpen">
-    <DialogContent class="rounded-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+    <DialogContent
+      class="rounded-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+    >
       <DialogHeader>
-        <DialogTitle class="text-[18px]">{{ selected?.applicant_name || "Горилогч" }}</DialogTitle>
+        <DialogTitle class="text-[18px]">{{
+          selected?.applicant_name || "Горилогч"
+        }}</DialogTitle>
         <DialogDescription>{{ selected?.applicant_email }}</DialogDescription>
       </DialogHeader>
 
       <div v-if="selected" class="space-y-5 py-2">
         <!-- Score + summary -->
-        <div class="flex items-start gap-4 rounded-xl border p-4"
-          :class="selected.overall_score >= 75 ? 'bg-success-bg border-success/20' : selected.overall_score >= 50 ? 'bg-warning-bg border-warning/20' : 'bg-destructive/5 border-destructive/15'"
+        <div
+          class="flex items-start gap-4 rounded-xl border p-4"
+          :class="
+            selected.overall_score >= 75
+              ? 'bg-success-bg border-success/20'
+              : selected.overall_score >= 50
+                ? 'bg-warning-bg border-warning/20'
+                : 'bg-destructive/5 border-destructive/15'
+          "
         >
-          <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[3px]"
+          <div
+            class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[3px]"
             :class="scoreBorderBg(selected.overall_score)"
           >
             <div class="text-center">
-              <p class="text-[18px] font-bold leading-none" :class="scoreColor(selected.overall_score)">{{ selected.overall_score }}</p>
-              <p class="text-[10px]" :class="scoreColor(selected.overall_score)">/100</p>
+              <p
+                class="text-[18px] font-bold leading-none"
+                :class="scoreColor(selected.overall_score)"
+              >
+                {{ selected.overall_score }}
+              </p>
+              <p
+                class="text-[10px]"
+                :class="scoreColor(selected.overall_score)"
+              >
+                /100
+              </p>
             </div>
           </div>
           <div class="flex-1">
@@ -478,14 +536,20 @@ function formatDateTime(d: string | null | undefined) {
               <Sparkles class="h-3.5 w-3.5 text-primary" />
               <p class="text-[13px] font-semibold">AI үнэлгээний дүгнэлт</p>
             </div>
-            <p class="text-[13px] leading-[1.6] text-muted-foreground">{{ selected.summary }}</p>
+            <p class="text-[13px] leading-[1.6] text-muted-foreground">
+              {{ selected.summary }}
+            </p>
           </div>
         </div>
 
         <!-- Status + interview -->
         <div class="grid gap-2.5 sm:grid-cols-2">
           <div class="rounded-xl border border-border bg-muted/20 px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5">Одоогийн төлөв</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5"
+            >
+              Одоогийн төлөв
+            </p>
             <span
               class="inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold"
               :class="statusConfig[derivedStatus(selected)].cls"
@@ -494,9 +558,17 @@ function formatDateTime(d: string | null | undefined) {
             </span>
           </div>
           <div class="rounded-xl border border-border bg-muted/20 px-4 py-3">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5">Ярилцлагийн тов</p>
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5"
+            >
+              Ярилцлагийн тов
+            </p>
             <p class="text-[13.5px] font-medium">
-              {{ selected.interview_at ? formatDateTime(selected.interview_at) : "Товлоогүй" }}
+              {{
+                selected.interview_at
+                  ? formatDateTime(selected.interview_at)
+                  : "Товлоогүй"
+              }}
             </p>
           </div>
         </div>
@@ -506,7 +578,13 @@ function formatDateTime(d: string | null | undefined) {
           <button
             v-if="selected.status !== 'shortlisted'"
             class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-            style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+            style="
+              background: linear-gradient(
+                135deg,
+                var(--primary),
+                oklch(0.348 0.106 295)
+              );
+            "
             :disabled="updatingStatus"
             @click="updateStatus(selected.id, 'shortlisted')"
           >
@@ -522,7 +600,12 @@ function formatDateTime(d: string | null | undefined) {
           </button>
           <button
             class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            @click="() => { detailOpen = false; openInterviewDialog(selected!); }"
+            @click="
+              () => {
+                detailOpen = false;
+                openInterviewDialog(selected!);
+              }
+            "
           >
             <CalendarDays class="h-4 w-4" />
             Ярилцлага товлох
@@ -530,7 +613,12 @@ function formatDateTime(d: string | null | undefined) {
           <button
             class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
             :disabled="!!taskForApp(selected.id)"
-            @click="() => { detailOpen = false; openTaskDialog(selected!); }"
+            @click="
+              () => {
+                detailOpen = false;
+                openTaskDialog(selected!);
+              }
+            "
           >
             <ClipboardList class="h-4 w-4" />
             Даалгавар илгээх
@@ -540,7 +628,9 @@ function formatDateTime(d: string | null | undefined) {
         <!-- Skills -->
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-success-foreground">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.6px] text-success-foreground"
+            >
               Тохирсон ур чадварууд
             </p>
             <div
@@ -548,15 +638,26 @@ function formatDateTime(d: string | null | undefined) {
               :key="s.skill"
               class="rounded-xl border border-success/20 bg-success-bg p-3"
             >
-              <p class="flex items-center gap-1.5 text-[12.5px] font-semibold text-success-foreground">
+              <p
+                class="flex items-center gap-1.5 text-[12.5px] font-semibold text-success-foreground"
+              >
                 <CheckCircle2 class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
               </p>
-              <p class="mt-0.5 text-[12px] text-muted-foreground">{{ s.explanation }}</p>
+              <p class="mt-0.5 text-[12px] text-muted-foreground">
+                {{ s.explanation }}
+              </p>
             </div>
-            <p v-if="!selected.matched_skills?.length" class="text-[12.5px] text-muted-foreground">Байхгүй</p>
+            <p
+              v-if="!selected.matched_skills?.length"
+              class="text-[12.5px] text-muted-foreground"
+            >
+              Байхгүй
+            </p>
           </div>
           <div class="space-y-2">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.6px] text-destructive">
+            <p
+              class="text-[11px] font-semibold uppercase tracking-[0.6px] text-destructive"
+            >
               Дутуу ур чадварууд
             </p>
             <div
@@ -564,12 +665,21 @@ function formatDateTime(d: string | null | undefined) {
               :key="s.skill"
               class="rounded-xl border border-destructive/15 bg-destructive/5 p-3"
             >
-              <p class="flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive">
+              <p
+                class="flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive"
+              >
                 <XCircle class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
               </p>
-              <p class="mt-0.5 text-[12px] text-muted-foreground">{{ s.explanation }}</p>
+              <p class="mt-0.5 text-[12px] text-muted-foreground">
+                {{ s.explanation }}
+              </p>
             </div>
-            <p v-if="!selected.missing_skills?.length" class="text-[12.5px] text-muted-foreground">Байхгүй</p>
+            <p
+              v-if="!selected.missing_skills?.length"
+              class="text-[12.5px] text-muted-foreground"
+            >
+              Байхгүй
+            </p>
           </div>
         </div>
 
@@ -582,10 +692,16 @@ function formatDateTime(d: string | null | undefined) {
             class="flex items-start gap-3 rounded-xl border p-3"
             :class="assessRowBg(d.status)"
           >
-            <component :is="assessIcon(d.status)" class="mt-0.5 h-4 w-4 shrink-0" :class="assessColor(d.status)" />
+            <component
+              :is="assessIcon(d.status)"
+              class="mt-0.5 h-4 w-4 shrink-0"
+              :class="assessColor(d.status)"
+            />
             <div>
               <p class="text-[13px] font-medium">{{ d.duty }}</p>
-              <p class="mt-0.5 text-[12px]" :class="assessColor(d.status)">{{ d.explanation }}</p>
+              <p class="mt-0.5 text-[12px]" :class="assessColor(d.status)">
+                {{ d.explanation }}
+              </p>
             </div>
           </div>
         </div>
@@ -599,10 +715,16 @@ function formatDateTime(d: string | null | undefined) {
             class="flex items-start gap-3 rounded-xl border p-3"
             :class="assessRowBg(r.status)"
           >
-            <component :is="assessIcon(r.status)" class="mt-0.5 h-4 w-4 shrink-0" :class="assessColor(r.status)" />
+            <component
+              :is="assessIcon(r.status)"
+              class="mt-0.5 h-4 w-4 shrink-0"
+              :class="assessColor(r.status)"
+            />
             <div>
               <p class="text-[13px] font-medium">{{ r.requirement }}</p>
-              <p class="mt-0.5 text-[12px]" :class="assessColor(r.status)">{{ r.explanation }}</p>
+              <p class="mt-0.5 text-[12px]" :class="assessColor(r.status)">
+                {{ r.explanation }}
+              </p>
             </div>
           </div>
         </div>
@@ -616,7 +738,8 @@ function formatDateTime(d: string | null | undefined) {
               :key="r"
               class="flex items-start gap-2 text-[13px] text-muted-foreground"
             >
-              <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" /> {{ r }}
+              <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              {{ r }}
             </li>
           </ul>
         </div>
@@ -630,7 +753,8 @@ function formatDateTime(d: string | null | undefined) {
       <DialogHeader>
         <DialogTitle>Ярилцлага товлох</DialogTitle>
         <DialogDescription>
-          {{ interviewTarget?.applicant_name }}-д ярилцлагын мэдээллийг оруулна уу.
+          {{ interviewTarget?.applicant_name }}-д ярилцлагын мэдээллийг оруулна
+          уу.
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
@@ -649,12 +773,26 @@ function formatDateTime(d: string | null | undefined) {
           <Input v-model="interviewLocation" placeholder="Уулзах газар" />
         </div>
         <div class="space-y-2">
-          <Label>Нэмэлт тэмдэглэл <span class="text-muted-foreground text-[11.5px]">(заавал биш)</span></Label>
-          <Textarea v-model="interviewNote" rows="3" placeholder="Горилогчид дамжуулах нэмэлт мэдээлэл..." />
+          <Label
+            >Нэмэлт тэмдэглэл
+            <span class="text-muted-foreground text-[11.5px]"
+              >(заавал биш)</span
+            ></Label
+          >
+          <Textarea
+            v-model="interviewNote"
+            rows="3"
+            placeholder="Горилогчид дамжуулах нэмэлт мэдээлэл..."
+          />
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isScheduling" @click="interviewOpen = false">Болих</Button>
+        <Button
+          variant="outline"
+          :disabled="isScheduling"
+          @click="interviewOpen = false"
+          >Болих</Button
+        >
         <Button :disabled="isScheduling" @click="scheduleInterview">
           <Loader2 v-if="isScheduling" class="mr-2 h-4 w-4 animate-spin" />
           <CalendarDays v-else class="mr-2 h-4 w-4" />
@@ -690,16 +828,33 @@ function formatDateTime(d: string | null | undefined) {
         </div>
         <div class="space-y-2">
           <Label>Тайлбар</Label>
-          <Textarea v-model="taskDescription" rows="5" placeholder="Даалгаврын дэлгэрэнгүй тайлбар..." />
+          <Textarea
+            v-model="taskDescription"
+            rows="5"
+            placeholder="Даалгаврын дэлгэрэнгүй тайлбар..."
+          />
         </div>
         <div class="space-y-2">
-          <Label>Дуусах огноо <span class="text-muted-foreground text-[11.5px]">(заавал биш)</span></Label>
+          <Label
+            >Дуусах огноо
+            <span class="text-muted-foreground text-[11.5px]"
+              >(заавал биш)</span
+            ></Label
+          >
           <Input v-model="taskDueDate" type="date" />
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" :disabled="isSendingTask" @click="taskOpen = false">Болих</Button>
-        <Button :disabled="isSendingTask || !taskTitle || !taskDescription" @click="sendTask">
+        <Button
+          variant="outline"
+          :disabled="isSendingTask"
+          @click="taskOpen = false"
+          >Болих</Button
+        >
+        <Button
+          :disabled="isSendingTask || !taskTitle || !taskDescription"
+          @click="sendTask"
+        >
           <Loader2 v-if="isSendingTask" class="mr-2 h-4 w-4 animate-spin" />
           <ClipboardList v-else class="mr-2 h-4 w-4" />
           {{ isSendingTask ? "Илгээж байна..." : "Илгээх" }}

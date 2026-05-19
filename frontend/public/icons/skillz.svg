@@ -1,0 +1,65 @@
+<svg
+  width="290"
+  height="290"
+  viewBox="110 90 290 290"
+  fill="none"
+  xmlns="http://www.w3.org/2000/svg"
+>
+  <!-- Purple rounded square -->
+  <rect
+    x="110"
+    y="90"
+    width="290"
+    height="290"
+    rx="80"
+    fill="#563B8F"
+  />
+
+  <!-- White document -->
+  <rect
+    x="180"
+    y="145"
+    width="120"
+    height="170"
+    rx="24"
+    fill="white"
+  />
+
+  <!-- Text lines -->
+  <rect
+    x="200"
+    y="180"
+    width="80"
+    height="14"
+    rx="7"
+    fill="#6A53A0"
+  />
+
+  <rect
+    x="200"
+    y="215"
+    width="65"
+    height="14"
+    rx="7"
+    fill="#A89BC6"
+  />
+
+  <rect
+    x="200"
+    y="250"
+    width="50"
+    height="14"
+    rx="7"
+    fill="#A89BC6"
+  />
+
+  <!-- Sparkle -->
+  <path
+    d="M330 145
+       C334 160 338 164 353 168
+       C338 172 334 176 330 191
+       C326 176 322 172 307 168
+       C322 164 326 160 330 145Z"
+    fill="white"
+  />
+</svg>

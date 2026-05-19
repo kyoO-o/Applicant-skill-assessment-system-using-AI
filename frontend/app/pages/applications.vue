@@ -12,17 +12,26 @@ const router = useRouter();
 const applications = ref<Application[]>([]);
 const loading = ref(true);
 
-const mapStates = ref<Map<number, { show: boolean; lat: number | null; lng: number | null }>>(new Map());
+const mapStates = ref<
+  Map<number, { show: boolean; lat: number | null; lng: number | null }>
+>(new Map());
 
 function mapState(id: number) {
-  if (!mapStates.value.has(id)) mapStates.value.set(id, { show: false, lat: null, lng: null });
+  if (!mapStates.value.has(id))
+    mapStates.value.set(id, { show: false, lat: null, lng: null });
   return mapStates.value.get(id)!;
 }
 
 async function toggleMap(id: number, location: string | null | undefined) {
   const state = mapState(id);
-  if (state.show) { state.show = false; return; }
-  if (state.lat !== null) { state.show = true; return; }
+  if (state.show) {
+    state.show = false;
+    return;
+  }
+  if (state.lat !== null) {
+    state.show = true;
+    return;
+  }
   if (!location) return;
   try {
     const results = await $fetch<Array<{ lat: string; lon: string }>>(
@@ -35,7 +44,9 @@ async function toggleMap(id: number, location: string | null | undefined) {
       state.lng = Number(first.lon);
       state.show = true;
     }
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 const isApplicant = computed(() => user.value?.role === "user");
@@ -76,11 +87,16 @@ function statusLabel(status: Application["status"]) {
 }
 
 function formatDate(d: string) {
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(new Date(d));
+  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(
+    new Date(d),
+  );
 }
 
 function formatDateTime(d: string) {
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium", timeStyle: "short" }).format(new Date(d));
+  return new Intl.DateTimeFormat("mn-MN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(d));
 }
 
 function gcalLink(app: Application) {
@@ -88,7 +104,10 @@ function gcalLink(app: Application) {
   const start = new Date(app.interview_at);
   const end = new Date(start.getTime() + 60 * 60 * 1000);
   const fmt = (d: Date) =>
-    d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+    d
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "");
   const title = encodeURIComponent(`Ярилцлага: ${app.job_title}`);
   const details = encodeURIComponent(app.interview_note || "");
   const location = encodeURIComponent(app.interview_location || "");
@@ -100,9 +119,12 @@ function gcalLink(app: Application) {
   <div class="space-y-5">
     <!-- Page header -->
     <div>
-      <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">Анкет</p>
-      <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">Илгээсэн анкетууд</h1>
-      <p class="mt-1 text-[13.5px] text-muted-foreground">AI үнэлгээний үр дүнг энд харна уу.</p>
+      <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
+        Илгээсэн анкетууд
+      </h1>
+      <p class="mt-1 text-[13.5px] text-muted-foreground">
+        AI үнэлгээний үр дүнг энд харна уу.
+      </p>
     </div>
 
     <!-- Loading -->
@@ -111,15 +133,28 @@ function gcalLink(app: Application) {
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="!applications.length" class="flex flex-col items-center py-20 text-center">
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+    <div
+      v-else-if="!applications.length"
+      class="flex flex-col items-center py-20 text-center"
+    >
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
+      >
         <FileText class="h-7 w-7 text-muted-foreground" />
       </div>
       <p class="text-[16px] font-semibold">Илгээсэн анкет байхгүй</p>
-      <p class="mt-2 text-[13.5px] text-muted-foreground">Ажлын байруудыг харж анкетаа илгээгээрэй.</p>
+      <p class="mt-2 text-[13.5px] text-muted-foreground">
+        Ажлын байруудыг харж анкетаа илгээгээрэй.
+      </p>
       <button
         class="mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-        style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+        style="
+          background: linear-gradient(
+            135deg,
+            var(--primary),
+            oklch(0.348 0.106 295)
+          );
+        "
         @click="router.push('/jobs')"
       >
         Ажлын байр харах
@@ -137,8 +172,12 @@ function gcalLink(app: Application) {
         <!-- Top row -->
         <div class="flex items-start justify-between gap-4">
           <div class="flex-1 min-w-0">
-            <h3 class="text-[15px] font-semibold leading-snug">{{ app.job_title || "Ажлын байр" }}</h3>
-            <p class="mt-0.5 text-[12px] text-muted-foreground">{{ formatDate(app.created_at) }}</p>
+            <h3 class="text-[15px] font-semibold leading-snug">
+              {{ app.job_title || "Ажлын байр" }}
+            </h3>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">
+              {{ formatDate(app.created_at) }}
+            </p>
           </div>
           <div class="flex shrink-0 items-center gap-2.5">
             <!-- Score circle -->
@@ -147,7 +186,10 @@ function gcalLink(app: Application) {
               class="flex h-12 w-12 items-center justify-center rounded-full border-[3px] shrink-0"
               :class="scoreBorderBg(app.overall_score)"
             >
-              <span class="text-[13px] font-bold leading-none" :class="scoreColor(app.overall_score)">
+              <span
+                class="text-[13px] font-bold leading-none"
+                :class="scoreColor(app.overall_score)"
+              >
                 {{ app.overall_score }}<span class="text-[9px]">%</span>
               </span>
             </div>
@@ -167,7 +209,10 @@ function gcalLink(app: Application) {
         </div>
 
         <!-- AI pending indicator -->
-        <div v-if="app.status === 'pending'" class="mt-3 flex items-center gap-2 text-[13px] text-muted-foreground">
+        <div
+          v-if="app.status === 'pending'"
+          class="mt-3 flex items-center gap-2 text-[13px] text-muted-foreground"
+        >
           <Loader2 class="h-3.5 w-3.5 animate-spin text-primary" />
           <span>AI үнэлгээ хийгдэж байна...</span>
         </div>
@@ -181,8 +226,11 @@ function gcalLink(app: Application) {
         </p>
 
         <!-- Skill chips -->
-        <div
-          v-if="(app.matched_skills?.length || app.missing_skills?.length) && app.status !== 'pending'"
+        <!-- <div
+          v-if="
+            (app.matched_skills?.length || app.missing_skills?.length) &&
+            app.status !== 'pending'
+          "
           class="mt-3 flex flex-wrap gap-1.5"
         >
           <span
@@ -199,7 +247,7 @@ function gcalLink(app: Application) {
           >
             ✗ {{ s.skill }}
           </span>
-        </div>
+        </div> -->
 
         <!-- Interview section -->
         <div
@@ -209,12 +257,25 @@ function gcalLink(app: Application) {
         >
           <div class="flex items-center gap-1.5 mb-2">
             <CalendarCheck class="h-3.5 w-3.5 text-primary" />
-            <p class="text-[11.5px] font-semibold uppercase tracking-[0.5px] text-primary">Ярилцлагын хуваарь</p>
+            <p
+              class="text-[11.5px] font-semibold tracking-[0.5px] text-primary"
+            >
+              Ярилцлагын хуваарь
+            </p>
           </div>
-          <p class="text-[15px] font-semibold">{{ formatDateTime(app.interview_at) }}</p>
-          <div v-if="app.interview_location" class="mt-2 flex items-start justify-between gap-2">
-            <p class="text-[12.5px] text-muted-foreground">{{ app.interview_location }}</p>
-            <label class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap">
+          <p class="text-[13px] font-semibold">
+            {{ formatDateTime(app.interview_at) }}
+          </p>
+          <div
+            v-if="app.interview_location"
+            class="mt-2 flex items-start justify-between gap-2"
+          >
+            <p class="text-[12.5px] text-muted-foreground">
+              {{ app.interview_location }}
+            </p>
+            <label
+              class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap"
+            >
               <Checkbox
                 :checked="mapState(app.id).show"
                 @update:checked="toggleMap(app.id, app.interview_location)"
@@ -222,15 +283,23 @@ function gcalLink(app: Application) {
               Зураг
             </label>
           </div>
-          <div v-if="mapState(app.id).show && mapState(app.id).lat !== null" class="mt-2">
+          <div
+            v-if="mapState(app.id).show && mapState(app.id).lat !== null"
+            class="mt-2"
+          >
             <LocationMap
               :lat="mapState(app.id).lat!"
               :lng="mapState(app.id).lng!"
               :label="app.interview_location ?? undefined"
             />
           </div>
-          <p v-if="app.interview_note" class="mt-1 text-[12px] text-muted-foreground italic">{{ app.interview_note }}</p>
-          <a
+          <p
+            v-if="app.interview_note"
+            class="mt-1 text-[12px] text-muted-foreground italic"
+          >
+            {{ app.interview_note }}
+          </p>
+          <!-- <a
             :href="gcalLink(app)"
             target="_blank"
             rel="noopener"
@@ -238,7 +307,7 @@ function gcalLink(app: Application) {
           >
             <CalendarCheck class="h-3.5 w-3.5" />
             Google Calendar-д нэмэх
-          </a>
+          </a> -->
         </div>
       </div>
     </div>

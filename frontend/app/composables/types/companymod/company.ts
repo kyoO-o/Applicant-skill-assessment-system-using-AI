@@ -10,6 +10,7 @@ export interface Company extends BaseModel {
   description: string;
   register_id: string;
   contact_info: string;
+  profile_url?: string;
   city: string;
   district: string;
   location_x: number;

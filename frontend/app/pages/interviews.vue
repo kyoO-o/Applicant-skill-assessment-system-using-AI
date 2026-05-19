@@ -142,7 +142,7 @@ function gcalLink(app: Application) {
     <!-- Page header -->
     <div class="flex items-end justify-between gap-4">
       <div>
-        <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">
+        <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
           {{ isRecruiter ? "Ярилцлагын урсгал" : "Миний ярилцлагууд" }}
         </h1>
         <p class="mt-1 text-[13.5px] text-muted-foreground">

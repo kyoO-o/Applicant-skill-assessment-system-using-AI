@@ -192,8 +192,8 @@ async function submitForm() {
           </p>
         </div>
         <div v-if="company" class="flex items-center gap-2 text-xs text-muted-foreground">
-          <Checkbox v-model:checked="overrideContact" />
-          <span class="cursor-pointer select-none" @click="overrideContact = !overrideContact">Өөр мэдээлэл оруулах</span>
+          <Checkbox id="override-contact-cb" v-model:checked="overrideContact" />
+          <label for="override-contact-cb" class="cursor-pointer select-none">Өөр мэдээлэл оруулах</label>
         </div>
       </div>
       <Input
@@ -214,8 +214,8 @@ async function submitForm() {
           </p>
         </div>
         <div v-if="company" class="flex items-center gap-2 text-xs text-muted-foreground">
-          <Checkbox v-model:checked="overrideLocation" />
-          <span class="cursor-pointer select-none" @click="overrideLocation = !overrideLocation">Өөр байршил оруулах</span>
+          <Checkbox id="override-location-cb" v-model:checked="overrideLocation" />
+          <label for="override-location-cb" class="cursor-pointer select-none">Өөр байршил оруулах</label>
         </div>
       </div>
 
@@ -244,7 +244,7 @@ async function submitForm() {
         </div>
       </div>
 
-      <div v-if="overrideLocation || !company">
+      <div>
         <Label class="mb-2 block">Газрын зураг дээр байршил сонгох</Label>
         <LocationSearch
           v-model:model-x="form.location_x"

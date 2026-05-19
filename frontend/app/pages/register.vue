@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { toTypedSchema } from "@vee-validate/zod";
 import { UserRole } from "../composables/types/constants";
-import {
-  registerBaseSchema,
-  registerRecruiterSchema,
-} from "~/utils/schemas";
+import { registerBaseSchema, registerRecruiterSchema } from "~/utils/schemas";
 import {
   Form,
   FormControl,
@@ -40,7 +37,7 @@ async function onSubmit(values: Record<string, any>) {
       last_name: values.lastName.trim(),
       company_name:
         selectedRole.value === UserRole.Recruiter
-          ? (values.companyName?.trim() || undefined)
+          ? values.companyName?.trim() || undefined
           : undefined,
       email: values.email,
       position: values.recruiterPosition?.trim() || undefined,
@@ -101,9 +98,15 @@ async function onSubmit(values: Record<string, any>) {
         </div>
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <FormField v-slot="{ componentField }" name="firstName">
-            <FormItem class="space-y-2">
-              <FormLabel>Нэр*</FormLabel>
+          <FormField
+            v-slot="{ componentField }"
+            name="firstName"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-model-update="false"
+          >
+            <FormItem>
+              <FormLabel class="text-xs text-muted-foreground">Нэр*</FormLabel>
               <FormControl>
                 <Input
                   v-bind="componentField"
@@ -116,9 +119,15 @@ async function onSubmit(values: Record<string, any>) {
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="lastName">
-            <FormItem class="space-y-2">
-              <FormLabel>Овог*</FormLabel>
+          <FormField
+            v-slot="{ componentField }"
+            name="lastName"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-model-update="false"
+          >
+            <FormItem>
+              <FormLabel class="text-xs text-muted-foreground">Овог*</FormLabel>
               <FormControl>
                 <Input
                   v-bind="componentField"
@@ -132,9 +141,15 @@ async function onSubmit(values: Record<string, any>) {
           </FormField>
         </div>
 
-        <FormField v-slot="{ componentField }" name="email">
-          <FormItem class="space-y-2">
-            <FormLabel>Э-мэйл*</FormLabel>
+        <FormField
+          v-slot="{ componentField }"
+          name="email"
+          :validate-on-blur="false"
+          :validate-on-change="false"
+          :validate-on-model-update="false"
+        >
+          <FormItem>
+            <FormLabel class="text-xs text-muted-foreground">Э-мэйл*</FormLabel>
             <FormControl>
               <Input
                 v-bind="componentField"
@@ -148,9 +163,17 @@ async function onSubmit(values: Record<string, any>) {
         </FormField>
 
         <div class="grid gap-5 sm:grid-cols-2">
-          <FormField v-slot="{ componentField }" name="password">
-            <FormItem class="space-y-2">
-              <FormLabel>Нууц үг*</FormLabel>
+          <FormField
+            v-slot="{ componentField }"
+            name="password"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-model-update="false"
+          >
+            <FormItem>
+              <FormLabel class="text-xs text-muted-foreground"
+                >Нууц үг*</FormLabel
+              >
               <FormControl>
                 <PasswordInput
                   v-bind="componentField"
@@ -162,9 +185,17 @@ async function onSubmit(values: Record<string, any>) {
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="confirmPassword">
-            <FormItem class="space-y-2">
-              <FormLabel>Нууц үг давтах*</FormLabel>
+          <FormField
+            v-slot="{ componentField }"
+            name="confirmPassword"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-model-update="false"
+          >
+            <FormItem>
+              <FormLabel class="text-xs text-muted-foreground"
+                >Нууц үг давтах*</FormLabel
+              >
               <FormControl>
                 <PasswordInput
                   v-bind="componentField"
@@ -177,13 +208,41 @@ async function onSubmit(values: Record<string, any>) {
           </FormField>
         </div>
 
-        <div
-          v-if="selectedRole === UserRole.Recruiter"
-          class="grid gap-5 sm:grid-cols-2"
-        >
-          <FormField v-slot="{ componentField }" name="companyName">
-            <FormItem class="space-y-2">
-              <FormLabel>Компаний нэр</FormLabel>
+        <div v-if="selectedRole === UserRole.Recruiter" class="space-y-5">
+          <FormField
+            v-slot="{ componentField }"
+            name="recruiterPosition"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-model-update="false"
+          >
+            <FormItem>
+              <FormLabel class="text-xs text-muted-foreground"
+                >Ажил олгогчийн албан тушаал*</FormLabel
+              >
+              <FormControl>
+                <Input
+                  v-bind="componentField"
+                  type="text"
+                  autocomplete="organization-title"
+                  placeholder="Talent Acquisition Specialist"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+
+          <!-- <FormField
+            v-slot="{ componentField }"
+            name="companyName"
+            :validate-on-blur="false"
+            :validate-on-change="false"
+            :validate-on-model-update="false"
+          >
+            <FormItem>
+              <FormLabel class="text-xs text-muted-foreground"
+                >Компаний нэр</FormLabel
+              >
               <FormControl>
                 <Input
                   v-bind="componentField"
@@ -197,25 +256,10 @@ async function onSubmit(values: Record<string, any>) {
               </p>
               <FormMessage />
             </FormItem>
-          </FormField>
-
-          <FormField v-slot="{ componentField }" name="recruiterPosition">
-            <FormItem class="space-y-2">
-              <FormLabel>Ажил олгогчийн албан тушаал*</FormLabel>
-              <FormControl>
-                <Input
-                  v-bind="componentField"
-                  type="text"
-                  autocomplete="organization-title"
-                  placeholder="Talent Acquisition Specialist"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+          </FormField> -->
         </div>
 
-        <Button class="w-full" type="submit" :disabled="isLoading">
+        <Button class="w-full mt-2" type="submit" :disabled="isLoading">
           {{ isLoading ? "Бүртгэл үүсгэж байна..." : "Бүртгүүлэх" }}
         </Button>
       </Form>

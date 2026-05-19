@@ -3,6 +3,7 @@
 
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "vue-sonner/style.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -63,7 +64,7 @@
 :root {
   --radius: 0.625rem;
 
-  /* ── MatchHire Light Palette ──────────────────────────── */
+  /* ── Light Palette ──────────────────────────── */
   --background: oklch(0.984 0 0);        /* #fafafa */
   --foreground: oklch(0.145 0 0);        /* #18181b */
   --card: oklch(1 0 0);                  /* #ffffff */
@@ -119,7 +120,7 @@
 }
 
 .dark {
-  /* ── MatchHire Dark Palette ───────────────────────────── */
+  /* ── Dark Palette ───────────────────────────── */
   --background: oklch(0.095 0 0);        /* #0f0f12 */
   --foreground: oklch(0.984 0 0);        /* #fafafa */
   --card: oklch(0.125 0 0);             /* #17171c */
@@ -129,6 +130,7 @@
 
   /* Light plum accent — #a78bfa */
   --primary: oklch(0.695 0.152 296);
+  /* --primary: oklch(0.408 0.124 295); */
   --primary-foreground: oklch(0.145 0 0);
 
   --secondary: oklch(0.155 0 0);         /* #1f1f25 */
@@ -142,7 +144,8 @@
   --destructive: oklch(0.626 0.228 28);
   --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.695 0.152 296);
+  /* --ring: oklch(0.695 0.152 296); */
+  --ring: oklch(0.408 0.124 295);
 
   /* Vibrant semantic colors — same hues, lighter for dark contrast */
   --success: oklch(0.696 0.167 162);
@@ -221,5 +224,31 @@
   .badge-info {
     background: var(--info-bg);
     color: var(--info-foreground);
+  }
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  aside,
+  header {
+    display: none !important;
+  }
+
+  main {
+    overflow: visible !important;
+  }
+
+  main > div {
+    padding: 0 !important;
+    max-width: none !important;
   }
 }

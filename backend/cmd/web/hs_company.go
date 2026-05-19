@@ -22,6 +22,7 @@ type companyRequest struct {
 	Description string   `json:"description"`
 	RegisterID  string   `json:"register_id"`
 	ContactInfo string   `json:"contact_info"`
+	ProfileURL  string   `json:"profile_url"`
 	City        string   `json:"city"`
 	District    string   `json:"district"`
 	LocationX   *float64 `json:"location_x"`
@@ -71,6 +72,7 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 	req.Description = strings.TrimSpace(req.Description)
 	req.RegisterID = strings.TrimSpace(req.RegisterID)
 	req.ContactInfo = strings.TrimSpace(req.ContactInfo)
+	req.ProfileURL = strings.TrimSpace(req.ProfileURL)
 	req.City = strings.TrimSpace(req.City)
 	req.District = strings.TrimSpace(req.District)
 
@@ -96,6 +98,7 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 	company.Description = req.Description
 	company.RegisterID = req.RegisterID
 	company.ContactInfo = req.ContactInfo
+	company.ProfileURL = req.ProfileURL
 	company.City = req.City
 	company.District = req.District
 	if req.LocationX != nil {

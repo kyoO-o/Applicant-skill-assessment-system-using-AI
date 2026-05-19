@@ -10,10 +10,26 @@ import {
   Users,
   MapPin,
   Loader2,
+  LayoutGrid,
+  LayoutList,
+  Search,
+  Heart,
+  SlidersHorizontal,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-vue-next";
 
 const { user } = useAuth();
 const jobsAPI = useJobsAPI();
+const {
+  public: { apiBase },
+} = useRuntimeConfig();
+
+function logoURL(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("http")) return url;
+  return `${apiBase}${url}`;
+}
 const router = useRouter();
 
 const jobs = ref<Job[]>([]);
@@ -101,6 +117,110 @@ async function confirmDelete() {
 }
 
 await loadJobs();
+
+// ── Applicant browse state ─────────────────────────────────
+const query = ref("");
+const FILTER_OPTIONS = [
+  { value: "all", name: "бүгд" },
+  { value: "saved", name: "хадгалсан" },
+] as const;
+type FilterOption = (typeof FILTER_OPTIONS)[number]["value"];
+const filter = ref<FilterOption>("all");
+const view = ref<"grid" | "list">("grid");
+const page = ref(1);
+const PAGE_SIZE = 9;
+
+const savedJobIds = ref<Set<number>>(
+  new Set(
+    import.meta.client
+      ? JSON.parse(localStorage.getItem("saved-jobs") || "[]")
+      : [],
+  ),
+);
+
+function toggleSave(job: Job, e: Event) {
+  e.stopPropagation();
+  if (savedJobIds.value.has(job.id)) {
+    savedJobIds.value.delete(job.id);
+  } else {
+    savedJobIds.value.add(job.id);
+  }
+  savedJobIds.value = new Set(savedJobIds.value);
+  if (import.meta.client) {
+    localStorage.setItem("saved-jobs", JSON.stringify([...savedJobIds.value]));
+  }
+}
+
+const filteredJobs = computed(() => {
+  const q = query.value.toLowerCase().trim();
+  return applicantJobs.value.filter((job) => {
+    if (filter.value === "saved" && !savedJobIds.value.has(job.id))
+      return false;
+    // if (filter.value === "remote") {
+    //   const isRemote =
+    //     job.type?.toLowerCase().includes("remote") ||
+    //     job.employment_type?.toLowerCase().includes("remote");
+    //   if (!isRemote) return false;
+    // }
+    if (!q) return true;
+    return (
+      job.title.toLowerCase().includes(q) ||
+      (job.company_name || "").toLowerCase().includes(q) ||
+      job.location.toLowerCase().includes(q)
+    );
+  });
+});
+
+const totalPages = computed(() =>
+  Math.max(1, Math.ceil(filteredJobs.value.length / PAGE_SIZE)),
+);
+
+const paginatedJobs = computed(() => {
+  const start = (page.value - 1) * PAGE_SIZE;
+  return filteredJobs.value.slice(start, start + PAGE_SIZE);
+});
+
+watch([query, filter], () => {
+  page.value = 1;
+});
+
+const GRADIENTS = [
+  "linear-gradient(135deg, #fde68a, #fb923c)",
+  "linear-gradient(135deg, #bae6fd, #818cf8)",
+  "linear-gradient(135deg, #fecaca, #f472b6)",
+  "linear-gradient(135deg, #fdba74, #fb7185)",
+  "linear-gradient(135deg, #a7f3d0, #67e8f9)",
+  "linear-gradient(135deg, #ddd6fe, #c4b5fd)",
+];
+
+function companyGradient(name: string): string {
+  let h = 0;
+  for (const c of name) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+  return GRADIENTS[Math.abs(h) % GRADIENTS.length];
+}
+
+function formatRelativeDate(value: string): string {
+  const d = Math.floor((Date.now() - new Date(value).getTime()) / 86400000);
+  if (d === 0) return "Today";
+  if (d === 1) return "1d ago";
+  if (d < 7) return `${d}d ago`;
+  if (d < 30) return `${Math.floor(d / 7)}w ago`;
+  return `${Math.floor(d / 30)}mo ago`;
+}
+
+function formatSalary(job: Job): string {
+  const fmt = (n: number) =>
+    n >= 1_000_000
+      ? `${(n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0)}M`
+      : n >= 1_000
+        ? `${Math.round(n / 1_000)}K`
+        : String(n);
+  if (job.min_salary && job.max_salary)
+    return `${fmt(job.min_salary)}–${fmt(job.max_salary)}₮`;
+  if (job.min_salary) return `${fmt(job.min_salary)}₮+`;
+  if (job.max_salary) return `up to ${fmt(job.max_salary)}₮`;
+  return "";
+}
 </script>
 
 <template>
@@ -109,7 +229,7 @@ await loadJobs();
     <!-- Page header -->
     <div class="flex items-center justify-between gap-4">
       <div>
-        <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">
+        <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
           Ажлын байрны удирдлага
         </h1>
         <p class="mt-1 text-[13.5px] text-muted-foreground">
@@ -351,18 +471,83 @@ await loadJobs();
   <!-- ── APPLICANT VIEW ──────────────────────────────────── -->
   <div v-else class="space-y-5">
     <!-- Page header -->
-    <div>
-      <p
-        class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground"
+    <div class="flex items-center justify-between gap-4">
+      <div>
+        <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
+          Ажлын байрууд
+        </h1>
+        <p class="mt-1 text-[13.5px] text-muted-foreground">
+          {{
+            loading ? "Loading…" : `${filteredJobs.length} ажлын зар олдлоо.`
+          }}
+        </p>
+      </div>
+      <!-- Grid / List toggle -->
+      <div
+        class="flex shrink-0 items-center gap-2.5 rounded-full border border-border bg-card p-1"
       >
-        Ажлын байр
-      </p>
-      <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">
-        Нээлттэй ажлын байрууд
-      </h1>
-      <p class="mt-1 text-[13.5px] text-muted-foreground">
-        Идэвхтэй нийтлэгдсэн ажлын байруудыг харж, анкетаа илгээгээрэй.
-      </p>
+        <button
+          :class="[
+            'flex h-8 w-8 items-center justify-center rounded-full transition',
+            view === 'grid'
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:text-foreground',
+          ]"
+          title="Grid view"
+          @click="view = 'grid'"
+        >
+          <LayoutGrid class="h-3.5 w-3.5" />
+        </button>
+        <button
+          :class="[
+            'flex h-8 w-8 items-center justify-center rounded-full transition',
+            view === 'list'
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:text-foreground',
+          ]"
+          title="List view"
+          @click="view = 'list'"
+        >
+          <LayoutList class="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="flex flex-wrap items-center gap-2.5">
+      <!-- Search input -->
+      <div class="relative min-w-[260px] flex-1">
+        <Search
+          class="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground"
+        />
+        <input
+          v-model="query"
+          class="h-10 w-full rounded-full border border-border bg-card pl-9 pr-4 text-[13.5px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+          placeholder="Хайх..."
+          type="text"
+        />
+      </div>
+      <!-- Filter pills -->
+      <button
+        v-for="f in FILTER_OPTIONS"
+        :key="f.value"
+        :class="[
+          'rounded-full border px-4 py-2 text-[13px] font-medium capitalize transition',
+          filter === f.value
+            ? 'border-foreground bg-foreground text-background'
+            : 'border-border bg-card text-foreground hover:bg-muted',
+        ]"
+        @click="filter = f.value"
+      >
+        {{ f.name }}
+      </button>
+      <!-- Filters button (cosmetic) -->
+      <button
+        class="flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-[13px] font-medium text-foreground transition hover:bg-muted"
+      >
+        <SlidersHorizontal class="h-3.5 w-3.5" />
+        Шүүлтүүр
+      </button>
     </div>
 
     <!-- Loading -->
@@ -370,7 +555,7 @@ await loadJobs();
       <Loader2 class="h-7 w-7 animate-spin text-primary" />
     </div>
 
-    <!-- Empty -->
+    <!-- Empty (no jobs at all) -->
     <div
       v-else-if="!applicantJobs.length"
       class="flex flex-col items-center py-20 text-center"
@@ -380,92 +565,210 @@ await loadJobs();
       >
         <BriefcaseBusiness class="h-7 w-7 text-muted-foreground" />
       </div>
-      <p class="text-[16px] font-semibold">Идэвхтэй ажлын байр байхгүй байна</p>
-      <p class="mt-2 text-[13.5px] text-muted-foreground">
-        Дараа дахин шалгана уу.
+      <p class="text-[16px] font-semibold">No open positions right now</p>
+      <p class="mt-2 text-[13.5px] text-muted-foreground">Check back later.</p>
+    </div>
+
+    <!-- No results for current filter -->
+    <div
+      v-else-if="!filteredJobs.length"
+      class="flex flex-col items-center py-16 text-center"
+    >
+      <div
+        class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-muted"
+      >
+        <Search class="h-5 w-5 text-muted-foreground" />
+      </div>
+      <p class="text-[15px] font-semibold">No roles match your search</p>
+      <p class="mt-1.5 text-[13px] text-muted-foreground">
+        Try a different keyword or filter.
       </p>
     </div>
 
-    <!-- Job cards grid -->
-    <div v-else class="grid gap-4 lg:grid-cols-2">
+    <template v-else>
+      <!-- ─── GRID VIEW ───────────────────────────────────── -->
       <div
-        v-for="job in applicantJobs"
-        :key="job.id"
-        class="group flex flex-col rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm cursor-pointer"
-        @click="router.push(`/jobs/${job.id}`)"
+        v-if="view === 'grid'"
+        class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
       >
-        <!-- Header -->
-        <div class="flex items-start justify-between gap-3">
-          <div class="flex-1 min-w-0">
-            <h3 class="text-[16px] font-semibold leading-snug">
-              {{ job.title }}
-            </h3>
-            <p class="mt-0.5 text-[13px] text-muted-foreground">
-              {{ job.company_name || "Компани" }}
+        <div
+          v-for="job in paginatedJobs"
+          :key="job.id"
+          class="group flex cursor-pointer flex-col gap-3.5 rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
+          @click="router.push(`/jobs/${job.id}`)"
+        >
+          <!-- Company mark + title + save -->
+          <div class="flex items-start gap-3">
+            <img
+              v-if="job.company_logo_url"
+              :src="logoURL(job.company_logo_url)"
+              :alt="job.company_name"
+              class="h-11 w-11 shrink-0 rounded-xl object-cover"
+            />
+            <div
+              v-else
+              class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[15px] font-bold text-white/90"
+              :style="{
+                background: companyGradient(job.company_name || job.title),
+              }"
+            >
+              {{ (job.company_name || job.title || "?")[0]?.toUpperCase() }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[12px] text-muted-foreground">
+                {{ job.company_name || "Company" }}
+              </p>
+              <p
+                class="mt-0.5 text-[15.5px] font-semibold leading-snug tracking-[-0.2px]"
+              >
+                {{ job.title }}
+              </p>
+            </div>
+            <button
+              class="shrink-0 p-1 transition"
+              :class="
+                savedJobIds.has(job.id)
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+              "
+              @click="toggleSave(job, $event)"
+            >
+              <Heart
+                class="h-4 w-4"
+                :class="savedJobIds.has(job.id) ? 'fill-primary' : ''"
+              />
+            </button>
+          </div>
+
+          <!-- Chips -->
+          <div class="flex flex-wrap gap-1.5">
+            <span
+              v-if="formatSalary(job)"
+              class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+              >{{ formatSalary(job) }}</span
+            >
+            <span
+              v-if="job.type"
+              class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+              >{{ job.type }}</span
+            >
+            <span
+              v-if="job.seniority"
+              class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+              >{{ job.seniority }}</span
+            >
+          </div>
+
+          <!-- Footer: location · date · applicants -->
+          <div
+            class="flex items-center gap-2 text-[12px] text-muted-foreground"
+          >
+            <MapPin class="h-3 w-3 shrink-0" />
+            <span class="truncate">{{ job.location }}</span>
+            <span class="opacity-40">·</span>
+            <span class="shrink-0">{{
+              formatRelativeDate(job.created_at)
+            }}</span>
+            <div class="flex-1" />
+            <span class="shrink-0 flex items-center gap-1">
+              <Users class="h-3 w-3" />{{ job.applicants_count }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── LIST VIEW ───────────────────────────────────── -->
+      <div v-else class="rounded-2xl border border-border bg-card">
+        <div
+          v-for="(job, i) in paginatedJobs"
+          :key="job.id"
+          class="flex cursor-pointer items-center gap-3.5 px-5 py-4 transition hover:bg-muted/40"
+          :class="i < paginatedJobs.length - 1 ? 'border-b border-border' : ''"
+          @click="router.push(`/jobs/${job.id}`)"
+        >
+          <img
+            v-if="job.company_logo_url"
+            :src="job.company_logo_url"
+            :alt="job.company_name"
+            class="h-[42px] w-[42px] shrink-0 rounded-xl object-cover"
+          />
+          <div
+            v-else
+            class="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl text-[14px] font-bold text-white/90"
+            :style="{
+              background: companyGradient(job.company_name || job.title),
+            }"
+          >
+            {{ (job.company_name || job.title || "?")[0]?.toUpperCase() }}
+          </div>
+          <div class="min-w-0 flex-1">
+            <p class="text-[14.5px] font-semibold">{{ job.title }}</p>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground">
+              {{ job.company_name || "Company" }} · {{ job.location }} ·
+              {{ formatRelativeDate(job.created_at) }}
             </p>
           </div>
           <span
-            class="inline-flex shrink-0 items-center rounded-full px-2.5 py-1 text-[11.5px] font-semibold badge-success"
+            v-if="formatSalary(job)"
+            class="hidden shrink-0 items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground sm:inline-flex"
+            >{{ formatSalary(job) }}</span
           >
-            <span class="mr-1.5 h-1.5 w-1.5 rounded-full bg-success" />
-            Нийтлэгдсэн
-          </span>
-        </div>
-
-        <!-- Tags -->
-        <div class="mt-3 flex flex-wrap gap-1.5">
           <span
-            class="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+            v-if="job.type"
+            class="hidden shrink-0 items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground md:inline-flex"
+            >{{ job.type }}</span
           >
-            <MapPin class="h-3 w-3" /> {{ job.location }}
-          </span>
-          <span
-            v-if="job.employment_type"
-            class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
+          <button
+            class="shrink-0 p-1.5 transition"
+            :class="
+              savedJobIds.has(job.id)
+                ? 'text-primary'
+                : 'text-muted-foreground hover:text-foreground'
+            "
+            @click="toggleSave(job, $event)"
           >
-            {{ job.employment_type }}
-          </span>
-          <span
-            v-if="job.seniority"
-            class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[12px] text-muted-foreground"
-          >
-            {{ job.seniority }}
-          </span>
-        </div>
-
-        <!-- Salary -->
-        <p
-          v-if="job.min_salary || job.max_salary"
-          class="mt-3 text-[14px] font-semibold text-foreground"
-        >
-          {{ job.min_salary?.toLocaleString() }}₮
-          <span v-if="job.max_salary">
-            – {{ job.max_salary?.toLocaleString() }}₮</span
-          >
-        </p>
-
-        <!-- Description -->
-        <p
-          class="mt-2.5 flex-1 text-[13.5px] leading-[1.55] text-muted-foreground line-clamp-3"
-        >
-          {{ job.description }}
-        </p>
-
-        <!-- CTA -->
-        <div
-          class="mt-4 flex items-center justify-between border-t border-border pt-3.5"
-        >
-          <p class="text-[12px] text-muted-foreground">
-            {{ formatDate(job.created_at) }}
-          </p>
-          <span
-            class="text-[13px] font-semibold text-primary group-hover:underline"
-          >
-            Дэлгэрэнгүй →
-          </span>
+            <Heart
+              class="h-4 w-4"
+              :class="savedJobIds.has(job.id) ? 'fill-primary' : ''"
+            />
+          </button>
         </div>
       </div>
-    </div>
+
+      <!-- ─── PAGINATION ──────────────────────────────────── -->
+      <div
+        v-if="totalPages > 1"
+        class="flex items-center justify-center gap-1 pt-1"
+      >
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          :disabled="page === 1"
+          @click="page--"
+        >
+          <ChevronLeft class="h-4 w-4" />
+        </button>
+        <button
+          v-for="p in totalPages"
+          :key="p"
+          :class="[
+            'h-8 w-8 rounded-full text-[13px] font-medium transition',
+            p === page
+              ? 'bg-foreground text-background'
+              : 'text-muted-foreground hover:bg-muted',
+          ]"
+          @click="page = p"
+        >
+          {{ p }}
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          :disabled="page === totalPages"
+          @click="page++"
+        >
+          <ChevronRight class="h-4 w-4" />
+        </button>
+      </div>
+    </template>
   </div>
 
   <!-- Delete dialog -->

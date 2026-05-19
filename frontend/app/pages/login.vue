@@ -82,9 +82,15 @@ async function onSubmit(values: { email: string; password: string }) {
           {{ errorMessage }}
         </div>
 
-        <FormField v-slot="{ componentField }" name="email">
-          <FormItem class="space-y-1.5">
-            <FormLabel class="text-[11.5px] font-medium text-muted-foreground"
+        <FormField
+          v-slot="{ componentField }"
+          name="email"
+          :validate-on-blur="false"
+          :validate-on-change="false"
+          :validate-on-model-update="false"
+        >
+          <FormItem>
+            <FormLabel class="text-xs font-medium text-muted-foreground"
               >Э-мэйл</FormLabel
             >
             <FormControl>
@@ -100,16 +106,21 @@ async function onSubmit(values: { email: string; password: string }) {
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="password">
-          <FormItem class="space-y-1.5">
+        <FormField
+          v-slot="{ componentField }"
+          name="password"
+          :validate-on-blur="false"
+          :validate-on-change="false"
+          :validate-on-model-update="false"
+        >
+          <FormItem>
             <div class="flex items-center justify-between gap-3">
-              <FormLabel
-                class="text-[11.5px] font-medium text-muted-foreground"
+              <FormLabel class="text-xs font-medium text-muted-foreground"
                 >Нууц үг</FormLabel
               >
               <NuxtLink
                 to="/forgot-password"
-                class="text-[11.5px] font-medium text-primary hover:text-primary/80"
+                class="text-xs font-medium text-primary hover:text-primary/80"
               >
                 Нууц үг мартсан уу?
               </NuxtLink>
@@ -126,11 +137,11 @@ async function onSubmit(values: { email: string; password: string }) {
           </FormItem>
         </FormField>
 
-        <div class="rounded-xl border border-border bg-muted/40 px-4 py-3">
+        <!-- <div class="rounded-xl border border-border bg-muted/40 px-4 py-3">
           <p class="text-[12.5px] leading-6 text-muted-foreground">
             Ажил горилогч болон ажил олгогч хоёулаа энд нэвтэрч болно.
           </p>
-        </div>
+        </div> -->
 
         <button
           type="submit"

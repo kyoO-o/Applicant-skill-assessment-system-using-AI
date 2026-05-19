@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { JobStatus } from "../composables/types";
+import type { Application, Task } from "../composables/types";
 import { toast } from "vue-sonner";
 import {
   BriefcaseBusiness,
@@ -13,9 +14,13 @@ import {
 
 const { user } = useAuth();
 const jobsAPI = useJobsAPI();
+const applicationsAPI = useApplicationsAPI();
+const tasksAPI = useTasksAPI();
 const router = useRouter();
 
 const recruiterJobs = ref<Job[]>([]);
+const myApplications = ref<Application[]>([]);
+const myTasks = ref<Task[]>([]);
 const loading = ref(false);
 
 const recruiterStats = computed(() => {
@@ -30,13 +35,28 @@ const recruiterStats = computed(() => {
   return { totalJobs, activeJobs, totalApplicants };
 });
 
+const applicantStats = computed(() => {
+  const totalApplications = myApplications.value.length;
+  const scored = myApplications.value.filter((a) => a.overall_score > 0);
+  const avgScore = scored.length
+    ? Math.round(
+        scored.reduce((sum, a) => sum + a.overall_score, 0) / scored.length,
+      )
+    : null;
+  const interviews = myApplications.value.filter((a) => a.interview_at).length;
+  const pendingTasks = myTasks.value.filter((t) => t.status === "sent").length;
+  return { totalApplications, avgScore, interviews, pendingTasks };
+});
+
 const recruiterNeedsCompany = computed(
   () => user.value?.role === "recruiter" && !user.value?.company_id,
 );
 
 function openRecruiterJobs() {
   if (recruiterNeedsCompany.value) {
-    toast.warning("Ажлын байр удирдахаас өмнө компанийн мэдээллээ бүртгэнэ үү.");
+    toast.warning(
+      "Ажлын байр удирдахаас өмнө компанийн мэдээллээ бүртгэнэ үү.",
+    );
     router.push("/profile");
     return;
   }
@@ -53,7 +73,20 @@ async function loadRecruiterDashboard() {
   }
 }
 
-await loadRecruiterDashboard();
+async function loadApplicantDashboard() {
+  if (user.value?.role === "recruiter") return;
+  loading.value = true;
+  try {
+    [myApplications.value, myTasks.value] = await Promise.all([
+      applicationsAPI.listMine(),
+      tasksAPI.list(),
+    ]);
+  } finally {
+    loading.value = false;
+  }
+}
+
+await Promise.all([loadRecruiterDashboard(), loadApplicantDashboard()]);
 </script>
 
 <template>
@@ -71,7 +104,13 @@ await loadRecruiterDashboard();
       </div>
       <button
         class="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-        style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+        style="
+          background: linear-gradient(
+            135deg,
+            var(--primary),
+            oklch(0.348 0.106 295)
+          );
+        "
         @click="openRecruiterJobs"
       >
         <BriefcaseBusiness class="h-4 w-4" />
@@ -83,12 +122,16 @@ await loadRecruiterDashboard();
     <div class="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground"
+          >
             <BriefcaseBusiness class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Нийт ажлын байр</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
               {{ loading ? "…" : recruiterStats.totalJobs }}
             </p>
           </div>
@@ -100,30 +143,43 @@ await loadRecruiterDashboard();
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground"
+          >
             <Users class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Нийт горилогч</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
               {{ loading ? "…" : recruiterStats.totalApplicants }}
             </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-success-foreground">Шинэ өргөдлүүд</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-success-foreground">
+          Шинэ өргөдлүүд
+        </p>
       </div>
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
           <div
             class="flex h-9 w-9 items-center justify-center rounded-xl"
-            style="background: oklch(0.408 0.124 295 / 8%); color: var(--primary)"
+            style="
+              background: oklch(0.408 0.124 295 / 8%);
+              color: var(--primary);
+            "
           >
             <Sparkles class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">AI дундаж оноо</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">—</p>
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
+              —
+            </p>
           </div>
         </div>
         <p class="mt-2.5 text-[11.5px] font-medium text-primary">AI үнэлгээ</p>
@@ -131,15 +187,23 @@ await loadRecruiterDashboard();
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-foreground"
+          >
             <Calendar class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Ярилцлага</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">—</p>
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
+              —
+            </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">Энэ долоо хоног</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">
+          Энэ долоо хоног
+        </p>
       </div>
     </div>
 
@@ -147,9 +211,13 @@ await loadRecruiterDashboard();
     <div class="grid gap-4 lg:grid-cols-[1.3fr_0.9fr]">
       <!-- Jobs -->
       <div class="rounded-2xl border border-border bg-card">
-        <div class="flex items-center justify-between border-b border-border px-5 py-4">
+        <div
+          class="flex items-center justify-between border-b border-border px-5 py-4"
+        >
           <div>
-            <p class="text-[15px] font-semibold tracking-[-0.2px]">Ажлын байрны хөдөлгөөн</p>
+            <p class="text-[15px] font-semibold tracking-[-0.2px]">
+              Ажлын байрны хөдөлгөөн
+            </p>
             <p class="mt-0.5 text-[12px] text-muted-foreground">
               {{ loading ? "Ачааллаж байна…" : "Таны сүүлийн зарууд" }}
             </p>
@@ -173,9 +241,12 @@ await loadRecruiterDashboard();
               {{ (job.company_name || job.title || "?")[0]?.toUpperCase() }}
             </div>
             <div class="flex-1 min-w-0">
-              <p class="truncate text-[14.5px] font-semibold">{{ job.title }}</p>
+              <p class="truncate text-[14.5px] font-semibold">
+                {{ job.title }}
+              </p>
               <p class="mt-0.5 text-[12.5px] text-muted-foreground">
-                {{ job.location }} · {{ job.employment_type || "Тогтоогдоогүй" }}
+                {{ job.location }} ·
+                {{ job.employment_type || "Тогтоогдоогүй" }}
               </p>
             </div>
             <span
@@ -186,8 +257,13 @@ await loadRecruiterDashboard();
                   : 'bg-muted text-muted-foreground'
               "
             >
-              <span class="mr-1.5 h-1.5 w-1.5 rounded-full"
-                :class="job.status === JobStatus.Posted ? 'bg-success' : 'bg-muted-foreground'"
+              <span
+                class="mr-1.5 h-1.5 w-1.5 rounded-full"
+                :class="
+                  job.status === JobStatus.Posted
+                    ? 'bg-success'
+                    : 'bg-muted-foreground'
+                "
               />
               {{ job.status }}
             </span>
@@ -204,8 +280,12 @@ await loadRecruiterDashboard();
       <!-- Activity -->
       <div class="rounded-2xl border border-border bg-card">
         <div class="border-b border-border px-5 py-4">
-          <p class="text-[15px] font-semibold tracking-[-0.2px]">Сүүлийн үйл ажиллагаа</p>
-          <p class="mt-0.5 text-[12px] text-muted-foreground">Ажлын байрны хөдөлгөөний товч тойм</p>
+          <p class="text-[15px] font-semibold tracking-[-0.2px]">
+            Сүүлийн үйл ажиллагаа
+          </p>
+          <p class="mt-0.5 text-[12px] text-muted-foreground">
+            Ажлын байрны хөдөлгөөний товч тойм
+          </p>
         </div>
         <div class="p-3">
           <div
@@ -253,7 +333,13 @@ await loadRecruiterDashboard();
       </div>
       <button
         class="inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13.5px] font-semibold text-white transition hover:opacity-90"
-        style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+        style="
+          background: linear-gradient(
+            135deg,
+            var(--primary),
+            oklch(0.348 0.106 295)
+          );
+        "
         @click="router.push('/chat')"
       >
         <Sparkles class="h-4 w-4" />
@@ -265,28 +351,49 @@ await loadRecruiterDashboard();
     <div class="grid grid-cols-2 gap-3.5 lg:grid-cols-4">
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted"
+          >
             <BriefcaseBusiness class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Идэвхтэй анкет</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">—</p>
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
+              {{ loading ? "…" : applicantStats.totalApplications }}
+            </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-success-foreground">Илгээсэн</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-success-foreground">
+          Илгээсэн
+        </p>
       </div>
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
           <div
             class="flex h-9 w-9 items-center justify-center rounded-xl"
-            style="background: oklch(0.408 0.124 295 / 8%); color: var(--primary)"
+            style="
+              background: oklch(0.408 0.124 295 / 8%);
+              color: var(--primary);
+            "
           >
             <Sparkles class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Дундаж AI оноо</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">—</p>
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
+              {{
+                loading
+                  ? "…"
+                  : applicantStats.avgScore !== null
+                    ? applicantStats.avgScore
+                    : "—"
+              }}
+            </p>
           </div>
         </div>
         <p class="mt-2.5 text-[11.5px] font-medium text-primary">AI үнэлгээ</p>
@@ -294,28 +401,44 @@ await loadRecruiterDashboard();
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted"
+          >
             <Calendar class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Ярилцлага</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">—</p>
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
+              {{ loading ? "…" : applicantStats.interviews }}
+            </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">Хуваарьт</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">
+          Товлогдсон
+        </p>
       </div>
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
         <div class="flex items-start gap-3">
-          <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+          <div
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-muted"
+          >
             <ClipboardList class="h-4 w-4" />
           </div>
           <div class="flex-1">
             <p class="text-[12px] text-muted-foreground">Даалгавар</p>
-            <p class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]">—</p>
+            <p
+              class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
+            >
+              {{ loading ? "…" : applicantStats.pendingTasks }}
+            </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-warning-foreground">Хүлээгдэж байгаа</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-warning-foreground">
+          Хүлээгдэж байгаа
+        </p>
       </div>
     </div>
 
@@ -325,16 +448,21 @@ await loadRecruiterDashboard();
         class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 cursor-pointer transition hover:border-primary/30"
         @click="router.push('/jobs')"
       >
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-muted"
+        >
           <BriefcaseBusiness class="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
           <p class="text-[15px] font-semibold">Тохирох ажлыг олоорой</p>
           <p class="mt-1.5 text-[13px] leading-[1.5] text-muted-foreground">
-            Ажил олгогчдийн зарласан нээлттэй байр дундаас өөрт тохирохыг нь олоорой.
+            Ажил олгогчдийн зарласан нээлттэй байр дундаас өөрт тохирохыг нь
+            олоорой.
           </p>
         </div>
-        <div class="mt-auto flex items-center gap-1 text-[13px] font-medium text-primary">
+        <div
+          class="mt-auto flex items-center gap-1 text-[13px] font-medium text-primary"
+        >
           Ажил хайх <ArrowRight class="h-3.5 w-3.5" />
         </div>
       </div>
@@ -343,7 +471,9 @@ await loadRecruiterDashboard();
         class="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 cursor-pointer transition hover:border-primary/30"
         @click="router.push('/applications')"
       >
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+        <div
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-muted"
+        >
           <FileText class="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
@@ -352,7 +482,9 @@ await loadRecruiterDashboard();
             Үнэлгээ, профайл мэдээлэл болон ажлын нээлтийг нэг дор хадгалаарай.
           </p>
         </div>
-        <div class="mt-auto flex items-center gap-1 text-[13px] font-medium text-primary">
+        <div
+          class="mt-auto flex items-center gap-1 text-[13px] font-medium text-primary"
+        >
           Анкет харах <ArrowRight class="h-3.5 w-3.5" />
         </div>
       </div>
@@ -360,25 +492,40 @@ await loadRecruiterDashboard();
       <!-- AI suggestions card -->
       <div
         class="flex flex-col gap-3 rounded-2xl border p-5 cursor-pointer transition"
-        style="background: oklch(0.408 0.124 295 / 4.5%); border-color: oklch(0.408 0.124 295 / 13%);"
+        style="
+          background: oklch(0.408 0.124 295 / 4.5%);
+          border-color: oklch(0.408 0.124 295 / 13%);
+        "
         @click="router.push('/chat')"
       >
         <div class="flex items-center gap-3">
           <div
             class="flex h-10 w-10 items-center justify-center rounded-xl"
-            style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295)); color: #fff;"
+            style="
+              background: linear-gradient(
+                135deg,
+                var(--primary),
+                oklch(0.348 0.106 295)
+              );
+              color: #fff;
+            "
           >
             <Sparkles class="h-5 w-5" />
           </div>
           <div>
             <p class="text-[15px] font-semibold">AI туслагч</p>
-            <p class="text-[12px] text-muted-foreground">Таны CV-д тулгуурласан</p>
+            <p class="text-[12px] text-muted-foreground">
+              Таны CV-д тулгуурласан
+            </p>
           </div>
         </div>
         <p class="text-[13px] leading-[1.5] text-muted-foreground">
-          Ярилцлагад бэлэн байгаарай. Анкетаас эхлээд дүгнэлт хүртэлх бүх шатыг энэ платформоор хянаарай.
+          Ярилцлагад бэлэн байгаарай. Анкетаас эхлээд дүгнэлт хүртэлх бүх шатыг
+          энэ платформоор хянаарай.
         </p>
-        <div class="mt-auto flex items-center gap-1 text-[13px] font-medium text-primary">
+        <div
+          class="mt-auto flex items-center gap-1 text-[13px] font-medium text-primary"
+        >
           Асуух <ArrowRight class="h-3.5 w-3.5" />
         </div>
       </div>

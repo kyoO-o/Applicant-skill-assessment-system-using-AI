@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import type { Task } from "../composables/types";
 import { toast } from "vue-sonner";
-import { ClipboardList, Plus, Wand2, Send, Loader2, ChevronRight, Sparkles } from "lucide-vue-next";
+import {
+  ClipboardList,
+  Plus,
+  Wand2,
+  Send,
+  Loader2,
+  ChevronRight,
+  Sparkles,
+} from "lucide-vue-next";
 import { toTypedSchema } from "@vee-validate/zod";
 import { taskSchema } from "~/utils/schemas";
 import {
@@ -162,19 +170,20 @@ function statusClass(status: Task["status"]) {
 
 function formatDate(d: string | null | undefined) {
   if (!d) return "";
-  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(new Date(d));
+  return new Intl.DateTimeFormat("mn-MN", { dateStyle: "medium" }).format(
+    new Date(d),
+  );
 }
 </script>
 
 <template>
   <div class="space-y-5">
     <!-- Page header -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div
+      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+    >
       <div>
-        <p class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground">
-          {{ isRecruiter ? "Удирдлага" : "Миний даалгаврууд" }}
-        </p>
-        <h1 class="mt-1 text-[26px] font-semibold tracking-[-0.6px]">Даалгаврууд</h1>
+        <h1 class="text-[26px] font-semibold tracking-[-0.6px]">Даалгаврууд</h1>
       </div>
       <div v-if="isRecruiter" class="flex gap-2">
         <button
@@ -188,7 +197,13 @@ function formatDate(d: string | null | undefined) {
         </button>
         <button
           class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
-          style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+          style="
+            background: linear-gradient(
+              135deg,
+              var(--primary),
+              oklch(0.348 0.106 295)
+            );
+          "
           :disabled="!selectedJobID"
           @click="createOpen = true"
         >
@@ -199,13 +214,17 @@ function formatDate(d: string | null | undefined) {
 
     <!-- Job selector -->
     <div v-if="isRecruiter && jobs.length" class="flex items-center gap-2">
-      <label class="text-[13px] font-medium text-muted-foreground">Ажлын байр:</label>
+      <label class="text-[13px] font-medium text-muted-foreground"
+        >Ажлын байр:</label
+      >
       <select
         v-model="selectedJobID"
         class="rounded-xl border border-input bg-background px-3 py-2 text-[13.5px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <option :value="null">-- Сонгох --</option>
-        <option v-for="job in jobs" :key="job.id" :value="job.id">{{ job.title }}</option>
+        <option v-for="job in jobs" :key="job.id" :value="job.id">
+          {{ job.title }}
+        </option>
       </select>
     </div>
 
@@ -219,11 +238,16 @@ function formatDate(d: string | null | undefined) {
       v-else-if="!tasks.length"
       class="flex flex-col items-center py-20 text-center"
     >
-      <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
+      <div
+        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
+      >
         <ClipboardList class="h-7 w-7 text-muted-foreground" />
       </div>
       <p class="text-[16px] font-semibold">Даалгавар байхгүй</p>
-      <p v-if="isRecruiter && !selectedJobID" class="mt-2 text-[13.5px] text-muted-foreground">
+      <p
+        v-if="isRecruiter && !selectedJobID"
+        class="mt-2 text-[13.5px] text-muted-foreground"
+      >
         Даалгавар харахын тулд ажлын байр сонгоно уу.
       </p>
     </div>
@@ -246,7 +270,9 @@ function formatDate(d: string | null | undefined) {
                 <Sparkles class="h-2.5 w-2.5" /> AI
               </span>
             </div>
-            <p class="text-[13.5px] text-muted-foreground line-clamp-2">{{ task.description }}</p>
+            <p class="text-[13.5px] text-muted-foreground line-clamp-2">
+              {{ task.description }}
+            </p>
             <p v-if="task.due_date" class="text-[12px] text-muted-foreground">
               Дуусах огноо: {{ formatDate(task.due_date) }}
             </p>
@@ -262,7 +288,13 @@ function formatDate(d: string | null | undefined) {
             <button
               v-if="isRecruiter && task.status === 'draft'"
               class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:opacity-90"
-              style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--primary),
+                  oklch(0.348 0.106 295)
+                );
+              "
               @click="sendTask(task)"
             >
               <Send class="h-3.5 w-3.5" /> Илгээх
@@ -271,8 +303,17 @@ function formatDate(d: string | null | undefined) {
             <button
               v-if="!isRecruiter && task.status === 'sent'"
               class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-semibold text-white transition hover:opacity-90"
-              style="background: linear-gradient(135deg, var(--primary), oklch(0.348 0.106 295))"
-              @click="selectedTask = task; submitOpen = true"
+              style="
+                background: linear-gradient(
+                  135deg,
+                  var(--primary),
+                  oklch(0.348 0.106 295)
+                );
+              "
+              @click="
+                selectedTask = task;
+                submitOpen = true;
+              "
             >
               <ChevronRight class="h-3.5 w-3.5" /> Гүйцэтгэл илгээх
             </button>
@@ -280,8 +321,13 @@ function formatDate(d: string | null | undefined) {
         </div>
 
         <!-- Recruiter: submissions -->
-        <div v-if="isRecruiter && task.submissions?.length" class="mt-4 space-y-2 border-t border-border pt-4">
-          <p class="text-[12px] font-semibold uppercase tracking-[0.5px] text-muted-foreground">
+        <div
+          v-if="isRecruiter && task.submissions?.length"
+          class="mt-4 space-y-2 border-t border-border pt-4"
+        >
+          <p
+            class="text-[12px] font-semibold uppercase tracking-[0.5px] text-muted-foreground"
+          >
             Илгээлтүүд ({{ task.submissions.length }})
           </p>
           <div
@@ -290,7 +336,10 @@ function formatDate(d: string | null | undefined) {
             class="rounded-xl bg-muted/40 px-4 py-3 text-[13.5px]"
           >
             <p class="line-clamp-2 text-foreground">{{ sub.content }}</p>
-            <p v-if="sub.grade !== null" class="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-success-foreground">
+            <p
+              v-if="sub.grade !== null"
+              class="mt-1.5 flex items-center gap-1.5 text-[12px] font-semibold text-success-foreground"
+            >
               <span class="h-1.5 w-1.5 rounded-full bg-success" />
               Оноо: {{ sub.grade }}/100
             </p>
@@ -341,7 +390,9 @@ function formatDate(d: string | null | undefined) {
           <FormItem class="space-y-2">
             <FormLabel>
               Дуусах огноо
-              <span class="text-[11.5px] text-muted-foreground">(заавал биш)</span>
+              <span class="text-[11.5px] text-muted-foreground"
+                >(заавал биш)</span
+              >
             </FormLabel>
             <FormControl>
               <Input v-bind="componentField" type="date" />
@@ -386,7 +437,12 @@ function formatDate(d: string | null | undefined) {
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" @click="submitOpen = false" :disabled="isSubmitting">Болих</Button>
+        <Button
+          variant="outline"
+          @click="submitOpen = false"
+          :disabled="isSubmitting"
+          >Болих</Button
+        >
         <Button @click="submitTask" :disabled="isSubmitting">
           <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
           Илгээх

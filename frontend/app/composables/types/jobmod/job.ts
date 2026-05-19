@@ -5,6 +5,8 @@ export interface Job extends BaseModel {
   recruiter_id: number;
   company_id: number;
   company_name?: string;
+  company_logo_url?: string;
+  company_profile_url?: string;
   title: string;
   location: string;
   additional_info: string;

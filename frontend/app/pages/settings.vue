@@ -58,28 +58,19 @@ async function disconnectGoogleCalendar() {
 // ── Notifications (local UI state) ────────────────────────────
 const notificationItems = reactive([
   {
-    key: "assessed",
-    title: "Ажлын өргөдөл үнэлэгдлээ",
-    sub: "Э-мэйл + апп",
+    key: "result",
+    title: "Ажилд орох хүсэлтийн хариу",
     enabled: true,
   },
   {
     key: "interview",
-    title: "Ярилцлага товлогдсон / өөрчлөгдсөн",
-    sub: "Э-мэйл + апп",
+    title: "Ярилцлага товлогдох / өөрчлөгдөх",
     enabled: true,
   },
   {
     key: "task",
-    title: "Шинэ даалгавар хуваарилагдсан",
-    sub: "Апп дотор",
+    title: "Шинэ даалгавар ирэх",
     enabled: true,
-  },
-  {
-    key: "digest",
-    title: "7 хоногийн тойм",
-    sub: "Э-мэйл",
-    enabled: false,
   },
 ]);
 
@@ -382,7 +373,6 @@ async function changePassword() {
           >
             <div class="flex-1">
               <p class="text-sm font-medium">{{ notif.title }}</p>
-              <p class="text-xs text-muted-foreground">{{ notif.sub }}</p>
             </div>
             <Switch
               :checked="notif.enabled"
@@ -430,12 +420,7 @@ async function changePassword() {
           <div class="flex items-center gap-3 rounded-xl bg-muted/30 p-3">
             <LogOut class="h-4 w-4 flex-shrink-0 text-destructive" />
             <div class="flex-1">
-              <p class="text-sm font-medium text-destructive">
-                Бүх хэрэгсэлээс гарах
-              </p>
-              <p class="text-xs text-muted-foreground">
-                Бүх идэвхтэй сессийг дуусгана
-              </p>
+              <p class="text-sm font-medium text-destructive">Гарах</p>
             </div>
             <Button
               variant="outline"

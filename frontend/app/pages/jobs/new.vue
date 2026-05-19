@@ -47,16 +47,16 @@ async function handleSubmit(payload: any) {
 
 <template>
   <div class="space-y-6">
-    <section class="rounded-3xl border border-border bg-card px-6 py-6">
-      <div class="flex items-center gap-3">
+    <section class="">
+      <!-- <div class="flex items-center gap-3">
         <NuxtLink
           to="/jobs"
           class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
         >
           ← Ажлын байрууд
         </NuxtLink>
-      </div>
-      <h1 class="mt-4 text-3xl font-semibold tracking-tight">
+      </div> -->
+      <h1 class="text-[26px] font-semibold tracking-tight">
         Шинэ ажлын байр нэмэх
       </h1>
       <p class="mt-2 text-sm leading-6 text-muted-foreground">
