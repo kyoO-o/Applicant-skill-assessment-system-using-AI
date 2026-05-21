@@ -10,18 +10,40 @@ import {
   ClipboardList,
   Users,
   ArrowRight,
+  MapPin,
+  Clock,
+  Mail,
+  NotebookPen,
 } from "lucide-vue-next";
 
 const { user } = useAuth();
+const config = useRuntimeConfig();
 const jobsAPI = useJobsAPI();
 const applicationsAPI = useApplicationsAPI();
 const tasksAPI = useTasksAPI();
 const router = useRouter();
 
 const recruiterJobs = ref<Job[]>([]);
+const recruiterInterviews = ref<Application[]>([]);
 const myApplications = ref<Application[]>([]);
 const myTasks = ref<Task[]>([]);
 const loading = ref(false);
+
+function profileImgUrl(path?: string) {
+  if (!path) return null;
+  return `${config.public.apiBase}${path}`;
+}
+
+function formatInterviewDate(iso: string) {
+  const d = new Date(iso);
+  return d.toLocaleDateString("mn-MN", {
+    month: "short",
+    day: "numeric",
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 const recruiterStats = computed(() => {
   const totalJobs = recruiterJobs.value.length;
@@ -29,10 +51,41 @@ const recruiterStats = computed(() => {
     (job) => job.status === JobStatus.Posted,
   ).length;
   const totalApplicants = recruiterJobs.value.reduce(
-    (sum, job) => sum + job.applicants_count,
+    (sum, job) => sum + (job.applicants_count ?? 0),
     0,
   );
-  return { totalJobs, activeJobs, totalApplicants };
+  const newApplicantsThisWeek = recruiterJobs.value.reduce(
+    (sum, job) => sum + (job.new_applicants_this_week ?? 0),
+    0,
+  );
+
+  const now = new Date();
+  const monday = new Date(now);
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+
+  const interviewsThisWeek = recruiterInterviews.value.filter((a) => {
+    if (!a.interview_at) return false;
+    const d = new Date(a.interview_at);
+    return d >= monday && d <= sunday;
+  }).length;
+
+  const nearestInterview =
+    recruiterInterviews.value.find(
+      (a) => a.interview_at && new Date(a.interview_at) >= now,
+    ) ?? null;
+
+  return {
+    totalJobs,
+    activeJobs,
+    totalApplicants,
+    newApplicantsThisWeek,
+    interviewsThisWeek,
+    nearestInterview,
+  };
 });
 
 const applicantStats = computed(() => {
@@ -67,7 +120,10 @@ async function loadRecruiterDashboard() {
   if (user.value?.role !== "recruiter") return;
   loading.value = true;
   try {
-    recruiterJobs.value = await jobsAPI.list();
+    [recruiterJobs.value, recruiterInterviews.value] = await Promise.all([
+      jobsAPI.list(),
+      applicationsAPI.listInterviews(),
+    ]);
   } finally {
     loading.value = false;
   }
@@ -158,7 +214,12 @@ await Promise.all([loadRecruiterDashboard(), loadApplicantDashboard()]);
           </div>
         </div>
         <p class="mt-2.5 text-[11.5px] font-medium text-success-foreground">
-          Шинэ өргөдлүүд
+          <template v-if="!loading && recruiterStats.newApplicantsThisWeek > 0">
+            +{{ recruiterStats.newApplicantsThisWeek }} энэ долоо хоногт
+          </template>
+          <template v-else-if="!loading">
+            Энэ долоо хоногт шинэ горилогч байхгүй
+          </template>
         </p>
       </div>
 
@@ -171,18 +232,20 @@ await Promise.all([loadRecruiterDashboard(), loadApplicantDashboard()]);
               color: var(--primary);
             "
           >
-            <Sparkles class="h-4 w-4" />
+            <FileText class="h-4 w-4" />
           </div>
           <div class="flex-1">
-            <p class="text-[12px] text-muted-foreground">AI дундаж оноо</p>
+            <p class="text-[12px] text-muted-foreground">Энэ долоо хоногт</p>
             <p
               class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
             >
-              —
+              {{ loading ? "…" : recruiterStats.newApplicantsThisWeek }}
             </p>
           </div>
         </div>
-        <p class="mt-2.5 text-[11.5px] font-medium text-primary">AI үнэлгээ</p>
+        <p class="mt-2.5 text-[11.5px] font-medium text-primary">
+          Шинэ илгээлт
+        </p>
       </div>
 
       <div class="rounded-2xl border border-border bg-card p-[18px]">
@@ -197,12 +260,12 @@ await Promise.all([loadRecruiterDashboard(), loadApplicantDashboard()]);
             <p
               class="mt-0.5 text-[28px] font-semibold leading-none tracking-[-0.8px]"
             >
-              —
+              {{ loading ? "…" : recruiterStats.interviewsThisWeek }}
             </p>
           </div>
         </div>
         <p class="mt-2.5 text-[11.5px] font-medium text-muted-foreground">
-          Энэ долоо хоног
+          Энэ долоо хоногт
         </p>
       </div>
     </div>
@@ -277,42 +340,137 @@ await Promise.all([loadRecruiterDashboard(), loadApplicantDashboard()]);
         </div>
       </div>
 
-      <!-- Activity -->
+      <!-- Nearest interview -->
       <div class="rounded-2xl border border-border bg-card">
-        <div class="border-b border-border px-5 py-4">
-          <p class="text-[15px] font-semibold tracking-[-0.2px]">
-            Сүүлийн үйл ажиллагаа
-          </p>
-          <p class="mt-0.5 text-[12px] text-muted-foreground">
-            Ажлын байрны хөдөлгөөний товч тойм
-          </p>
-        </div>
-        <div class="p-3">
-          <div
-            v-for="job in recruiterJobs.slice(0, 3)"
-            :key="'act-' + job.id"
-            class="mb-1.5 rounded-xl border border-border bg-muted/30 p-3.5"
-          >
-            <p class="text-[13px] font-semibold">{{ job.title }}</p>
-            <p class="mt-1 text-[12px] text-muted-foreground">
-              {{ job.company_name || "Таны компани" }} · {{ job.location }}
+        <div
+          class="flex items-center justify-between border-b border-border px-5 py-4"
+        >
+          <div>
+            <p class="text-[15px] font-semibold tracking-[-0.2px]">
+              Ойрын ярилцлага
             </p>
-            <span
-              class="mt-2.5 inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize"
-              :class="
-                job.status === JobStatus.Posted
-                  ? 'badge-success'
-                  : 'bg-muted text-muted-foreground'
-              "
-            >
-              {{ job.status }}
-            </span>
+            <p class="mt-0.5 text-[12px] text-muted-foreground">
+              Дараагийн товлогдсон уулзалт
+            </p>
           </div>
+          <button
+            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            @click="router.push('/interviews')"
+          >
+            Бүгд <ArrowRight class="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div class="p-4">
+          <template v-if="recruiterStats.nearestInterview">
+            <div
+              class="overflow-hidden rounded-xl border border-border bg-card"
+            >
+              <!-- Profile header -->
+              <div class="flex items-center gap-3.5 border-b border-border p-4">
+                <!-- Avatar -->
+                <div class="relative flex-shrink-0">
+                  <img
+                    v-if="
+                      profileImgUrl(
+                        recruiterStats.nearestInterview.applicant_profile_url,
+                      )
+                    "
+                    :src="
+                      profileImgUrl(
+                        recruiterStats.nearestInterview.applicant_profile_url,
+                      )!
+                    "
+                    class="h-12 w-12 rounded-full object-cover"
+                  />
+                  <div
+                    v-else
+                    class="flex h-12 w-12 items-center justify-center rounded-full text-[17px] font-bold"
+                    style="
+                      background: oklch(0.408 0.124 295 / 12%);
+                      color: var(--primary);
+                    "
+                  >
+                    {{
+                      (recruiterStats.nearestInterview.applicant_name ||
+                        "?")[0]?.toUpperCase()
+                    }}
+                  </div>
+                </div>
+                <!-- Name + email + job -->
+                <div class="flex-1 min-w-0">
+                  <p class="truncate text-[15px] font-semibold leading-tight">
+                    {{
+                      recruiterStats.nearestInterview.applicant_name ||
+                      "Горилогч"
+                    }}
+                  </p>
+                  <div
+                    class="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted-foreground"
+                  >
+                    <Mail class="h-3 w-3 flex-shrink-0" />
+                    <span class="truncate">{{
+                      recruiterStats.nearestInterview.applicant_email || "—"
+                    }}</span>
+                  </div>
+                  <div class="mt-1.5 flex items-center gap-2 flex-wrap">
+                    <span
+                      class="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                    >
+                      {{ recruiterStats.nearestInterview.job_title }}
+                    </span>
+                    <span
+                      v-if="recruiterStats.nearestInterview.overall_score > 0"
+                      class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                      :style="
+                        recruiterStats.nearestInterview.overall_score >= 70
+                          ? 'background: oklch(0.78 0.15 145 / 15%); color: oklch(0.45 0.15 145)'
+                          : recruiterStats.nearestInterview.overall_score >= 40
+                            ? 'background: oklch(0.85 0.16 75 / 15%); color: oklch(0.5 0.16 75)'
+                            : 'background: oklch(0.7 0.18 25 / 15%); color: oklch(0.45 0.18 25)'
+                      "
+                    >
+                      Үнэлгээ
+                      {{ recruiterStats.nearestInterview.overall_score }}%
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <!-- Interview details -->
+              <div class="space-y-2.5 p-4">
+                <div class="flex items-center gap-2.5 text-[13px]">
+                  <Clock class="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                  <span class="font-medium">{{
+                    formatInterviewDate(
+                      recruiterStats.nearestInterview.interview_at!,
+                    )
+                  }}</span>
+                </div>
+                <div
+                  v-if="recruiterStats.nearestInterview.interview_location"
+                  class="flex items-center gap-2.5 text-[13px] text-muted-foreground"
+                >
+                  <MapPin class="h-3.5 w-3.5 flex-shrink-0" />
+                  <span class="truncate">{{
+                    recruiterStats.nearestInterview.interview_location
+                  }}</span>
+                </div>
+                <div
+                  v-if="recruiterStats.nearestInterview.interview_note"
+                  class="flex items-start gap-2.5 text-[13px] text-muted-foreground"
+                >
+                  <NotebookPen class="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+                  <span class="line-clamp-2">{{
+                    recruiterStats.nearestInterview.interview_note
+                  }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
           <div
-            v-if="!recruiterJobs.length && !loading"
+            v-else
             class="px-4 py-10 text-center text-[13px] text-muted-foreground"
           >
-            Ажлын байр үүсгэсний дараа энд харагдана.
+            Товлогдсон ярилцлага байхгүй байна.
           </div>
         </div>
       </div>

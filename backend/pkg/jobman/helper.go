@@ -2,6 +2,11 @@ package jobman
 
 import "strings"
 
+type Filter struct {
+	Keyword string
+	Status  string
+}
+
 func JoinRequirements(requirements []string) string {
 	cleaned := make([]string, 0, len(requirements))
 	for _, requirement := range requirements {

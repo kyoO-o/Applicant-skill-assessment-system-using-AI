@@ -42,6 +42,16 @@ const isRecruiter = computed(() => user.value?.role === "recruiter");
 const recruiterCompanyID = computed(() => user.value?.company_id ?? 0);
 const hasRecruiterCompany = computed(() => recruiterCompanyID.value > 0);
 
+const recPage = ref(1);
+const REC_PAGE_SIZE = 10;
+const recTotalPages = computed(() =>
+  Math.max(1, Math.ceil(jobs.value.length / REC_PAGE_SIZE)),
+);
+const paginatedRecruiterJobs = computed(() => {
+  const start = (recPage.value - 1) * REC_PAGE_SIZE;
+  return jobs.value.slice(start, start + REC_PAGE_SIZE);
+});
+
 const recruiterStats = computed(() => {
   const totalJobs = jobs.value.length;
   const activeJobs = jobs.value.filter(
@@ -378,10 +388,10 @@ function formatSalary(job: Job): string {
       <!-- Job rows -->
       <div v-else>
         <div
-          v-for="job in jobs"
+          v-for="job in paginatedRecruiterJobs"
           :key="job.id"
           class="flex items-center gap-4 border-b border-border px-5 py-4 last:border-0 cursor-pointer transition hover:bg-muted/30"
-          @click="router.push(`/jobs/${job.id}`)"
+          @click="router.push(`/jobs/${job.id}/applicants`)"
         >
           <!-- Logo placeholder -->
           <div
@@ -401,21 +411,6 @@ function formatSalary(job: Job): string {
               {{ job.employment_type || job.type || "Тогтоогдоогүй" }}
             </p>
           </div>
-
-          <!-- Applicant count -->
-          <div
-            class="hidden shrink-0 items-center gap-1 text-[13px] text-muted-foreground sm:flex"
-          >
-            <Users class="h-3.5 w-3.5" />
-            {{ job.applicants_count }}
-          </div>
-
-          <!-- Date -->
-          <p
-            class="hidden shrink-0 text-[12.5px] text-muted-foreground lg:block"
-          >
-            {{ formatDate(job.created_at) }}
-          </p>
 
           <!-- Status badge -->
           <span
@@ -438,6 +433,21 @@ function formatSalary(job: Job): string {
             />
             {{ statusLabel(job.status) }}
           </span>
+
+          <!-- Applicant count -->
+          <div
+            class="hidden shrink-0 items-center gap-1 text-[13px] text-muted-foreground sm:flex"
+          >
+            <Users class="h-3.5 w-3.5" />
+            {{ job.applicants_count }}
+          </div>
+
+          <!-- Date -->
+          <p
+            class="hidden shrink-0 text-[12.5px] text-muted-foreground lg:block"
+          >
+            {{ formatDate(job.created_at) }}
+          </p>
 
           <!-- Actions -->
           <div class="flex shrink-0 items-center gap-1.5" @click.stop>
@@ -465,6 +475,36 @@ function formatSalary(job: Job): string {
           </div>
         </div>
       </div>
+    </div>
+    <!-- Recruiter jobs pagination -->
+    <div class="flex items-center justify-center gap-1 px-5 border-border">
+      <button
+        class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+        :disabled="recPage === 1"
+        @click="recPage--"
+      >
+        <ChevronLeft class="h-4 w-4" />
+      </button>
+      <button
+        v-for="p in recTotalPages"
+        :key="p"
+        :class="[
+          'h-8 w-8 rounded-full text-[13px] font-medium transition',
+          p === recPage
+            ? 'bg-primary text-background'
+            : 'text-muted-foreground hover:bg-muted',
+        ]"
+        @click="recPage = p"
+      >
+        {{ p }}
+      </button>
+      <button
+        class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+        :disabled="recPage === recTotalPages"
+        @click="recPage++"
+      >
+        <ChevronRight class="h-4 w-4" />
+      </button>
     </div>
   </div>
 
@@ -736,10 +776,7 @@ function formatSalary(job: Job): string {
       </div>
 
       <!-- ─── PAGINATION ──────────────────────────────────── -->
-      <div
-        v-if="totalPages > 1"
-        class="flex items-center justify-center gap-1 pt-1"
-      >
+      <div class="flex items-center justify-center gap-1 pt-1">
         <button
           class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
           :disabled="page === 1"
@@ -753,7 +790,7 @@ function formatSalary(job: Job): string {
           :class="[
             'h-8 w-8 rounded-full text-[13px] font-medium transition',
             p === page
-              ? 'bg-foreground text-background'
+              ? 'bg-primary text-background'
               : 'text-muted-foreground hover:bg-muted',
           ]"
           @click="page = p"

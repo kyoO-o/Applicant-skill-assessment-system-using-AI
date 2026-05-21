@@ -84,7 +84,7 @@ export const userProfileSchema = z.object({
 export const taskSchema = z.object({
   title: z.string().min(1, "Гарчиг шаардлагатай"),
   description: z.string().optional(),
-  due_date: z.string().optional(),
+  duration_days: z.coerce.number().int().min(1).optional(),
 });
 
 export const jobSchema = z.object({

@@ -1,4 +1,4 @@
-import type { Application, AssessmentResult } from "../../types";
+import type { Application, ApplicationFilter, AssessmentResult } from "../../types";
 
 export class ApplicationsAPI {
   baseURL: string;
@@ -48,16 +48,16 @@ export class ApplicationsAPI {
     });
   }
 
-  listMine() {
-    return this.fetch<Application[]>("/api/applications");
+  listMine(filter: ApplicationFilter = {}) {
+    return this.fetch<Application[]>("/api/applications", { query: filter });
   }
 
   get(id: number) {
     return this.fetch<Application>(`/api/applications/${id}`);
   }
 
-  listForJob(jobID: number) {
-    return this.fetch<Application[]>(`/api/jobs/${jobID}/applications`);
+  listForJob(jobID: number, filter: ApplicationFilter = {}) {
+    return this.fetch<Application[]>(`/api/jobs/${jobID}/applications`, { query: filter });
   }
 
   updateStatus(id: number, status: string) {
@@ -67,10 +67,10 @@ export class ApplicationsAPI {
     });
   }
 
-  scheduleInterview(id: number, interviewAt: string, location?: string, note?: string) {
+  scheduleInterview(id: number, interviewAt: string, location?: string, note?: string, generateMeet?: boolean) {
     return this.fetch<Application>(`/api/applications/${id}/interview`, {
       method: "PUT",
-      body: { interview_at: interviewAt, interview_location: location ?? "", interview_note: note ?? "" },
+      body: { interview_at: interviewAt, interview_location: location ?? "", interview_note: note ?? "", generate_meet: generateMeet ?? false },
     });
   }
 

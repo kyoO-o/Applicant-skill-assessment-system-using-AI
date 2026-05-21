@@ -38,7 +38,7 @@ withDefaults(defineProps<Props>(), {
       <div class="relative flex flex-1 flex-col p-12">
         <!-- Logo -->
         <NuxtLink to="/" class="flex items-center gap-3 no-underline">
-          <div
+          <!-- <div
             class="flex h-9 w-9 items-center justify-center rounded-[10px] text-[18px] font-bold text-white"
             style="
               background: rgba(255, 255, 255, 0.2);
@@ -46,7 +46,8 @@ withDefaults(defineProps<Props>(), {
             "
           >
             m
-          </div>
+          </div> -->
+          <img class="block h-8 w-8" src="/icons/logo.svg" alt="Skillz logo" />
           <span class="text-[19px] font-semibold tracking-tight text-white"
             >Skillz</span
           >
@@ -58,7 +59,7 @@ withDefaults(defineProps<Props>(), {
             class="text-[40px] font-semibold leading-[1.1] tracking-[-1px] text-white"
             style="white-space: pre-line"
           >
-            {{ title || "Тохирох ажлыг олоорой.\nСайн ажилтнаа олоорой." }}
+            {{ title || "Тохирох ажлаа олоорой.\nСайн ажилтнаа олоорой." }}
           </h1>
           <p class="mt-5 text-[16px] leading-[1.55] text-white/80">
             {{
@@ -124,7 +125,7 @@ withDefaults(defineProps<Props>(), {
       <!-- Mobile logo -->
       <div class="absolute left-6 top-6 lg:hidden">
         <NuxtLink to="/" class="flex items-center gap-2.5 no-underline">
-          <div
+          <!-- <div
             class="flex h-8 w-8 items-center justify-center rounded-[10px] text-[15px] font-bold text-white"
             style="
               background: linear-gradient(
@@ -135,7 +136,8 @@ withDefaults(defineProps<Props>(), {
             "
           >
             m
-          </div>
+          </div> -->
+          <img class="block h-8 w-8" src="/icons/logo.svg" alt="Skillz logo" />
           <span class="text-[16px] font-semibold text-foreground">Skillz</span>
         </NuxtLink>
       </div>

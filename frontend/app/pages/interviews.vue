@@ -7,6 +7,7 @@ import {
   CalendarDays,
   MapPin,
   FileText,
+  Video,
 } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
@@ -104,6 +105,10 @@ function formatTime(d: string | null | undefined) {
   return new Intl.DateTimeFormat("mn-MN", { timeStyle: "short" }).format(
     new Date(d),
   );
+}
+
+function isMeetUrl(val: string | null | undefined): boolean {
+  return !!val && val.startsWith("https://meet.google.com");
 }
 
 function formatDateTime(d: string | null | undefined) {
@@ -225,13 +230,13 @@ function gcalLink(app: Application) {
                 <CalendarCheck class="h-3 w-3" />
                 {{ formatTime(app.interview_at) }}
               </span>
-              <span
+              <!-- <span
                 v-if="isRecruiter && gcalConnected"
                 class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold badge-success"
                 title="Google Calendar-д автоматаар нэмэгдсэн"
               >
                 ✓ GCal
-              </span>
+              </span> -->
             </div>
 
             <!-- Job title -->
@@ -250,30 +255,49 @@ function gcalLink(app: Application) {
             </template>
 
             <!-- Location -->
-            <div v-if="app.interview_location" class="mt-3 space-y-2">
-              <div class="flex items-start justify-between gap-2">
-                <div
-                  class="flex items-start gap-1.5 text-[12.5px] text-muted-foreground"
-                >
-                  <MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  <span>{{ app.interview_location }}</span>
-                </div>
-                <label
-                  class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap"
-                >
-                  <Checkbox
-                    :checked="mapState(app.id).show"
-                    @update:checked="toggleMap(app.id, app.interview_location)"
+            <div v-if="app.interview_location" class="mt-3">
+              <!-- Google Meet link -->
+              <a
+                v-if="isMeetUrl(app.interview_location)"
+                :href="app.interview_location"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex items-center gap-1.5 rounded-xl border border-border px-3 py-1.5 text-[12.5px] font-semibold text-primary transition hover:bg-primary/5"
+              >
+                <Video class="h-3.5 w-3.5 shrink-0" />
+                Google Meet нэгдэх
+              </a>
+
+              <!-- Onsite location -->
+              <template v-else>
+                <div class="space-y-2">
+                  <div class="flex items-start justify-between gap-2">
+                    <div
+                      class="flex items-start gap-1.5 text-[12.5px] text-muted-foreground"
+                    >
+                      <MapPin class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>{{ app.interview_location }}</span>
+                    </div>
+                    <label
+                      class="flex cursor-pointer items-center gap-1 text-[12px] text-muted-foreground whitespace-nowrap"
+                    >
+                      <Checkbox
+                        :checked="mapState(app.id).show"
+                        @update:checked="
+                          toggleMap(app.id, app.interview_location)
+                        "
+                      />
+                      Зураг
+                    </label>
+                  </div>
+                  <LocationMap
+                    v-if="mapState(app.id).show && mapState(app.id).lat !== null"
+                    :lat="mapState(app.id).lat!"
+                    :lng="mapState(app.id).lng!"
+                    :label="app.interview_location"
                   />
-                  Зураг
-                </label>
-              </div>
-              <LocationMap
-                v-if="mapState(app.id).show && mapState(app.id).lat !== null"
-                :lat="mapState(app.id).lat!"
-                :lng="mapState(app.id).lng!"
-                :label="app.interview_location"
-              />
+                </div>
+              </template>
             </div>
 
             <!-- Note -->
@@ -291,7 +315,7 @@ function gcalLink(app: Application) {
             </p>
 
             <!-- Calendar CTA -->
-            <template v-if="!(isRecruiter && gcalConnected)">
+            <!-- <template v-if="!(isRecruiter && gcalConnected)">
               <a
                 :href="gcalLink(app)"
                 target="_blank"
@@ -301,15 +325,15 @@ function gcalLink(app: Application) {
                 <CalendarCheck class="h-3.5 w-3.5" />
                 Google Calendar-д нэмэх
               </a>
-            </template>
-            <template v-else>
+            </template> -->
+            <!-- <template v-else>
               <p
                 class="mt-3 flex items-center justify-center gap-1.5 text-[12px] text-success-foreground font-medium"
               >
                 <CalendarCheck class="h-3.5 w-3.5" />
                 Google Calendar-д нэмэгдсэн
               </p>
-            </template>
+            </template> -->
           </div>
         </div>
       </div>

@@ -28,6 +28,7 @@ type applicationResponse struct {
 	ApplicantID            int                       `json:"applicant_id"`
 	ApplicantName          string                    `json:"applicant_name"`
 	ApplicantEmail         string                    `json:"applicant_email"`
+	ApplicantProfileURL    string                    `json:"applicant_profile_url"`
 	OverallScore           int                       `json:"overall_score"`
 	Summary                string                    `json:"summary"`
 	MatchedSkills          []aiman.SkillResult       `json:"matched_skills"`
@@ -226,7 +227,8 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 // GET /api/applications  — applicant sees their own applications
 func listMyApplications(w http.ResponseWriter, r *http.Request) {
 	user := authUser(r)
-	apps, err := app.Applications.ListForApplicant(user.ID)
+	filter := &appman.Filter{Status: r.URL.Query().Get("status")}
+	apps, err := app.Applications.ListForApplicant(user.ID, filter)
 	if err != nil {
 		oapi.ServerError(w, err)
 		return
@@ -310,7 +312,8 @@ func listJobApplications(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	apps, err := app.Applications.ListForJob(jobID)
+	filter := &appman.Filter{Status: r.URL.Query().Get("status")}
+	apps, err := app.Applications.ListForJob(jobID, filter)
 	if err != nil {
 		oapi.ServerError(w, err)
 		return
@@ -401,13 +404,14 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 		InterviewAt       string `json:"interview_at"`
 		InterviewLocation string `json:"interview_location"`
 		InterviewNote     string `json:"interview_note"`
+		GenerateMeet      bool   `json:"generate_meet"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Хүсэлт буруу байна"})
 		return
 	}
 
-	t, err := time.Parse("2006-01-02T15:04", req.InterviewAt)
+	t, err := time.ParseInLocation("2006-01-02T15:04", req.InterviewAt, app.Location)
 	if err != nil {
 		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Огноо буруу байна (2006-01-02T15:04)"})
 		return
@@ -419,8 +423,41 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	job, _ := app.Jobs.Get(int(a.JobPostingID))
+	jobTitle := ""
+	if job != nil {
+		jobTitle = job.Title
+	}
+	applicant, _ := app.Users.Get(int(a.ApplicantID))
+
+	locationToStore := req.InterviewLocation
+	gcalDone := false
+
+	// When Google Meet is requested, create the Calendar event synchronously
+	// so we can capture and store the Meet link before responding.
+	if req.GenerateMeet && recruiter.GoogleRefreshToken != "" {
+		desc := ""
+		if applicant != nil {
+			desc = fmt.Sprintf("Горилогч: %s", applicant.FullName)
+		}
+		if req.InterviewNote != "" {
+			desc += "\n" + req.InterviewNote
+		}
+		applicantEmail := ""
+		if applicant != nil {
+			applicantEmail = applicant.Email
+		}
+		meetLink, gcalErr := createGCalEvent(r.Context(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, "", applicantEmail, t, true)
+		if gcalErr != nil {
+			app.ErrorLog.Printf("gcal meet creation failed: %v", gcalErr)
+		} else if meetLink != "" {
+			locationToStore = meetLink
+		}
+		gcalDone = true
+	}
+
 	a.InterviewAt = &t
-	a.InterviewLocation = req.InterviewLocation
+	a.InterviewLocation = locationToStore
 	a.InterviewNote = req.InterviewNote
 	saved, err := app.Applications.Save(a)
 	if err != nil {
@@ -428,12 +465,6 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	job, _ := app.Jobs.Get(int(saved.JobPostingID))
-	jobTitle := ""
-	if job != nil {
-		jobTitle = job.Title
-	}
-	applicant, _ := app.Users.Get(int(saved.ApplicantID))
 	resp := mapApplicationResponse(saved, jobTitle)
 	if applicant != nil {
 		resp.ApplicantName = applicant.FullName
@@ -445,27 +476,39 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 			fmt.Sprintf("%s — %s", jobTitle, t.Format("2006-01-02 15:04")), "interview_scheduled")
 	}
 
-	// Send email invite to applicant asynchronously
+	// Send email invite to applicant and confirmation to recruiter asynchronously
 	if applicant != nil {
 		go app.Mailer.SendInterviewInviteEmail(
 			applicant.Email,
 			applicant.FullName,
 			recruiter.FullName,
+			recruiter.Email,
 			jobTitle,
 			t,
-			req.InterviewLocation,
+			locationToStore,
+			req.InterviewNote,
+		)
+		go app.Mailer.SendInterviewConfirmToRecruiter(
+			recruiter.Email,
+			recruiter.FullName,
+			applicant.FullName,
+			applicant.Email,
+			jobTitle,
+			t,
+			locationToStore,
 			req.InterviewNote,
 		)
 	}
 
-	// Auto-create Google Calendar event if recruiter has connected their account
-	if recruiter.GoogleRefreshToken != "" {
+	// Create Google Calendar event in background (onsite case, not already done above)
+	if !gcalDone && recruiter.GoogleRefreshToken != "" {
+		applicantEmailCopy := resp.ApplicantEmail
 		go func() {
 			desc := fmt.Sprintf("Горилогч: %s", resp.ApplicantName)
 			if req.InterviewNote != "" {
 				desc += "\n" + req.InterviewNote
 			}
-			if err := createGCalEvent(context.Background(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, req.InterviewLocation, t); err != nil {
+			if _, err := createGCalEvent(context.Background(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, req.InterviewLocation, applicantEmailCopy, t, false); err != nil {
 				app.ErrorLog.Printf("gcal event creation failed: %v", err)
 			}
 		}()
@@ -505,6 +548,7 @@ func listInterviewsHandler(w http.ResponseWriter, r *http.Request) {
 		if applicant != nil {
 			resp.ApplicantName = applicant.FullName
 			resp.ApplicantEmail = applicant.Email
+			resp.ApplicantProfileURL = applicant.ProfilePicture
 		}
 		items = append(items, resp)
 	}

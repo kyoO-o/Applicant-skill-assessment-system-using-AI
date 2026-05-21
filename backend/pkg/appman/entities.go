@@ -6,6 +6,10 @@ import (
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/entities"
 )
 
+type Filter struct {
+	Status string
+}
+
 const (
 	StatusPending    = "pending"
 	StatusAssessed   = "assessed"

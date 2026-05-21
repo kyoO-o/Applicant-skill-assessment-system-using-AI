@@ -27,6 +27,7 @@ type JobPosting struct {
 	LocationY      *float64  `json:"location_y"` // optional
 	SeenCount      int       `json:"seen_count"`
 	AppsCount      int       `json:"apps_count"`
+	NewAppsThisWeek int      `json:"new_apps_this_week" gorm:"-"`
 	MinSalary      float64   `json:"min_salary"`
 	MaxSalary      float64   `json:"max_salary"`
 	Status         string    `json:"status" gorm:"default:draft"`

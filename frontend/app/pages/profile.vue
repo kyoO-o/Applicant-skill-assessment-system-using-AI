@@ -429,7 +429,7 @@ fillProfileForm();
               <CardContent class="h-full">
                 <div class="grid gap-3 sm:grid-cols-2">
                   <FormField v-slot="{ componentField }" name="firstName">
-                    <FormItem class="space-y-1.5">
+                    <FormItem>
                       <FormLabel>Нэр</FormLabel>
                       <FormControl>
                         <Input
@@ -443,7 +443,7 @@ fillProfileForm();
                   </FormField>
 
                   <FormField v-slot="{ componentField }" name="lastName">
-                    <FormItem class="space-y-1.5">
+                    <FormItem>
                       <FormLabel>Овог</FormLabel>
                       <FormControl>
                         <Input
@@ -615,6 +615,53 @@ fillProfileForm();
                 </div>
               </div>
             </div>
+            <Separator class="my-5" />
+
+            <!-- Benefits (left column) -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-semibold">Урамшуулал / Давуу тал</p>
+                  <p class="mt-0.5 text-xs text-muted-foreground">
+                    Компанийн давуу талуудыг жагсаана уу.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  @click="addBenefit"
+                >
+                  <Plus class="mr-1 h-4 w-4" />Нэмэх
+                </Button>
+              </div>
+              <div v-if="companyForm.benefits.length" class="space-y-2">
+                <div
+                  v-for="(_, index) in companyForm.benefits"
+                  :key="`benefit-${index}`"
+                  class="flex items-center gap-2"
+                >
+                  <Input
+                    v-model="companyForm.benefits[index]"
+                    placeholder="Жишээ: Эрүүл мэндийн даатгал..."
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    @click="removeBenefit(index)"
+                  >
+                    <X class="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div
+                v-else
+                class="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground"
+              >
+                Одоогоор давуу тал нэмэгдээгүй байна.
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -687,7 +734,7 @@ fillProfileForm();
 
             <!-- Office location -->
             <Card
-              class="overflow-hidden rounded-3xl border-border p-0 shadow-none"
+              class="overflow-hidden rounded-3xl border-border p-0 shadow-none gap-0"
             >
               <div
                 class="flex items-center justify-between border-b border-border px-6 py-4"
@@ -748,57 +795,6 @@ fillProfileForm();
                   />
                 </div>
               </div>
-            </Card>
-
-            <!-- Benefits -->
-            <Card class="rounded-3xl border-border shadow-none">
-              <CardHeader>
-                <div class="flex items-center justify-between">
-                  <div>
-                    <CardTitle>Урамшуулал / Давуу тал</CardTitle>
-                    <CardDescription class="mt-0.5">
-                      Ажлын зарт нэмэхийн тулд компаний давуу талуудыг жагсаана
-                      уу.
-                    </CardDescription>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    @click="addBenefit"
-                  >
-                    <Plus class="mr-1 h-4 w-4" />Нэмэх
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent class="space-y-2">
-                <div v-if="companyForm.benefits.length" class="space-y-2">
-                  <div
-                    v-for="(_, index) in companyForm.benefits"
-                    :key="`benefit-${index}`"
-                    class="flex items-center gap-2"
-                  >
-                    <Input
-                      v-model="companyForm.benefits[index]"
-                      placeholder="Жишээ: Эрүүл мэндийн даатгал, Уян хатан цаг..."
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      @click="removeBenefit(index)"
-                    >
-                      <X class="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <div
-                  v-else
-                  class="rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground"
-                >
-                  Одоогоор давуу тал нэмэгдээгүй байна.
-                </div>
-              </CardContent>
             </Card>
 
             <div class="flex justify-end">

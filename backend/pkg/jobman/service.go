@@ -3,6 +3,7 @@ package jobman
 import (
 	"errors"
 	"log"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -21,9 +22,23 @@ func NewService(db *gorm.DB, infoLog, errorLog *log.Logger) *Service {
 	}
 }
 
-func (s *Service) ListForRecruiter(recruiterID int) ([]*JobPosting, error) {
+func (s *Service) parseFilter(filter *Filter) *gorm.DB {
+	query := s.DB
+	if filter == nil {
+		return query
+	}
+	if filter.Keyword != "" {
+		query = query.Where("title ILIKE ? || '%%'", filter.Keyword)
+	}
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+	return query
+}
+
+func (s *Service) ListForRecruiter(recruiterID int, filter *Filter) ([]*JobPosting, error) {
 	var jobs []*JobPosting
-	if err := s.DB.
+	if err := s.parseFilter(filter).
 		Preload("Duties").
 		Preload("Requirements").
 		Preload("Skills").
@@ -33,12 +48,13 @@ func (s *Service) ListForRecruiter(recruiterID int) ([]*JobPosting, error) {
 		Find(&jobs).Error; err != nil {
 		return nil, err
 	}
+	s.fillAppsCounts(jobs)
 	return jobs, nil
 }
 
-func (s *Service) ListForCompany(companyID int) ([]*JobPosting, error) {
+func (s *Service) ListForCompany(companyID int, filter *Filter) ([]*JobPosting, error) {
 	var jobs []*JobPosting
-	if err := s.DB.
+	if err := s.parseFilter(filter).
 		Preload("Duties").
 		Preload("Requirements").
 		Preload("Skills").
@@ -51,9 +67,9 @@ func (s *Service) ListForCompany(companyID int) ([]*JobPosting, error) {
 	return jobs, nil
 }
 
-func (s *Service) ListForRecruiterAndCompany(recruiterID, companyID int) ([]*JobPosting, error) {
+func (s *Service) ListForRecruiterAndCompany(recruiterID, companyID int, filter *Filter) ([]*JobPosting, error) {
 	var jobs []*JobPosting
-	if err := s.DB.
+	if err := s.parseFilter(filter).
 		Preload("Duties").
 		Preload("Requirements").
 		Preload("Skills").
@@ -63,12 +79,13 @@ func (s *Service) ListForRecruiterAndCompany(recruiterID, companyID int) ([]*Job
 		Find(&jobs).Error; err != nil {
 		return nil, err
 	}
+	s.fillAppsCounts(jobs)
 	return jobs, nil
 }
 
-func (s *Service) ListActive() ([]*JobPosting, error) {
+func (s *Service) ListActive(filter *Filter) ([]*JobPosting, error) {
 	var jobs []*JobPosting
-	if err := s.DB.
+	if err := s.parseFilter(filter).
 		Preload("Duties").
 		Preload("Requirements").
 		Preload("Skills").
@@ -192,6 +209,47 @@ func (s *Service) Save(job *JobPosting) (*JobPosting, error) {
 	}
 
 	return s.Get(job.ID)
+}
+
+type appCountRow struct {
+	JobPostingID int
+	Count        int
+}
+
+func (s *Service) fillAppsCounts(jobs []*JobPosting) {
+	if len(jobs) == 0 {
+		return
+	}
+	ids := make([]int, len(jobs))
+	for i, j := range jobs {
+		ids[i] = j.ID
+	}
+
+	var rows []appCountRow
+	s.DB.Raw(
+		"SELECT job_posting_id, COUNT(*) as count FROM applications WHERE job_posting_id IN ? AND deleted_at IS NULL GROUP BY job_posting_id",
+		ids,
+	).Scan(&rows)
+	countMap := make(map[int]int, len(rows))
+	for _, r := range rows {
+		countMap[r.JobPostingID] = r.Count
+	}
+
+	weekAgo := time.Now().AddDate(0, 0, -7)
+	var weekRows []appCountRow
+	s.DB.Raw(
+		"SELECT job_posting_id, COUNT(*) as count FROM applications WHERE job_posting_id IN ? AND deleted_at IS NULL AND created_at >= ? GROUP BY job_posting_id",
+		ids, weekAgo,
+	).Scan(&weekRows)
+	weekMap := make(map[int]int, len(weekRows))
+	for _, r := range weekRows {
+		weekMap[r.JobPostingID] = r.Count
+	}
+
+	for _, j := range jobs {
+		j.AppsCount = countMap[j.ID]
+		j.NewAppsThisWeek = weekMap[j.ID]
+	}
 }
 
 func (s *Service) Delete(id int) error {

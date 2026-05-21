@@ -113,8 +113,9 @@ async function handleEditSubmit(payload: any) {
     isEditing.value = false;
     toast.success("Ажлын байр амжилттай шинэчлэгдлээ.");
   } catch (e: any) {
-    editErrorMessage.value =
-      e?.data?.message || "Ажлын байр хадгалахад алдаа гарлаа.";
+    const msg = e?.data?.message || "Ажлын байр хадгалахад алдаа гарлаа.";
+    editErrorMessage.value = msg;
+    toast.error(msg);
   } finally {
     isSubmitting.value = false;
   }

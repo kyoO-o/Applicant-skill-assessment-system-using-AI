@@ -35,10 +35,12 @@ async function handleSubmit(payload: any) {
     toast.success("Ажлын байр амжилттай үүсгэгдлээ.");
     router.push("/jobs");
   } catch (error: any) {
-    errorMessage.value =
+    const msg =
       error?.data?.message ||
       error?.message ||
       "Ажлын байр хадгалахад алдаа гарлаа.";
+    errorMessage.value = msg;
+    toast.error(msg);
   } finally {
     isSubmitting.value = false;
   }

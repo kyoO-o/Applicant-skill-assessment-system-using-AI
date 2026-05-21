@@ -113,7 +113,7 @@ async function resend() {
         </div>
 
         <FormField v-slot="{ componentField }" name="code">
-          <FormItem class="space-y-2">
+          <FormItem>
             <FormLabel>Баталгаажуулах код</FormLabel>
             <FormControl>
               <Input

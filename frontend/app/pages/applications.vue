@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import type { Application } from "../composables/types";
 import { toast } from "vue-sonner";
-import { FileText, Loader2, CalendarCheck } from "lucide-vue-next";
+import {
+  FileText,
+  Loader2,
+  CalendarCheck,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
 
@@ -63,6 +69,16 @@ async function load() {
 }
 
 await load();
+
+const appPage = ref(1);
+const APP_PAGE_SIZE = 8;
+const appTotalPages = computed(() =>
+  Math.max(1, Math.ceil(applications.value.length / APP_PAGE_SIZE)),
+);
+const paginatedApplications = computed(() => {
+  const start = (appPage.value - 1) * APP_PAGE_SIZE;
+  return applications.value.slice(start, start + APP_PAGE_SIZE);
+});
 
 function scoreColor(score: number) {
   if (score >= 75) return "text-success-foreground";
@@ -164,7 +180,7 @@ function gcalLink(app: Application) {
     <!-- Application cards -->
     <div v-else class="space-y-3.5">
       <div
-        v-for="app in applications"
+        v-for="app in paginatedApplications"
         :key="app.id"
         class="group cursor-pointer rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
         @click="router.push(`/jobs/${app.job_posting_id}`)"
@@ -309,6 +325,37 @@ function gcalLink(app: Application) {
             Google Calendar-д нэмэх
           </a> -->
         </div>
+      </div>
+
+      <!-- Applications pagination -->
+      <div class="flex items-center justify-center gap-1 pt-2">
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          :disabled="appPage === 1"
+          @click="appPage--"
+        >
+          <ChevronLeft class="h-4 w-4" />
+        </button>
+        <button
+          v-for="p in appTotalPages"
+          :key="p"
+          :class="[
+            'h-8 w-8 rounded-full text-[13px] font-medium transition',
+            p === appPage
+              ? 'bg-primary text-background'
+              : 'text-muted-foreground hover:bg-muted',
+          ]"
+          @click="appPage = p"
+        >
+          {{ p }}
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          :disabled="appPage === appTotalPages"
+          @click="appPage++"
+        >
+          <ChevronRight class="h-4 w-4" />
+        </button>
       </div>
     </div>
   </div>

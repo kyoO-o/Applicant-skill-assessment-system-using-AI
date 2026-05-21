@@ -69,7 +69,7 @@ async function onSubmit(values: Record<string, any>) {
   >
     <AuthCard
       title="Бүртгэл үүсгэх"
-      description="Үүрэгээ сонгоод платформыг ашиглаж эхлэхийн тулд мэдээллийг бөглөнө үү."
+      description="Үүргээ сонгоод платформыг ашиглаж эхлэхийн тулд мэдээллийг бөглөнө үү."
       footer-text="Бүртгэл байна уу?"
       footer-link-text="Нэвтрэх"
       footer-link-to="/login"
@@ -88,7 +88,7 @@ async function onSubmit(values: Record<string, any>) {
         </div>
 
         <div class="space-y-3">
-          <Label>Үүрэгээ сонгоно уу</Label>
+          <Label>Үүргээ сонгоно уу</Label>
           <Tabs v-model="selectedRole" class="w-full">
             <TabsList class="grid w-full grid-cols-2">
               <TabsTrigger value="user">Ажил горилогч</TabsTrigger>

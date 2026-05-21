@@ -1,4 +1,4 @@
-import type { Task, TaskSubmission } from "../../types";
+import type { Task, TaskFilter, TaskSubmission } from "../../types";
 
 export class TasksAPI {
   baseURL: string;
@@ -18,17 +18,20 @@ export class TasksAPI {
     return $fetch<T>(`${this.baseURL}${path}`, { ...options, credentials: "include", headers });
   }
 
-  list(jobID?: number) {
-    const query = jobID ? `?job_id=${jobID}` : "";
-    return this.fetch<Task[]>(`/api/tasks${query}`);
+  list(jobID?: number, filter: TaskFilter = {}) {
+    return this.fetch<Task[]>("/api/tasks", { query: { ...(jobID ? { job_id: jobID } : {}), ...filter } });
   }
 
   get(id: number) {
     return this.fetch<Task>(`/api/tasks/${id}`);
   }
 
-  create(payload: { job_posting_id: number; application_id?: number; title: string; description: string; due_date?: string }) {
+  create(payload: { job_posting_id?: number; application_id?: number; title: string; description: string; due_date?: string; duration_days?: number }) {
     return this.fetch<Task>("/api/tasks", { method: "POST", body: payload });
+  }
+
+  update(id: number, payload: { title: string; description: string; due_date?: string; duration_days?: number }) {
+    return this.fetch<Task>(`/api/tasks/${id}`, { method: "PUT", body: payload });
   }
 
   generate(jobPostingID: number) {
@@ -38,15 +41,25 @@ export class TasksAPI {
     });
   }
 
-  send(id: number) {
-    return this.fetch<Task>(`/api/tasks/${id}/send`, { method: "PUT" });
+  send(id: number, applicationID?: number, dueDate?: string) {
+    return this.fetch<Task>(`/api/tasks/${id}/send`, {
+      method: "PUT",
+      body: { application_id: applicationID, due_date: dueDate },
+    });
   }
 
-  submit(id: number, content: string) {
+  submit(id: number, content: string, file?: File) {
+    const form = new FormData();
+    if (content) form.append("content", content);
+    if (file) form.append("file", file);
     return this.fetch<TaskSubmission>(`/api/tasks/${id}/submit`, {
       method: "POST",
-      body: { content },
+      body: form,
     });
+  }
+
+  delete(id: number) {
+    return this.fetch<void>(`/api/tasks/${id}`, { method: "DELETE" });
   }
 
   grade(submissionID: number, grade: number, feedback: string) {
@@ -54,6 +67,20 @@ export class TasksAPI {
       method: "PUT",
       body: { grade, feedback },
     });
+  }
+
+  aiGrade(submissionID: number) {
+    return this.fetch<TaskSubmission>(`/api/tasks/submissions/${submissionID}/ai-grade`, {
+      method: "POST",
+    });
+  }
+
+  listAllSubmissions() {
+    return this.fetch<TaskSubmission[]>("/api/tasks/submissions");
+  }
+
+  submissionFileURL(submissionID: number) {
+    return `${this.baseURL}/api/tasks/submissions/${submissionID}/file`;
   }
 }
 

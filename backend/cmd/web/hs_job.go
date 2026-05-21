@@ -37,35 +37,36 @@ type jobRequest struct {
 }
 
 type jobResponse struct {
-	ID                 int       `json:"id"`
-	RecruiterID        int       `json:"recruiter_id"`
-	CompanyID          int       `json:"company_id"`
-	CompanyName        string    `json:"company_name"`
-	CompanyLogoURL     string    `json:"company_logo_url"`
-	CompanyProfileURL  string    `json:"company_profile_url"`
-	Title           string    `json:"title"`
-	Location        string    `json:"location"`
-	AdditionalInfo  string    `json:"additional_info"`
-	Description     string    `json:"description"`
-	ContactInfo     string    `json:"contact_info"`
-	Type            string    `json:"type"`
-	EmploymentType  string    `json:"employment_type"`
-	Level           string    `json:"level"`
-	Seniority       string    `json:"seniority"`
-	City            *string   `json:"city"`
-	District        *string   `json:"district"`
-	LocationX       *float64  `json:"location_x"`
-	LocationY       *float64  `json:"location_y"`
-	MinSalary       float64   `json:"min_salary"`
-	MaxSalary       float64   `json:"max_salary"`
-	Status          string    `json:"status"`
-	Duties          []string  `json:"duties"`
-	Requirements    []string  `json:"requirements"`
-	Skills          []string  `json:"skills"`
-	Bonuses         []string  `json:"bonuses"`
-	ApplicantsCount int       `json:"applicants_count"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID                int       `json:"id"`
+	RecruiterID       int       `json:"recruiter_id"`
+	CompanyID         int       `json:"company_id"`
+	CompanyName       string    `json:"company_name"`
+	CompanyLogoURL    string    `json:"company_logo_url"`
+	CompanyProfileURL string    `json:"company_profile_url"`
+	Title             string    `json:"title"`
+	Location          string    `json:"location"`
+	AdditionalInfo    string    `json:"additional_info"`
+	Description       string    `json:"description"`
+	ContactInfo       string    `json:"contact_info"`
+	Type              string    `json:"type"`
+	EmploymentType    string    `json:"employment_type"`
+	Level             string    `json:"level"`
+	Seniority         string    `json:"seniority"`
+	City              *string   `json:"city"`
+	District          *string   `json:"district"`
+	LocationX         *float64  `json:"location_x"`
+	LocationY         *float64  `json:"location_y"`
+	MinSalary         float64   `json:"min_salary"`
+	MaxSalary         float64   `json:"max_salary"`
+	Status            string    `json:"status"`
+	Duties            []string  `json:"duties"`
+	Requirements      []string  `json:"requirements"`
+	Skills            []string  `json:"skills"`
+	Bonuses           []string  `json:"bonuses"`
+	ApplicantsCount        int       `json:"applicants_count"`
+	NewApplicantsThisWeek  int       `json:"new_applicants_this_week"`
+	CreatedAt              time.Time `json:"created_at"`
+	UpdatedAt              time.Time `json:"updated_at"`
 }
 
 func mapJobResponse(job *jobman.JobPosting) *jobResponse {
@@ -133,9 +134,10 @@ func mapJobResponse(job *jobman.JobPosting) *jobResponse {
 		Requirements:    requirements,
 		Skills:          skills,
 		Bonuses:         bonuses,
-		ApplicantsCount: job.AppsCount,
-		CreatedAt:       job.CreatedAt,
-		UpdatedAt:       job.UpdatedAt,
+		ApplicantsCount:       job.AppsCount,
+		NewApplicantsThisWeek: job.NewAppsThisWeek,
+		CreatedAt:             job.CreatedAt,
+		UpdatedAt:             job.UpdatedAt,
 	}
 }
 
@@ -199,15 +201,20 @@ func chosenJob(r *http.Request) (*jobman.JobPosting, bool) {
 func getJobs(w http.ResponseWriter, r *http.Request) {
 	user := authUser(r)
 
+	filter := &jobman.Filter{
+		Keyword: r.URL.Query().Get("keyword"),
+		Status:  r.URL.Query().Get("status"),
+	}
+
 	var (
 		jobs []*jobman.JobPosting
 		err  error
 	)
 
 	if user.Role == userman.RoleRecruiter {
-		jobs, err = app.Jobs.ListForRecruiter(int(user.ID))
+		jobs, err = app.Jobs.ListForRecruiter(int(user.ID), filter)
 	} else {
-		jobs, err = app.Jobs.ListActive()
+		jobs, err = app.Jobs.ListActive(filter)
 	}
 
 	if err != nil {
@@ -237,7 +244,12 @@ func getCompanyJobs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobs, err := app.Jobs.ListForRecruiterAndCompany(int(user.ID), company.ID)
+	filter := &jobman.Filter{
+		Keyword: r.URL.Query().Get("keyword"),
+		Status:  r.URL.Query().Get("status"),
+	}
+
+	jobs, err := app.Jobs.ListForRecruiterAndCompany(int(user.ID), company.ID, filter)
 	if err != nil {
 		oapi.ServerError(w, err)
 		return
@@ -305,8 +317,8 @@ func saveJob(w http.ResponseWriter, r *http.Request) {
 		req.Location = strings.Join(parts, ", ")
 	}
 
-	if req.Title == "" || req.Location == "" || req.AdditionalInfo == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Title, location, and description are required"})
+	if req.Title == "" || req.Location == "" {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Title, location are required"})
 		return
 	}
 
@@ -448,8 +460,8 @@ func saveCompanyJob(w http.ResponseWriter, r *http.Request) {
 		req.Location = strings.Join(parts, ", ")
 	}
 
-	if req.Title == "" || req.Location == "" || req.AdditionalInfo == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Title, location, and description are required"})
+	if req.Title == "" || req.Location == "" {
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Title, location are required"})
 		return
 	}
 

@@ -13,6 +13,10 @@ import {
   ClipboardList,
   Sparkles,
   ArrowUpDown,
+  BookOpen,
+  PenLine,
+  MapPin,
+  Video,
 } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
@@ -46,19 +50,38 @@ const interviewTarget = ref<Application | null>(null);
 const interviewDate = ref("");
 const interviewTime = ref("");
 const interviewLocation = ref("");
+const interviewMeetLink = ref("");
 const interviewNote = ref("");
 const isScheduling = ref(false);
+type InterviewType = "onsite" | "google_meet";
+const interviewType = ref<InterviewType>("onsite");
+
+function isMeetUrl(val: string | null | undefined): boolean {
+  return !!val && val.startsWith("https://meet.google.com");
+}
 
 const companyAPI = useCompanyAPI();
+const integrationsAPI = useIntegrationsAPI();
 const companyLocation = ref("");
+const gcalConnected = ref(false);
 
 onMounted(async () => {
   try {
-    const company = await companyAPI.get();
-    const parts = [company.city, company.district].filter(Boolean);
-    companyLocation.value = parts.join(", ");
+    const [company, calStatus] = await Promise.allSettled([
+      companyAPI.get(),
+      integrationsAPI.googleCalendarStatus(),
+    ]);
+    if (company.status === "fulfilled") {
+      const parts = [company.value.city, company.value.district].filter(
+        Boolean,
+      );
+      companyLocation.value = parts.join(", ");
+    }
+    if (calStatus.status === "fulfilled") {
+      gcalConnected.value = calStatus.value.connected;
+    }
   } catch {
-    // no company yet — that's fine
+    // ignore
   }
 });
 
@@ -66,8 +89,16 @@ function openInterviewDialog(app: Application) {
   interviewTarget.value = app;
   interviewDate.value = "";
   interviewTime.value = "";
-  interviewLocation.value = app.interview_location || companyLocation.value;
   interviewNote.value = app.interview_note || "";
+  if (isMeetUrl(app.interview_location)) {
+    interviewType.value = "google_meet";
+    interviewMeetLink.value = app.interview_location!;
+    interviewLocation.value = "";
+  } else {
+    interviewType.value = "onsite";
+    interviewLocation.value = app.interview_location || companyLocation.value;
+    interviewMeetLink.value = "";
+  }
   interviewOpen.value = true;
 }
 
@@ -79,11 +110,19 @@ async function scheduleInterview() {
   isScheduling.value = true;
   try {
     const interviewAt = `${interviewDate.value}T${interviewTime.value}`;
+    const isGoogleMeet = interviewType.value === "google_meet";
+    const generateMeet = isGoogleMeet && gcalConnected.value;
+    const locationValue = isGoogleMeet
+      ? gcalConnected.value
+        ? ""
+        : interviewMeetLink.value
+      : interviewLocation.value;
     const updated = await applicationsAPI.scheduleInterview(
       interviewTarget.value!.id,
       interviewAt,
-      interviewLocation.value,
+      locationValue,
       interviewNote.value,
+      generateMeet,
     );
     const idx = applications.value.findIndex((a) => a.id === updated.id);
     if (idx !== -1) applications.value[idx] = updated;
@@ -108,12 +147,32 @@ const taskDueDate = ref("");
 const isGeneratingTask = ref(false);
 const isSendingTask = ref(false);
 
+// library mode: pick from pre-created tasks
+type TaskMode = "library" | "new";
+const taskMode = ref<TaskMode>("library");
+const libraryTasks = ref<Task[]>([]);
+const selectedLibraryTask = ref<Task | null>(null);
+
+async function loadLibraryTasks() {
+  libraryTasks.value = await tasksAPI.list(jobID.value).catch(() => []);
+}
+
 function openTaskDialog(app: Application) {
   taskTarget.value = app;
   taskTitle.value = "";
   taskDescription.value = "";
   taskDueDate.value = "";
+  taskMode.value = "library";
+  selectedLibraryTask.value = null;
   taskOpen.value = true;
+  loadLibraryTasks();
+}
+
+function pickLibraryTask(task: Task) {
+  selectedLibraryTask.value = task;
+  taskTitle.value = task.title;
+  taskDescription.value = task.description;
+  taskDueDate.value = task.due_date ? task.due_date.split("T")[0] : "";
 }
 
 async function generateTask() {
@@ -131,25 +190,38 @@ async function generateTask() {
 }
 
 async function sendTask() {
-  if (!taskTitle.value.trim() || !taskDescription.value.trim()) {
-    toast.error("Гарчиг болон тайлбар шаардлагатай");
-    return;
-  }
   isSendingTask.value = true;
   try {
-    const task = await tasksAPI.create({
-      job_posting_id: jobID.value,
-      application_id: taskTarget.value?.id,
-      title: taskTitle.value.trim(),
-      description: taskDescription.value.trim(),
-      due_date: taskDueDate.value || undefined,
-    });
-    await tasksAPI.send(task.id);
-    tasks.value.push(task);
-    taskOpen.value = false;
-    toast.success(
-      `Даалгавар "${task.title}" — ${taskTarget.value?.applicant_name}-д амжилттай илгээгдлээ.`,
-    );
+    if (taskMode.value === "library") {
+      const sent = await tasksAPI.send(
+        selectedLibraryTask.value!.id,
+        taskTarget.value?.id,
+        taskDueDate.value || undefined,
+      );
+      tasks.value.push(sent);
+      taskOpen.value = false;
+      toast.success(
+        `Даалгавар "${sent.title}" — ${taskTarget.value?.applicant_name}-д амжилттай илгээгдлээ.`,
+      );
+    } else {
+      if (!taskTitle.value.trim() || !taskDescription.value.trim()) {
+        toast.error("Гарчиг болон тайлбар шаардлагатай");
+        return;
+      }
+      const task = await tasksAPI.create({
+        job_posting_id: jobID.value,
+        application_id: taskTarget.value?.id,
+        title: taskTitle.value.trim(),
+        description: taskDescription.value.trim(),
+        due_date: taskDueDate.value || undefined,
+      });
+      await tasksAPI.send(task.id);
+      tasks.value.push(task);
+      taskOpen.value = false;
+      toast.success(
+        `Даалгавар "${task.title}" — ${taskTarget.value?.applicant_name}-д амжилттай илгээгдлээ.`,
+      );
+    }
   } catch (e: any) {
     toast.error(e?.data?.message || "Даалгавар илгээхэд алдаа гарлаа");
   } finally {
@@ -239,6 +311,20 @@ const statusOrder: Record<DerivedStatus, number> = {
   applied: 4,
   failed: 5,
 };
+
+const applicantPage = ref(1);
+const APPLICANT_PAGE_SIZE = 10;
+const applicantTotalPages = computed(() =>
+  Math.max(1, Math.ceil(sortedApplications.value.length / APPLICANT_PAGE_SIZE)),
+);
+const paginatedApplicants = computed(() => {
+  const start = (applicantPage.value - 1) * APPLICANT_PAGE_SIZE;
+  return sortedApplications.value.slice(start, start + APPLICANT_PAGE_SIZE);
+});
+
+watch(sortBy, () => {
+  applicantPage.value = 1;
+});
 
 const sortedApplications = computed(() => {
   const arr = [...applications.value];
@@ -394,7 +480,7 @@ function formatDateTime(d: string | null | undefined) {
     <!-- Applicant cards -->
     <div v-else class="space-y-3">
       <div
-        v-for="app in sortedApplications"
+        v-for="app in paginatedApplicants"
         :key="app.id"
         class="group cursor-pointer rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
         @click="openDetail(app)"
@@ -484,6 +570,37 @@ function formatDateTime(d: string | null | undefined) {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Applicants pagination -->
+      <div class="flex items-center justify-center gap-1 pt-2">
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          :disabled="applicantPage === 1"
+          @click="applicantPage--"
+        >
+          <ChevronLeft class="h-4 w-4" />
+        </button>
+        <button
+          v-for="p in applicantTotalPages"
+          :key="p"
+          :class="[
+            'h-8 w-8 rounded-full text-[13px] font-medium transition',
+            p === applicantPage
+              ? 'bg-primary text-background'
+              : 'text-muted-foreground hover:bg-muted',
+          ]"
+          @click="applicantPage = p"
+        >
+          {{ p }}
+        </button>
+        <button
+          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+          :disabled="applicantPage === applicantTotalPages"
+          @click="applicantPage++"
+        >
+          <ChevronRight class="h-4 w-4" />
+        </button>
       </div>
     </div>
   </div>
@@ -728,21 +845,6 @@ function formatDateTime(d: string | null | undefined) {
             </div>
           </div>
         </div>
-
-        <!-- Recommendations -->
-        <div v-if="selected.recommendations?.length" class="space-y-2">
-          <p class="text-[13.5px] font-semibold">Зөвлөмж</p>
-          <ul class="space-y-1.5">
-            <li
-              v-for="r in selected.recommendations"
-              :key="r"
-              class="flex items-start gap-2 text-[13px] text-muted-foreground"
-            >
-              <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              {{ r }}
-            </li>
-          </ul>
-        </div>
       </div>
     </DialogContent>
   </Dialog>
@@ -758,6 +860,35 @@ function formatDateTime(d: string | null | undefined) {
         </DialogDescription>
       </DialogHeader>
       <div class="space-y-4 py-2">
+        <!-- Meeting type tabs -->
+        <div
+          class="flex rounded-xl border border-border overflow-hidden text-[13px] font-medium"
+        >
+          <button
+            class="flex flex-1 items-center justify-center gap-1.5 py-2 transition"
+            :class="
+              interviewType === 'onsite'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:bg-muted'
+            "
+            @click="interviewType = 'onsite'"
+          >
+            <MapPin class="h-3.5 w-3.5" /> Биечлэн уулзах
+          </button>
+          <button
+            class="flex flex-1 items-center justify-center gap-1.5 py-2 transition"
+            :class="
+              interviewType === 'google_meet'
+                ? 'bg-primary text-white'
+                : 'text-muted-foreground hover:bg-muted'
+            "
+            @click="interviewType = 'google_meet'"
+          >
+            <Video class="h-3.5 w-3.5" /> Google Meet
+          </button>
+        </div>
+
+        <!-- Date & Time -->
         <div class="grid gap-4 sm:grid-cols-2">
           <div class="space-y-2">
             <Label>Огноо</Label>
@@ -768,10 +899,41 @@ function formatDateTime(d: string | null | undefined) {
             <Input v-model="interviewTime" type="time" />
           </div>
         </div>
-        <div class="space-y-2">
+
+        <!-- Onsite: location -->
+        <div v-if="interviewType === 'onsite'" class="space-y-2">
           <Label>Байршил</Label>
           <Input v-model="interviewLocation" placeholder="Уулзах газар" />
         </div>
+
+        <!-- Google Meet: auto-generate (if gcal connected) or manual link -->
+        <div v-else class="space-y-2">
+          <template v-if="gcalConnected">
+            <div
+              class="flex items-start gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-3.5 py-3 text-[12.5px]"
+            >
+              <Video class="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span class="text-muted-foreground"
+                >Google Calendar-тай холбогдсон тул Meet холбоосыг
+                <span class="font-semibold text-primary"
+                  >автоматаар үүсгэнэ</span
+                >.
+              </span>
+            </div>
+          </template>
+          <template v-else>
+            <Label>Google Meet холбоос</Label>
+            <Input
+              v-model="interviewMeetLink"
+              placeholder="https://meet.google.com/xxx-xxxx-xxx"
+              type="url"
+            />
+            <p class="text-[11.5px] text-muted-foreground">
+              Google Calendar холбогдоогүй тул холбоосыг гараар оруулна уу.
+            </p>
+          </template>
+        </div>
+
         <div class="space-y-2">
           <Label
             >Нэмэлт тэмдэглэл
@@ -804,47 +966,144 @@ function formatDateTime(d: string | null | undefined) {
 
   <!-- ── Task dialog ────────────────────────────────────────────────────── -->
   <Dialog v-model:open="taskOpen">
-    <DialogContent class="rounded-2xl sm:max-w-lg">
-      <DialogHeader>
+    <DialogContent class="rounded-2xl sm:max-w-lg flex flex-col max-h-[90vh]">
+      <DialogHeader class="shrink-0">
         <DialogTitle>Даалгавар илгээх</DialogTitle>
-        <DialogDescription>
-          {{ taskTarget?.applicant_name }}-д практик даалгавар илгээнэ үү.
-        </DialogDescription>
       </DialogHeader>
-      <div class="space-y-4 py-2">
+
+      <!-- Mode toggle -->
+      <div
+        class="shrink-0 flex rounded-xl border border-border overflow-hidden text-[13px] font-medium"
+      >
         <button
-          type="button"
-          class="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-2.5 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
-          :disabled="isGeneratingTask"
-          @click="generateTask"
+          class="flex flex-1 items-center justify-center gap-1.5 py-2 transition"
+          :class="
+            taskMode === 'library'
+              ? 'bg-primary text-white'
+              : 'text-muted-foreground hover:bg-muted'
+          "
+          @click="taskMode = 'library'"
         >
-          <Loader2 v-if="isGeneratingTask" class="h-4 w-4 animate-spin" />
-          <Sparkles v-else class="h-4 w-4 text-primary" />
-          {{ isGeneratingTask ? "AI үүсгэж байна..." : "AI-аар үүсгэх" }}
+          <BookOpen class="h-3.5 w-3.5" /> Сангаас сонгох
         </button>
-        <div class="space-y-2">
-          <Label>Гарчиг</Label>
-          <Input v-model="taskTitle" placeholder="Даалгаврын гарчиг" />
-        </div>
-        <div class="space-y-2">
-          <Label>Тайлбар</Label>
-          <Textarea
-            v-model="taskDescription"
-            rows="5"
-            placeholder="Даалгаврын дэлгэрэнгүй тайлбар..."
-          />
-        </div>
-        <div class="space-y-2">
-          <Label
-            >Дуусах огноо
-            <span class="text-muted-foreground text-[11.5px]"
-              >(заавал биш)</span
-            ></Label
+        <button
+          class="flex flex-1 items-center justify-center gap-1.5 py-2 transition"
+          :class="
+            taskMode === 'new'
+              ? 'bg-primary text-white'
+              : 'text-muted-foreground hover:bg-muted'
+          "
+          @click="taskMode = 'new'"
+        >
+          <PenLine class="h-3.5 w-3.5" /> Шинэ үүсгэх
+        </button>
+      </div>
+
+      <!-- Scrollable content area -->
+      <div class="flex-1 overflow-y-auto min-h-0 px-0.5">
+        <!-- Library mode -->
+        <div v-if="taskMode === 'library'" class="space-y-2 py-1">
+          <div
+            v-if="!libraryTasks.length"
+            class="flex flex-col items-center py-8 text-center"
           >
-          <Input v-model="taskDueDate" type="date" />
+            <ClipboardList class="h-8 w-8 text-muted-foreground mb-2" />
+            <p class="text-[13.5px] text-muted-foreground">
+              Санд даалгавар байхгүй байна.
+            </p>
+            <button
+              class="mt-2 text-[13px] text-primary underline-offset-2 hover:underline"
+              @click="taskMode = 'new'"
+            >
+              Шинэ даалгавар үүсгэх
+            </button>
+          </div>
+          <div
+            v-for="lt in libraryTasks"
+            :key="lt.id"
+            class="cursor-pointer rounded-xl border p-3.5 transition"
+            :class="
+              selectedLibraryTask?.id === lt.id
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/40 hover:bg-muted/30'
+            "
+            @click="pickLibraryTask(lt)"
+          >
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <p class="text-[13.5px] font-semibold truncate">
+                    {{ lt.title }}
+                  </p>
+                  <span
+                    v-if="lt.created_by_ai"
+                    class="inline-flex shrink-0 items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary"
+                  >
+                    <Sparkles class="h-2 w-2" /> AI
+                  </span>
+                </div>
+                <p
+                  class="mt-0.5 text-[12.5px] text-muted-foreground line-clamp-2"
+                >
+                  {{ lt.description }}
+                </p>
+                <p
+                  v-if="lt.duration_days"
+                  class="mt-1 text-[11.5px] text-muted-foreground"
+                >
+                  Хугацаа: {{ lt.duration_days }} өдөр
+                </p>
+              </div>
+              <ChevronRight
+                class="h-4 w-4 shrink-0 text-muted-foreground mt-0.5"
+              />
+            </div>
+          </div>
+
+          <!-- Due date override when a task is selected -->
+          <div v-if="selectedLibraryTask" class="space-y-1.5 pt-2">
+            <Label class="text-[12.5px]">
+              Дуусах огноо
+              <span class="text-muted-foreground text-[11.5px]"
+                >(заавал биш)</span
+              >
+            </Label>
+            <Input v-model="taskDueDate" type="date" />
+          </div>
+        </div>
+
+        <!-- New / edit mode -->
+        <div v-else class="space-y-4 py-1">
+          <button
+            type="button"
+            class="flex w-full items-center justify-center gap-2 rounded-xl border border-border py-2.5 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-50"
+            :disabled="isGeneratingTask"
+            @click="generateTask"
+          >
+            <Loader2 v-if="isGeneratingTask" class="h-4 w-4 animate-spin" />
+            <Sparkles v-else class="h-4 w-4 text-primary" />
+            {{ isGeneratingTask ? "AI үүсгэж байна..." : "AI-аар үүсгэх" }}
+          </button>
+          <div class="space-y-2">
+            <Label>Гарчиг</Label>
+            <Input v-model="taskTitle" placeholder="Даалгаврын гарчиг" />
+          </div>
+          <div class="space-y-2">
+            <Label>Тайлбар</Label>
+            <Textarea
+              v-model="taskDescription"
+              rows="5"
+              placeholder="Даалгаврын дэлгэрэнгүй тайлбар..."
+            />
+          </div>
+          <div class="space-y-2">
+            <Label> Дуусах огноо </Label>
+            <Input v-model="taskDueDate" type="date" />
+          </div>
         </div>
       </div>
-      <DialogFooter>
+
+      <DialogFooter class="shrink-0">
         <Button
           variant="outline"
           :disabled="isSendingTask"
@@ -852,6 +1111,16 @@ function formatDateTime(d: string | null | undefined) {
           >Болих</Button
         >
         <Button
+          v-if="taskMode === 'library'"
+          :disabled="isSendingTask || !selectedLibraryTask"
+          @click="sendTask"
+        >
+          <Loader2 v-if="isSendingTask" class="mr-2 h-4 w-4 animate-spin" />
+          <ClipboardList v-else class="mr-2 h-4 w-4" />
+          {{ isSendingTask ? "Илгээж байна..." : "Илгээх" }}
+        </Button>
+        <Button
+          v-else
           :disabled="isSendingTask || !taskTitle || !taskDescription"
           @click="sendTask"
         >

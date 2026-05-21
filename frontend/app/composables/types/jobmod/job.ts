@@ -28,4 +28,5 @@ export interface Job extends BaseModel {
   skills: string[];
   bonuses: string[];
   applicants_count: number;
+  new_applicants_this_week: number;
 }

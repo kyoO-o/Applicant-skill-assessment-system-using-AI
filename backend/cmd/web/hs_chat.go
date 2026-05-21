@@ -35,7 +35,7 @@ func chat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Fetch active jobs to give chatbot context
-	jobs, err := app.Jobs.ListActive()
+	jobs, err := app.Jobs.ListActive(nil)
 	if err != nil {
 		oapi.ServerError(w, err)
 		return

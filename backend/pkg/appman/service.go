@@ -19,9 +19,24 @@ func NewService(db *gorm.DB, infoLog, errorLog *log.Logger) *Service {
 	return &Service{db: db, infoLog: infoLog, errorLog: errorLog}
 }
 
+func (s *Service) parseFilter(filter *Filter) *gorm.DB {
+	query := s.db
+	if filter == nil {
+		return query
+	}
+	if filter.Status != "" {
+		query = query.Where("status = ?", filter.Status)
+	}
+	return query
+}
+
 func (s *Service) Save(app *Application) (*Application, error) {
+	isNew := app.ID == 0
 	if err := s.db.Save(app).Error; err != nil {
 		return nil, err
+	}
+	if isNew {
+		s.db.Exec("UPDATE job_postings SET apps_count = apps_count + 1 WHERE id = ?", app.JobPostingID)
 	}
 	return app, nil
 }
@@ -37,9 +52,9 @@ func (s *Service) Get(id int) (*Application, error) {
 	return &app, nil
 }
 
-func (s *Service) ListForJob(jobID int) ([]*Application, error) {
+func (s *Service) ListForJob(jobID int, filter *Filter) ([]*Application, error) {
 	var apps []*Application
-	if err := s.db.Where("job_posting_id = ?", jobID).
+	if err := s.parseFilter(filter).Where("job_posting_id = ?", jobID).
 		Order("overall_score DESC, created_at DESC").
 		Find(&apps).Error; err != nil {
 		return nil, err
@@ -47,9 +62,9 @@ func (s *Service) ListForJob(jobID int) ([]*Application, error) {
 	return apps, nil
 }
 
-func (s *Service) ListForApplicant(applicantID int) ([]*Application, error) {
+func (s *Service) ListForApplicant(applicantID int, filter *Filter) ([]*Application, error) {
 	var apps []*Application
-	if err := s.db.Where("applicant_id = ?", applicantID).
+	if err := s.parseFilter(filter).Where("applicant_id = ?", applicantID).
 		Order("created_at DESC").
 		Find(&apps).Error; err != nil {
 		return nil, err

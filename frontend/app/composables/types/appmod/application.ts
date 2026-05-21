@@ -33,6 +33,7 @@ export interface Application extends BaseModel {
   applicant_id: number;
   applicant_name: string;
   applicant_email: string;
+  applicant_profile_url?: string;
   overall_score: number;
   summary: string;
   matched_skills: SkillResult[];

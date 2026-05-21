@@ -1,4 +1,4 @@
-import type { Job } from "../../types";
+import type { Job, JobFilter } from "../../types";
 import type { DeleteJobResponse, SaveJobPayload } from "../../types/payload";
 
 export class JobsAPI {
@@ -29,12 +29,12 @@ export class JobsAPI {
     });
   }
 
-  list() {
-    return this.fetch<Job[]>("/api/jobs");
+  list(filter: JobFilter = {}) {
+    return this.fetch<Job[]>("/api/jobs", { query: filter });
   }
 
-  listByCompany(companyID: number) {
-    return this.fetch<Job[]>(`/api/jobs/${companyID}`);
+  listByCompany(companyID: number, filter: JobFilter = {}) {
+    return this.fetch<Job[]>(`/api/jobs/${companyID}`, { query: filter });
   }
 
   get(companyID: number, id: number) {

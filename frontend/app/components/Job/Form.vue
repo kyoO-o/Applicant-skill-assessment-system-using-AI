@@ -35,11 +35,17 @@ const emit = defineEmits<{
   submit: [payload: SaveJobPayload];
 }>();
 
-const overrideContact = ref(!!props.initialTitle);
-const overrideLocation = ref(!!props.initialTitle);
+const overrideContact = ref(!!props.initialTitle || (!!props.company && !props.company.contact_info));
+const overrideLocation = ref(!!props.initialTitle || (!!props.company && !props.company.city && !props.company.location_x));
 
-const { validate, setValues, errors } = useForm({
+const { validate, setValues, setFieldValue, errors } = useForm({
   validationSchema: toTypedSchema(jobSchema),
+  initialValues: {
+    title: props.initialTitle ?? "",
+    contact_info: props.initialContactInfo ?? (props.company?.contact_info ?? ""),
+    type: props.initialType ?? "Бүтэн цагийн",
+    level: props.initialLevel ?? "Мэргэжилтэн",
+  },
 });
 
 // Split initial bonuses into company-benefit-selected vs manually typed
@@ -52,8 +58,8 @@ const initialManualBonuses = (props.initialBonuses ?? []).filter(b => !companyBe
 const form = reactive({
   title: props.initialTitle ?? "",
   contact_info: props.initialContactInfo ?? (props.company?.contact_info ?? ""),
-  type: props.initialType ?? "Full-time",
-  level: props.initialLevel ?? "Mid-level",
+  type: props.initialType ?? "Бүтэн цагийн",
+  level: props.initialLevel ?? "Мэргэжилтэн",
   status: props.initialStatus ?? JobStatus.Draft,
   city: props.initialCity ?? (props.company?.city ?? ""),
   district: props.initialDistrict ?? (props.company?.district ?? ""),
@@ -67,6 +73,11 @@ const form = reactive({
   skills: props.initialSkills?.length ? [...props.initialSkills] : [""],
   bonuses: initialManualBonuses.length ? [...initialManualBonuses] : [""],
 });
+
+watch(() => form.title, (v) => setFieldValue("title", v));
+watch(() => form.contact_info, (v) => setFieldValue("contact_info", v));
+watch(() => form.type, (v) => setFieldValue("type", v));
+watch(() => form.level, (v) => setFieldValue("level", v));
 
 watch(overrideContact, (val) => {
   if (!val && props.company) {
@@ -103,12 +114,6 @@ function isBenefitAdded(desc: string) {
 }
 
 async function submitForm() {
-  setValues({
-    title: form.title,
-    contact_info: form.contact_info,
-    type: form.type,
-    level: form.level,
-  });
   const { valid } = await validate();
   if (!valid) return;
 
@@ -159,12 +164,36 @@ async function submitForm() {
     <div class="grid gap-4 sm:grid-cols-3">
       <div class="space-y-2">
         <Label for="job-type">Хөдөлмөрийн гэрээний хэлбэр</Label>
-        <Input id="job-type" v-model="form.type" placeholder="Full-time" />
+        <Select v-model="form.type">
+          <SelectTrigger id="job-type" class="w-full">
+            <SelectValue placeholder="Хэлбэр сонгох" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Ээлжийн">Ээлжийн</SelectItem>
+            <SelectItem value="Улирлаар">Улирлаар</SelectItem>
+            <SelectItem value="Бүтэн цагийн">Бүтэн цагийн</SelectItem>
+            <SelectItem value="Хагас цагийн">Хагас цагийн</SelectItem>
+            <SelectItem value="Цагийн">Цагийн</SelectItem>
+            <SelectItem value="Гэрээт">Гэрээт</SelectItem>
+            <SelectItem value="Түр ажил">Түр ажил</SelectItem>
+          </SelectContent>
+        </Select>
         <p v-if="errors.type" class="text-sm text-destructive">{{ errors.type }}</p>
       </div>
       <div class="space-y-2">
         <Label for="job-level">Мэргэжлийн түвшин</Label>
-        <Input id="job-level" v-model="form.level" placeholder="Mid-level" />
+        <Select v-model="form.level">
+          <SelectTrigger id="job-level" class="w-full">
+            <SelectValue placeholder="Түвшин сонгох" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Ажилтан">Ажилтан</SelectItem>
+            <SelectItem value="Мэргэжилтэн">Мэргэжилтэн</SelectItem>
+            <SelectItem value="Дадлагажигч / Оюутан">Дадлагажигч / Оюутан</SelectItem>
+            <SelectItem value="Менежер">Менежер</SelectItem>
+            <SelectItem value="Ахлах ажилтан">Ахлах ажилтан</SelectItem>
+          </SelectContent>
+        </Select>
         <p v-if="errors.level" class="text-sm text-destructive">{{ errors.level }}</p>
       </div>
       <div class="space-y-2">

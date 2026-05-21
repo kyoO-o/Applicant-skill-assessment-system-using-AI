@@ -358,7 +358,7 @@ async function changePassword() {
       </Card>
 
       <!-- Notifications -->
-      <Card class="rounded-3xl border-border shadow-none gap-4">
+      <!-- <Card class="rounded-3xl border-border shadow-none gap-4">
         <CardHeader>
           <CardTitle>Мэдэгдэл</CardTitle>
           <CardDescription
@@ -380,7 +380,7 @@ async function changePassword() {
             />
           </div>
         </CardContent>
-      </Card>
+      </Card> -->
 
       <!-- Account -->
       <Card class="rounded-3xl border-border shadow-none gap-4">
