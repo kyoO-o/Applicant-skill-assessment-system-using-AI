@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { Plus, X } from "lucide-vue-next";
-import { JobStatus } from "../../composables/types";
+import {
+  JobStatus,
+  JOB_EMPLOYMENT_TYPES,
+  JOB_LEVELS,
+  DEPARTMENT,
+} from "../../composables/types";
 import type { Company } from "../../composables/types";
 import type { SaveJobPayload } from "../../composables/types/payload";
 import { useForm } from "vee-validate";
@@ -17,6 +22,7 @@ const props = defineProps<{
   initialContactInfo?: string;
   initialType?: string;
   initialLevel?: string;
+  initialDepartment?: string;
   initialStatus?: JobStatus;
   initialCity?: string;
   initialDistrict?: string;
@@ -35,49 +41,82 @@ const emit = defineEmits<{
   submit: [payload: SaveJobPayload];
 }>();
 
-const overrideContact = ref(!!props.initialTitle || (!!props.company && !props.company.contact_info));
-const overrideLocation = ref(!!props.initialTitle || (!!props.company && !props.company.city && !props.company.location_x));
+const overrideContact = ref(
+  !!props.initialTitle || (!!props.company && !props.company.contact_info),
+);
+const overrideLocation = ref(
+  !!props.initialTitle ||
+    (!!props.company && !props.company.city && !props.company.location_x),
+);
 
 const { validate, setValues, setFieldValue, errors } = useForm({
   validationSchema: toTypedSchema(jobSchema),
   initialValues: {
     title: props.initialTitle ?? "",
-    contact_info: props.initialContactInfo ?? (props.company?.contact_info ?? ""),
+    contact_info: props.initialContactInfo ?? props.company?.contact_info ?? "",
     type: props.initialType ?? "Бүтэн цагийн",
     level: props.initialLevel ?? "Мэргэжилтэн",
+    department: props.initialDepartment ?? "",
   },
 });
 
 // Split initial bonuses into company-benefit-selected vs manually typed
-const companyBenefitSet = new Set(props.company?.benefits?.map(b => b.description) ?? []);
-const selectedBenefits = ref<string[]>(
-  (props.initialBonuses ?? []).filter(b => companyBenefitSet.has(b)),
+const companyBenefitSet = new Set(
+  props.company?.benefits?.map((b) => b.description) ?? [],
 );
-const initialManualBonuses = (props.initialBonuses ?? []).filter(b => !companyBenefitSet.has(b));
+const selectedBenefits = ref<string[]>(
+  (props.initialBonuses ?? []).filter((b) => companyBenefitSet.has(b)),
+);
+const initialManualBonuses = (props.initialBonuses ?? []).filter(
+  (b) => !companyBenefitSet.has(b),
+);
 
 const form = reactive({
   title: props.initialTitle ?? "",
-  contact_info: props.initialContactInfo ?? (props.company?.contact_info ?? ""),
+  contact_info: props.initialContactInfo ?? props.company?.contact_info ?? "",
   type: props.initialType ?? "Бүтэн цагийн",
   level: props.initialLevel ?? "Мэргэжилтэн",
+  department: props.initialDepartment ?? "",
   status: props.initialStatus ?? JobStatus.Draft,
-  city: props.initialCity ?? (props.company?.city ?? ""),
-  district: props.initialDistrict ?? (props.company?.district ?? ""),
-  location_x: props.initialLocationX ?? (props.company?.location_x ? String(props.company.location_x) : ""),
-  location_y: props.initialLocationY ?? (props.company?.location_y ? String(props.company.location_y) : ""),
+  city: props.initialCity ?? props.company?.city ?? "",
+  district: props.initialDistrict ?? props.company?.district ?? "",
+  location_x:
+    props.initialLocationX ??
+    (props.company?.location_x ? String(props.company.location_x) : ""),
+  location_y:
+    props.initialLocationY ??
+    (props.company?.location_y ? String(props.company.location_y) : ""),
   min_salary: props.initialMinSalary ?? "",
   max_salary: props.initialMaxSalary ?? "",
   additional_info: props.initialAdditionalInfo ?? "",
   duties: props.initialDuties?.length ? [...props.initialDuties] : [""],
-  requirements: props.initialRequirements?.length ? [...props.initialRequirements] : [""],
+  requirements: props.initialRequirements?.length
+    ? [...props.initialRequirements]
+    : [""],
   skills: props.initialSkills?.length ? [...props.initialSkills] : [""],
   bonuses: initialManualBonuses.length ? [...initialManualBonuses] : [""],
 });
 
-watch(() => form.title, (v) => setFieldValue("title", v));
-watch(() => form.contact_info, (v) => setFieldValue("contact_info", v));
-watch(() => form.type, (v) => setFieldValue("type", v));
-watch(() => form.level, (v) => setFieldValue("level", v));
+watch(
+  () => form.title,
+  (v) => setFieldValue("title", v),
+);
+watch(
+  () => form.contact_info,
+  (v) => setFieldValue("contact_info", v),
+);
+watch(
+  () => form.type,
+  (v) => setFieldValue("type", v),
+);
+watch(
+  () => form.level,
+  (v) => setFieldValue("level", v),
+);
+watch(
+  () => form.department,
+  (v) => setFieldValue("department", v),
+);
 
 watch(overrideContact, (val) => {
   if (!val && props.company) {
@@ -89,17 +128,26 @@ watch(overrideLocation, (val) => {
   if (!val && props.company) {
     form.city = props.company.city ?? "";
     form.district = props.company.district ?? "";
-    form.location_x = props.company.location_x ? String(props.company.location_x) : "";
-    form.location_y = props.company.location_y ? String(props.company.location_y) : "";
+    form.location_x = props.company.location_x
+      ? String(props.company.location_x)
+      : "";
+    form.location_y = props.company.location_y
+      ? String(props.company.location_y)
+      : "";
   }
 });
 
 const districtOptions = computed(() => districtsFor(form.city));
 
-function addItem(list: string[]) { list.push(""); }
+function addItem(list: string[]) {
+  list.push("");
+}
 
 function removeItem(list: string[], index: number) {
-  if (list.length === 1) { list[0] = ""; return; }
+  if (list.length === 1) {
+    list[0] = "";
+    return;
+  }
   list.splice(index, 1);
 }
 
@@ -120,7 +168,8 @@ async function submitForm() {
   const city = form.city.trim();
   const district = form.district.trim();
   const location = [district, city].filter(Boolean).join(", ");
-  const toList = (value: string[]) => value.map((item) => item.trim()).filter(Boolean);
+  const toList = (value: string[]) =>
+    value.map((item) => item.trim()).filter(Boolean);
 
   emit("submit", {
     title: form.title.trim(),
@@ -129,10 +178,15 @@ async function submitForm() {
     contact_info: form.contact_info.trim(),
     type: form.type.trim(),
     level: form.level.trim(),
+    department: form.department,
     city: city || undefined,
     district: district || undefined,
-    location_x: form.location_x.trim() ? Number(form.location_x.trim()) : undefined,
-    location_y: form.location_y.trim() ? Number(form.location_y.trim()) : undefined,
+    location_x: form.location_x.trim()
+      ? Number(form.location_x.trim())
+      : undefined,
+    location_y: form.location_y.trim()
+      ? Number(form.location_y.trim())
+      : undefined,
     min_salary: form.min_salary ? Number(form.min_salary) : 0,
     max_salary: form.max_salary ? Number(form.max_salary) : 0,
     status: form.status,
@@ -156,29 +210,51 @@ async function submitForm() {
     <!-- Title -->
     <div class="space-y-2">
       <Label for="job-title">Ажлын байрны нэр</Label>
-      <Input id="job-title" v-model="form.title" placeholder="Frontend Developer" />
-      <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
+      <Input
+        id="job-title"
+        v-model="form.title"
+        placeholder="Frontend Developer"
+      />
+      <p v-if="errors.title" class="text-sm text-destructive">
+        {{ errors.title }}
+      </p>
+    </div>
+
+    <!-- Department -->
+    <div class="space-y-2">
+      <Label for="job-department">Салбар / Чиглэл</Label>
+      <Select v-model="form.department">
+        <SelectTrigger id="job-department" class="w-full">
+          <SelectValue placeholder="Салбар сонгох" />
+        </SelectTrigger>
+        <SelectContent class="h-80">
+          <SelectItem v-for="d in DEPARTMENT" :key="d" :value="d">{{
+            d
+          }}</SelectItem>
+        </SelectContent>
+      </Select>
+      <p v-if="errors.department" class="text-sm text-destructive">
+        {{ errors.department }}
+      </p>
     </div>
 
     <!-- Type + Level + Status -->
     <div class="grid gap-4 sm:grid-cols-3">
       <div class="space-y-2">
-        <Label for="job-type">Хөдөлмөрийн гэрээний хэлбэр</Label>
+        <Label for="job-type">Ажиллах цагийн төрөл</Label>
         <Select v-model="form.type">
           <SelectTrigger id="job-type" class="w-full">
             <SelectValue placeholder="Хэлбэр сонгох" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Ээлжийн">Ээлжийн</SelectItem>
-            <SelectItem value="Улирлаар">Улирлаар</SelectItem>
-            <SelectItem value="Бүтэн цагийн">Бүтэн цагийн</SelectItem>
-            <SelectItem value="Хагас цагийн">Хагас цагийн</SelectItem>
-            <SelectItem value="Цагийн">Цагийн</SelectItem>
-            <SelectItem value="Гэрээт">Гэрээт</SelectItem>
-            <SelectItem value="Түр ажил">Түр ажил</SelectItem>
+            <SelectItem v-for="t in JOB_EMPLOYMENT_TYPES" :key="t" :value="t">{{
+              t
+            }}</SelectItem>
           </SelectContent>
         </Select>
-        <p v-if="errors.type" class="text-sm text-destructive">{{ errors.type }}</p>
+        <p v-if="errors.type" class="text-sm text-destructive">
+          {{ errors.type }}
+        </p>
       </div>
       <div class="space-y-2">
         <Label for="job-level">Мэргэжлийн түвшин</Label>
@@ -187,14 +263,14 @@ async function submitForm() {
             <SelectValue placeholder="Түвшин сонгох" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="Ажилтан">Ажилтан</SelectItem>
-            <SelectItem value="Мэргэжилтэн">Мэргэжилтэн</SelectItem>
-            <SelectItem value="Дадлагажигч / Оюутан">Дадлагажигч / Оюутан</SelectItem>
-            <SelectItem value="Менежер">Менежер</SelectItem>
-            <SelectItem value="Ахлах ажилтан">Ахлах ажилтан</SelectItem>
+            <SelectItem v-for="l in JOB_LEVELS" :key="l" :value="l">{{
+              l
+            }}</SelectItem>
           </SelectContent>
         </Select>
-        <p v-if="errors.level" class="text-sm text-destructive">{{ errors.level }}</p>
+        <p v-if="errors.level" class="text-sm text-destructive">
+          {{ errors.level }}
+        </p>
       </div>
       <div class="space-y-2">
         <Label for="job-status">Төлөв</Label>
@@ -216,13 +292,24 @@ async function submitForm() {
       <div class="flex items-center justify-between gap-3">
         <div>
           <p class="text-sm font-medium">Холбоо барих мэдээлэл</p>
-          <p v-if="company && !overrideContact" class="mt-0.5 text-xs text-green-600">
+          <p
+            v-if="company && !overrideContact"
+            class="mt-0.5 text-xs text-green-600"
+          >
             ✓ Компанийн мэдээлэл ашиглагдлаа
           </p>
         </div>
-        <div v-if="company" class="flex items-center gap-2 text-xs text-muted-foreground">
-          <Checkbox id="override-contact-cb" v-model:checked="overrideContact" />
-          <label for="override-contact-cb" class="cursor-pointer select-none">Өөр мэдээлэл оруулах</label>
+        <div
+          v-if="company"
+          class="flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <Checkbox
+            id="override-contact-cb"
+            v-model:checked="overrideContact"
+          />
+          <label for="override-contact-cb" class="cursor-pointer select-none"
+            >Өөр мэдээлэл оруулах</label
+          >
         </div>
       </div>
       <Input
@@ -230,7 +317,9 @@ async function submitForm() {
         placeholder="hr@company.mn | +976 99000000"
         :disabled="!overrideContact && !!company"
       />
-      <p v-if="errors.contact_info" class="text-sm text-destructive">{{ errors.contact_info }}</p>
+      <p v-if="errors.contact_info" class="text-sm text-destructive">
+        {{ errors.contact_info }}
+      </p>
     </div>
 
     <!-- Location -->
@@ -238,36 +327,57 @@ async function submitForm() {
       <div class="flex items-center justify-between gap-3">
         <div>
           <p class="text-sm font-medium">Байршил</p>
-          <p v-if="company && !overrideLocation" class="mt-0.5 text-xs text-green-600">
+          <p
+            v-if="company && !overrideLocation"
+            class="mt-0.5 text-xs text-green-600"
+          >
             ✓ Компанийн байршил ашиглагдлаа
           </p>
         </div>
-        <div v-if="company" class="flex items-center gap-2 text-xs text-muted-foreground">
-          <Checkbox id="override-location-cb" v-model:checked="overrideLocation" />
-          <label for="override-location-cb" class="cursor-pointer select-none">Өөр байршил оруулах</label>
+        <div
+          v-if="company"
+          class="flex items-center gap-2 text-xs text-muted-foreground"
+        >
+          <Checkbox
+            id="override-location-cb"
+            v-model:checked="overrideLocation"
+          />
+          <label for="override-location-cb" class="cursor-pointer select-none"
+            >Өөр байршил оруулах</label
+          >
         </div>
       </div>
 
       <div class="grid gap-4 sm:grid-cols-2">
         <div class="space-y-2">
           <Label for="job-city">Хот / Аймаг</Label>
-          <Select v-model="form.city" :disabled="!overrideLocation && !!company">
+          <Select
+            v-model="form.city"
+            :disabled="!overrideLocation && !!company"
+          >
             <SelectTrigger id="job-city" class="w-full">
               <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="city in cities" :key="city" :value="city">{{ city }}</SelectItem>
+              <SelectItem v-for="city in cities" :key="city" :value="city">{{
+                city
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div class="space-y-2">
           <Label for="job-district">Дүүрэг / Сум</Label>
-          <Select v-model="form.district" :disabled="(!overrideLocation && !!company) || !form.city">
+          <Select
+            v-model="form.district"
+            :disabled="(!overrideLocation && !!company) || !form.city"
+          >
             <SelectTrigger id="job-district" class="w-full">
               <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="d in districtOptions" :key="d" :value="d">{{ d }}</SelectItem>
+              <SelectItem v-for="d in districtOptions" :key="d" :value="d">{{
+                d
+              }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -287,11 +397,23 @@ async function submitForm() {
     <div class="grid gap-4 sm:grid-cols-2">
       <div class="space-y-2">
         <Label for="job-min-salary">Хамгийн бага цалин</Label>
-        <Input id="job-min-salary" v-model="form.min_salary" type="number" min="0" placeholder="1800000" />
+        <Input
+          id="job-min-salary"
+          v-model="form.min_salary"
+          type="number"
+          min="0"
+          placeholder="1800000"
+        />
       </div>
       <div class="space-y-2">
         <Label for="job-max-salary">Хамгийн их цалин</Label>
-        <Input id="job-max-salary" v-model="form.max_salary" type="number" min="0" placeholder="3200000" />
+        <Input
+          id="job-max-salary"
+          v-model="form.max_salary"
+          type="number"
+          min="0"
+          placeholder="3200000"
+        />
       </div>
     </div>
 
@@ -311,14 +433,35 @@ async function submitForm() {
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <Label>Үүрэг хариуцлага</Label>
-          <Button type="button" variant="outline" size="sm" @click="addItem(form.duties)">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            @click="addItem(form.duties)"
+          >
             <Plus class="mr-1 h-4 w-4" />Нэмэх
           </Button>
         </div>
         <div class="space-y-3">
-          <div v-for="(_, i) in form.duties" :key="`duty-${i}`" class="flex items-start gap-2">
-            <Textarea v-model="form.duties[i]" placeholder="Нэг үүрэг бичнэ үү" rows="3" class="min-h-[80px] resize-y" />
-            <Button v-if="i > 0" type="button" variant="outline" size="icon" class="mt-1 shrink-0" @click="removeItem(form.duties, i)">
+          <div
+            v-for="(_, i) in form.duties"
+            :key="`duty-${i}`"
+            class="flex items-start gap-2"
+          >
+            <Textarea
+              v-model="form.duties[i]"
+              placeholder="Нэг үүрэг бичнэ үү"
+              rows="3"
+              class="min-h-[80px] resize-y"
+            />
+            <Button
+              v-if="i > 0"
+              type="button"
+              variant="outline"
+              size="icon"
+              class="mt-1 shrink-0"
+              @click="removeItem(form.duties, i)"
+            >
               <X class="h-4 w-4" />
             </Button>
           </div>
@@ -328,14 +471,35 @@ async function submitForm() {
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <Label>Шаардлагууд</Label>
-          <Button type="button" variant="outline" size="sm" @click="addItem(form.requirements)">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            @click="addItem(form.requirements)"
+          >
             <Plus class="mr-1 h-4 w-4" />Нэмэх
           </Button>
         </div>
         <div class="space-y-3">
-          <div v-for="(_, i) in form.requirements" :key="`req-${i}`" class="flex items-start gap-2">
-            <Textarea v-model="form.requirements[i]" placeholder="Нэг шаардлага бичнэ үү" rows="3" class="min-h-[80px] resize-y" />
-            <Button v-if="i > 0" type="button" variant="outline" size="icon" class="mt-1 shrink-0" @click="removeItem(form.requirements, i)">
+          <div
+            v-for="(_, i) in form.requirements"
+            :key="`req-${i}`"
+            class="flex items-start gap-2"
+          >
+            <Textarea
+              v-model="form.requirements[i]"
+              placeholder="Нэг шаардлага бичнэ үү"
+              rows="3"
+              class="min-h-[80px] resize-y"
+            />
+            <Button
+              v-if="i > 0"
+              type="button"
+              variant="outline"
+              size="icon"
+              class="mt-1 shrink-0"
+              @click="removeItem(form.requirements, i)"
+            >
               <X class="h-4 w-4" />
             </Button>
           </div>
@@ -348,14 +512,35 @@ async function submitForm() {
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <Label>Ур чадвар</Label>
-          <Button type="button" variant="outline" size="sm" @click="addItem(form.skills)">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            @click="addItem(form.skills)"
+          >
             <Plus class="mr-1 h-4 w-4" />Нэмэх
           </Button>
         </div>
         <div class="space-y-3">
-          <div v-for="(_, i) in form.skills" :key="`skill-${i}`" class="flex items-start gap-2">
-            <Textarea v-model="form.skills[i]" placeholder="Нэг ур чадвар бичнэ үү" rows="2" class="min-h-[64px] resize-y" />
-            <Button v-if="i > 0" type="button" variant="outline" size="icon" class="mt-1 shrink-0" @click="removeItem(form.skills, i)">
+          <div
+            v-for="(_, i) in form.skills"
+            :key="`skill-${i}`"
+            class="flex items-start gap-2"
+          >
+            <Textarea
+              v-model="form.skills[i]"
+              placeholder="Нэг ур чадвар бичнэ үү"
+              rows="2"
+              class="min-h-[64px] resize-y"
+            />
+            <Button
+              v-if="i > 0"
+              type="button"
+              variant="outline"
+              size="icon"
+              class="mt-1 shrink-0"
+              @click="removeItem(form.skills, i)"
+            >
               <X class="h-4 w-4" />
             </Button>
           </div>
@@ -365,7 +550,12 @@ async function submitForm() {
       <div class="space-y-3">
         <div class="flex items-center justify-between">
           <Label>Нэмэлт давуу тал / Урамшуулал</Label>
-          <Button type="button" variant="outline" size="sm" @click="addItem(form.bonuses)">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            @click="addItem(form.bonuses)"
+          >
             <Plus class="mr-1 h-4 w-4" />Нэмэх
           </Button>
         </div>
@@ -375,7 +565,9 @@ async function submitForm() {
           v-if="company?.benefits?.length"
           class="rounded-2xl border border-dashed border-border bg-muted/20 px-3 py-2"
         >
-          <p class="mb-2 text-xs text-muted-foreground">Компанийн давуу талаас сонгох:</p>
+          <p class="mb-2 text-xs text-muted-foreground">
+            Компанийн давуу талаас сонгох:
+          </p>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="benefit in company.benefits"
@@ -396,9 +588,25 @@ async function submitForm() {
 
         <!-- Manual input textareas only -->
         <div class="space-y-3">
-          <div v-for="(_, i) in form.bonuses" :key="`bonus-${i}`" class="flex items-start gap-2">
-            <Textarea v-model="form.bonuses[i]" placeholder="Нэмэлт давуу тал гараар бичнэ үү" rows="2" class="min-h-[64px] resize-y" />
-            <Button v-if="i > 0" type="button" variant="outline" size="icon" class="mt-1 shrink-0" @click="removeItem(form.bonuses, i)">
+          <div
+            v-for="(_, i) in form.bonuses"
+            :key="`bonus-${i}`"
+            class="flex items-start gap-2"
+          >
+            <Textarea
+              v-model="form.bonuses[i]"
+              placeholder="Нэмэлт давуу тал гараар бичнэ үү"
+              rows="2"
+              class="min-h-[64px] resize-y"
+            />
+            <Button
+              v-if="i > 0"
+              type="button"
+              variant="outline"
+              size="icon"
+              class="mt-1 shrink-0"
+              @click="removeItem(form.bonuses, i)"
+            >
               <X class="h-4 w-4" />
             </Button>
           </div>

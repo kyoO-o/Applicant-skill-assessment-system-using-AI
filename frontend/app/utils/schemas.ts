@@ -92,6 +92,7 @@ export const jobSchema = z.object({
   contact_info: z.string().min(1, "Холбоо барих мэдээлэл шаардлагатай"),
   type: z.string().min(1, "Ажлын төрөл шаардлагатай"),
   level: z.string().min(1, "Ажлын түвшин шаардлагатай"),
+  department: z.string().min(1, "Салбар шаардлагатай"),
   city: z.string().optional(),
   min_salary: z.coerce.number().min(0).optional(),
   max_salary: z.coerce.number().min(0).optional(),

@@ -422,10 +422,32 @@ func submitTask(w http.ResponseWriter, r *http.Request) {
 	if task != nil {
 		task.Status = taskman.TaskStatusCompleted
 		app.Tasks.Save(task)
+
+		if recruiterID := recruiterIDForTask(task); recruiterID > 0 {
+			socket.NotifyUser(recruiterID, "Шинэ даалгаврын хариу ирлээ",
+				fmt.Sprintf("'%s' даалгаврын хариу ирлээ", task.Title), "new_submission")
+		}
 	}
 
 	w.WriteHeader(http.StatusCreated)
 	oapi.SendResp(w, saved)
+}
+
+// recruiterIDForTask resolves the recruiter (job owner) for a given task.
+func recruiterIDForTask(task *taskman.Task) int {
+	if task.JobPostingID != nil {
+		if job, err := app.Jobs.Get(int(*task.JobPostingID)); err == nil {
+			return int(job.PostedBy)
+		}
+	}
+	if task.ApplicationID != nil {
+		if a, err := app.Applications.Get(int(*task.ApplicationID)); err == nil {
+			if job, err := app.Jobs.Get(int(a.JobPostingID)); err == nil {
+				return int(job.PostedBy)
+			}
+		}
+	}
+	return 0
 }
 
 // GET /api/tasks/submissions  — recruiter lists all submissions across all tasks

@@ -14,24 +14,55 @@ import {
   Sun,
   Moon,
   Bell,
-  ChevronDown,
   ChevronRight,
   Users,
   ChevronLeft,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-vue-next";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "~/components/ui/popover";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import { icon } from "leaflet";
 
 const { user, logout, isLoading } = useAuth();
 const router = useRouter();
 const route = useRoute();
 const { isDark, toggle: toggleDark, init: initDark } = useDarkMode();
 const {
+  notifications,
   unreadCount,
   connect: connectWS,
   disconnect: disconnectWS,
+  markAsRead,
   markAllRead,
+  clear: clearNotifications,
 } = useNotifications();
+
+const notifOpen = ref(false);
+
+function formatTimeAgo(date: Date): string {
+  const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000);
+  if (diff < 60) return `${diff}с өмнө`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}м өмнө`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}ц өмнө`;
+  return `${Math.floor(diff / 86400)}х өмнө`;
+}
+
+function handleNotifClick(n: (typeof notifications.value)[0]) {
+  markAsRead(n.id);
+  notifOpen.value = false;
+  router.push(n.route);
+}
 
 onMounted(() => {
   initDark();
@@ -41,7 +72,10 @@ onMounted(() => {
 watch(
   () => user.value,
   (u) => {
-    if (!u) disconnectWS();
+    if (!u) {
+      disconnectWS();
+      clearNotifications();
+    }
   },
 );
 
@@ -74,10 +108,8 @@ const menuUser: MenuItem[] = [
   {
     title: "Даалгавар",
     icon: ClipboardList,
-    children: [
-      { title: "Даалгаврын сан", to: "/tasks", accent: true },
-      { title: "Даалгаврын хариу", to: "/submissions", accent: true },
-    ],
+    to: "/tasks",
+    accent: true,
   },
   { title: "AI Чатбот", icon: Bot, to: "/chat", accent: true },
 ];
@@ -120,6 +152,7 @@ function isGroupActive(children: { to: string }[]) {
 }
 
 const bottomMenu = [
+  { title: "Мэдэгдэл", icon: Bell },
   {
     title: user?.value?.role === "recruiter" ? "Компани" : "Профайл",
     icon: User,
@@ -321,137 +354,150 @@ const userAvatarURL = computed(() => {
 
       <!-- Bottom Nav -->
       <nav class="flex flex-col gap-0.5 px-3.5">
-        <button
-          v-for="item in bottomMenu"
-          :key="item.to"
-          class="flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-100"
-          :class="[
-            sidebarCollapsed ? 'justify-center' : '',
-            isActive(item.to)
-              ? 'bg-foreground/[0.07] text-foreground font-semibold'
-              : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-          ]"
-          @click="handleNav(item.to)"
-        >
-          <component :is="item.icon" class="h-4 w-4 flex-shrink-0" />
-          <span v-if="!sidebarCollapsed">{{ item.title }}</span>
-        </button>
+        <template v-for="item in bottomMenu" :key="item.to || item.title">
+          <!-- Notification item -->
+          <Popover v-if="!item.to" v-model:open="notifOpen">
+            <PopoverTrigger as-child>
+              <button
+                class="relative flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-100 text-muted-foreground hover:bg-muted hover:text-foreground"
+                :class="sidebarCollapsed ? 'justify-center' : ''"
+              >
+                <component :is="item.icon" class="h-4 w-4 flex-shrink-0" />
+                <span v-if="!sidebarCollapsed">{{ item.title }}</span>
+                <span
+                  v-if="unreadCount > 0 && !sidebarCollapsed"
+                  class="ml-auto flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
+                  >{{ unreadCount > 9 ? "9+" : unreadCount }}</span
+                >
+                <span
+                  v-if="unreadCount > 0 && sidebarCollapsed"
+                  class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary"
+                />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="end" side="right" class="w-80 p-0 shadow-lg">
+              <div
+                class="flex items-center justify-between border-b border-border px-4 py-3"
+              >
+                <span class="text-sm font-semibold text-foreground"
+                  >Мэдэгдлүүд</span
+                >
+                <button
+                  v-if="unreadCount > 0"
+                  class="text-[11px] text-primary hover:underline"
+                  @click="markAllRead"
+                >
+                  Бүгдийг уншсан
+                </button>
+              </div>
+              <div class="max-h-[360px] overflow-y-auto">
+                <div
+                  v-if="notifications.length === 0"
+                  class="flex flex-col items-center justify-center gap-2 py-10 text-muted-foreground"
+                >
+                  <Bell class="h-6 w-6 opacity-40" />
+                  <span class="text-xs">Мэдэгдэл байхгүй</span>
+                </div>
+                <button
+                  v-for="n in notifications"
+                  :key="n.id"
+                  class="flex w-full items-start gap-3 border-b border-border px-4 py-3 text-left transition hover:bg-muted/50"
+                  :class="n.read ? 'opacity-60' : ''"
+                  @click="handleNotifClick(n)"
+                >
+                  <span
+                    class="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full"
+                    :class="n.read ? 'bg-transparent' : 'bg-primary'"
+                  />
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-[13px] font-medium text-foreground">
+                      {{ n.title }}
+                    </p>
+                    <p
+                      class="mt-0.5 text-[12px] leading-snug text-muted-foreground line-clamp-2"
+                    >
+                      {{ n.body }}
+                    </p>
+                    <p class="mt-1 text-[11px] text-muted-foreground/60">
+                      {{ formatTimeAgo(n.timestamp) }}
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <!-- Regular nav item -->
+          <button
+            v-else
+            class="flex w-full items-center gap-3 whitespace-nowrap rounded-xl px-3 py-2.5 text-sm font-medium transition-colors duration-100"
+            :class="[
+              sidebarCollapsed ? 'justify-center' : '',
+              isActive(item.to)
+                ? 'bg-foreground/[0.07] text-foreground font-semibold'
+                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+            ]"
+            @click="handleNav(item.to)"
+          >
+            <component :is="item.icon" class="h-4 w-4 flex-shrink-0" />
+            <span v-if="!sidebarCollapsed">{{ item.title }}</span>
+          </button>
+        </template>
       </nav>
 
       <!-- User footer card -->
       <div class="px-3.5 pb-4 mt-0.5">
-        <div
-          v-if="!sidebarCollapsed"
-          class="flex items-center gap-2.5 rounded-xl bg-muted/60 px-3 py-2.5"
-        >
-          <div
-            class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full overflow-hidden bg-muted-foreground/30 text-xs font-semibold text-foreground"
-          >
-            <img
-              v-if="userAvatarURL"
-              :src="userAvatarURL"
-              alt="avatar"
-              class="h-full w-full object-cover"
-            />
-            <span v-else>{{ userInitials }}</span>
-          </div>
-          <div class="min-w-0 flex-1">
-            <p class="truncate text-[13px] font-medium text-foreground">
-              {{ user?.name }}
-            </p>
-            <p class="text-[11px] capitalize text-muted-foreground">
-              {{ user?.role === "recruiter" ? "Ажил олгогч" : "Ажил горилогч" }}
-            </p>
-          </div>
-        </div>
-        <div v-else class="flex justify-center">
-          <div
-            class="flex h-8 w-8 items-center justify-center rounded-full overflow-hidden bg-muted-foreground/30 text-xs font-semibold text-foreground"
-          >
-            <img
-              v-if="userAvatarURL"
-              :src="userAvatarURL"
-              alt="avatar"
-              class="h-full w-full object-cover"
-            />
-            <span v-else>{{ userInitials }}</span>
-          </div>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <button
+              class="flex w-full items-center gap-2.5 rounded-xl bg-muted/60 px-3 py-2.5 text-left transition hover:bg-muted cursor-pointer"
+              :class="sidebarCollapsed ? 'justify-center' : ''"
+            >
+              <div
+                class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full overflow-hidden bg-muted-foreground/30 text-xs font-semibold text-foreground"
+              >
+                <img
+                  v-if="userAvatarURL"
+                  :src="userAvatarURL"
+                  alt="avatar"
+                  class="h-full w-full object-cover"
+                />
+                <span v-else>{{ userInitials }}</span>
+              </div>
+              <div v-if="!sidebarCollapsed" class="min-w-0 flex-1">
+                <p class="truncate text-[13px] font-medium text-foreground">
+                  {{ user?.name }}
+                </p>
+                <p class="text-[11px] capitalize text-muted-foreground">
+                  {{
+                    user?.role === "recruiter" ? "Ажил олгогч" : "Ажил горилогч"
+                  }}
+                </p>
+              </div>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" class="w-52 mb-5">
+            <DropdownMenuItem class="cursor-pointer" @click="toggleDark">
+              <Sun v-if="isDark" class="mr-2 h-4 w-4" />
+              <Moon v-else class="mr-2 h-4 w-4" />
+              <span>{{ isDark ? "Гэрэлт горим" : "Харанхуй горим" }}</span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              class="cursor-pointer text-destructive focus:text-destructive"
+              :disabled="isLoading"
+              @click="handleLogout"
+            >
+              <LogOut class="mr-2 h-4 w-4" />
+              <span>Гарах</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </aside>
 
     <!-- ── Main column ──────────────────────────────────────── -->
     <div class="flex min-w-0 flex-1 flex-col">
-      <!-- TopBar -->
-      <header
-        class="flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-background px-7"
-      >
-        <!-- Left: collapse toggle + breadcrumb -->
-        <div class="flex items-center gap-3">
-          <div
-            class="flex items-center gap-2 text-[14px] text-muted-foreground"
-          >
-            <span class="font-medium text-foreground">{{ currentCrumb }}</span>
-          </div>
-        </div>
-
-        <!-- Right: actions -->
-        <div class="flex items-center gap-2">
-          <!-- Dark mode toggle -->
-          <button
-            class="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            @click="toggleDark"
-          >
-            <Sun v-if="isDark" class="h-[15px] w-[15px]" />
-            <Moon v-else class="h-[15px] w-[15px]" />
-          </button>
-
-          <!-- Notifications -->
-          <button
-            class="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            @click="markAllRead"
-          >
-            <Bell class="h-[15px] w-[15px]" />
-            <span
-              v-if="unreadCount > 0"
-              class="absolute right-1.5 top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white"
-              >{{ unreadCount > 9 ? "9+" : unreadCount }}</span
-            >
-          </button>
-
-          <!-- User pill -->
-          <button
-            class="flex items-center gap-2 rounded-full border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground transition hover:bg-muted"
-            @click="handleNav('/profile')"
-          >
-            <div
-              class="flex h-6 w-6 items-center justify-center rounded-full overflow-hidden bg-muted-foreground/30 text-[10px] font-semibold"
-            >
-              <img
-                v-if="userAvatarURL"
-                :src="userAvatarURL"
-                alt="avatar"
-                class="h-full w-full object-cover"
-              />
-              <span v-else>{{ userInitials }}</span>
-            </div>
-            <span class="capitalize">{{
-              user?.role === "recruiter" ? "Олгогч" : "Горилогч"
-            }}</span>
-            <ChevronDown class="h-3 w-3 text-muted-foreground" />
-          </button>
-
-          <!-- Logout -->
-          <button
-            class="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            :disabled="isLoading"
-            @click="handleLogout"
-          >
-            <LogOut class="h-4 w-4" />
-          </button>
-        </div>
-      </header>
-
       <!-- Page content -->
       <main class="flex-1 overflow-auto bg-background">
         <NuxtPage v-if="useRoute().meta.fullscreen" />

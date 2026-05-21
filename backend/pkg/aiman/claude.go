@@ -16,13 +16,13 @@ const (
 
 // AssessmentResult is the structured JSON returned by Claude for CV scoring.
 type AssessmentResult struct {
-	OverallScore           int                      `json:"overall_score"`
-	Summary                string                   `json:"summary"`
-	MatchedSkills          []SkillResult            `json:"matched_skills"`
-	MissingSkills          []SkillResult            `json:"missing_skills"`
-	Recommendations        []string                 `json:"recommendations"`
-	DutyAssessments        []DutyAssessment         `json:"duty_assessments"`
-	RequirementAssessments []RequirementAssessment  `json:"requirement_assessments"`
+	OverallScore           int                     `json:"overall_score"`
+	Summary                string                  `json:"summary"`
+	MatchedSkills          []SkillResult           `json:"matched_skills"`
+	MissingSkills          []SkillResult           `json:"missing_skills"`
+	Recommendations        []string                `json:"recommendations"`
+	DutyAssessments        []DutyAssessment        `json:"duty_assessments"`
+	RequirementAssessments []RequirementAssessment `json:"requirement_assessments"`
 }
 
 type SkillResult struct {
@@ -125,7 +125,7 @@ func (c *Client) AssessCV(cvText, jobTitle string, requirements, skills, duties 
 		strings.Join(duties, "\n"),
 	)
 
-	system := `Та ажил горилогчийн CV болон ажлын байрны шаардлагыг харьцуулан дүгнэх AI үнэлгээний систем.
+	system := `Та ажил горилогчийн CV болон ажлын байрны шаардлагыг харьцуулан дүгнэх AI үнэлгээний систем. Хэрэглэгчийн нэрний оронд ажил горилогч гэдэг үгийг ашиглаарай.
 Хариултыг заавал дараах JSON форматаар өг, өөр ямар ч текст бүү нэм:
 {
   "overall_score": <0-100 хооронд бүхэл тоо>,

@@ -73,6 +73,7 @@ func main() {
 	}
 
 	app.FrontendWS.OnConnect = socket.OnFrontendWSConnect
+	socket.StartInterviewReminderScheduler()
 
 	// ele, ok := queue.Dequeue()
 	// if doc, isDoc := ele.(documentman.Document); ok && isDoc {

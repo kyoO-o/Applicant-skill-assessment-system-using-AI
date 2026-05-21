@@ -146,7 +146,7 @@ function formatDate(d: string) {
 </script>
 
 <template>
-  <div class="flex h-[calc(100vh-64px)] gap-0 overflow-hidden">
+  <div class="flex h-full gap-0 overflow-hidden">
     <!-- ── Left list panel ─────────────────────────────────────── -->
     <div
       class="flex w-[300px] shrink-0 flex-col border-r border-border bg-card"

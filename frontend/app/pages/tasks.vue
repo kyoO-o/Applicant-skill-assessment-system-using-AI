@@ -484,10 +484,7 @@ function formatDate(d: string | null | undefined) {
       </div>
 
       <!-- Task pagination -->
-      <div
-        v-if="taskTotalPages > 1"
-        class="flex items-center justify-center gap-1 pt-2"
-      >
+      <div class="flex items-center justify-center gap-1 pt-2">
         <button
           class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
           :disabled="taskPage === 1"

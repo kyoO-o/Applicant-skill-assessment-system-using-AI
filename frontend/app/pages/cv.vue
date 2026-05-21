@@ -187,8 +187,16 @@ function scrollTo(id: string) {
     ?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-const fullName = computed(() =>
-  [cv.value.last_name, cv.value.first_name].filter(Boolean).join(" "),
+const fullName = computed(
+  () =>
+    [cv.value.last_name, cv.value.first_name].filter(Boolean).join(" ") ||
+    user.value?.full_name ||
+    "",
+);
+
+const printEmail = computed(() => cv.value.email || user.value?.email || "");
+const printPhone = computed(
+  () => cv.value.phone || user.value?.phone_number || "",
 );
 
 const currentJobTitle = computed(
@@ -234,19 +242,18 @@ function onPhotoChange(event: Event) {
           <div class="space-y-1">
             <h1 class="text-[26px] font-semibold tracking-tight">Миний CV</h1>
             <p class="text-sm text-muted-foreground">
-              Мэдээллээ бөглөөд PDF болгон татаж авах эсвэл PDF-ийг импортлон
-              автоматаар бөглүүлэх боломжтой.
+              Мэдээллээ бөглөөд PDF болгон татаж авах боломжтой.
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
-            <input
+            <!-- <input
               ref="fileInput"
               type="file"
               accept=".pdf"
               class="hidden"
               @change="onImportPDF"
-            />
-            <Button
+            /> -->
+            <!-- <Button
               variant="outline"
               class="gap-2 rounded-full"
               :disabled="parsing"
@@ -255,7 +262,7 @@ function onPhotoChange(event: Event) {
               <Loader2 v-if="parsing" class="h-4 w-4 animate-spin" />
               <Upload v-else class="h-4 w-4" />
               {{ parsing ? "Уншиж байна..." : "PDF импортлох" }}
-            </Button>
+            </Button> -->
             <Button variant="outline" class="gap-2 rounded-full" @click="print">
               <Printer class="h-4 w-4" />
               PDF татах
@@ -316,7 +323,25 @@ function onPhotoChange(event: Event) {
                     <img :src="cvPhoto" class="w-full h-full object-cover" />
                   </template>
                   <template v-else>
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5 mb-0.5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
                     <span>Зураг</span>
                   </template>
                 </button>
@@ -328,7 +353,9 @@ function onPhotoChange(event: Event) {
                     type="button"
                     class="mt-1.5 text-xs text-destructive hover:underline"
                     @click="cvPhoto = ''"
-                  >Устгах</button>
+                  >
+                    Устгах
+                  </button>
                 </div>
               </div>
 
@@ -568,7 +595,7 @@ function onPhotoChange(event: Event) {
                       >
                       <Input
                         v-model="edu.school"
-                        placeholder="Монгол Улсын Их Сургууль"
+                        placeholder="Шинжлэх Ухаан Технологийн Их Сургууль"
                       />
                     </div>
                     <div class="space-y-1">
@@ -1101,7 +1128,6 @@ function onPhotoChange(event: Event) {
       <div class="hidden print:block">
         <div class="cv-page">
           <div class="cv-page-inner">
-
             <!-- HEADER: with photo -->
             <header v-if="cvPhoto" class="cv-head cv-head--photo">
               <div class="cv-photo">
@@ -1109,15 +1135,39 @@ function onPhotoChange(event: Event) {
               </div>
               <div>
                 <div class="cv-name">{{ fullName || "Нэр оруулаагүй" }}</div>
-                <div v-if="currentJobTitle" class="cv-role">{{ currentJobTitle }}</div>
+                <div v-if="currentJobTitle" class="cv-role">
+                  {{ currentJobTitle }}
+                </div>
               </div>
               <div class="cv-contact">
-                <div v-if="cv.email" class="cv-contact-row"><span class="cv-lbl">Имэйл</span><span>{{ cv.email }}</span></div>
-                <div v-if="cv.phone" class="cv-contact-row"><span class="cv-lbl">Утас</span><span>{{ cv.phone }}</span></div>
-                <div v-if="cv.address" class="cv-contact-row"><span class="cv-lbl">Хаяг</span><span>{{ cv.address }}</span></div>
-                <div v-if="cv.date_of_birth" class="cv-contact-row"><span class="cv-lbl">Төрсөн</span><span>{{ cv.date_of_birth }}</span></div>
-                <div v-if="cv.national_id" class="cv-contact-row"><span class="cv-lbl">Рег</span><span>{{ cv.national_id }}</span></div>
-                <div v-if="cv.driver_licenses.length" class="cv-contact-row"><span class="cv-lbl">Жолоо</span><span>{{ cv.driver_licenses.join(", ") }}</span></div>
+                <div v-if="printEmail" class="cv-contact-row">
+                  <span class="cv-lbl">Имэйл</span><span>{{ printEmail }}</span>
+                </div>
+                <div v-if="printPhone" class="cv-contact-row">
+                  <span class="cv-lbl">Утас</span><span>{{ printPhone }}</span>
+                </div>
+                <div v-if="cv.address" class="cv-contact-row">
+                  <span class="cv-lbl">Хаяг</span><span>{{ cv.address }}</span>
+                </div>
+                <div v-if="cv.date_of_birth" class="cv-contact-row">
+                  <span class="cv-lbl">Төрсөн</span
+                  ><span>{{ cv.date_of_birth }}</span>
+                </div>
+                <div v-if="cv.gender" class="cv-contact-row">
+                  <span class="cv-lbl">Хүйс</span><span>{{ cv.gender }}</span>
+                </div>
+                <div v-if="cv.marital_status" class="cv-contact-row">
+                  <span class="cv-lbl">Гэрлэлт</span
+                  ><span>{{ cv.marital_status }}</span>
+                </div>
+                <div v-if="cv.national_id" class="cv-contact-row">
+                  <span class="cv-lbl">Рег</span
+                  ><span>{{ cv.national_id }}</span>
+                </div>
+                <div v-if="cv.driver_licenses.length" class="cv-contact-row">
+                  <span class="cv-lbl">Жолоо</span
+                  ><span>{{ cv.driver_licenses.join(", ") }}</span>
+                </div>
               </div>
             </header>
 
@@ -1125,139 +1175,322 @@ function onPhotoChange(event: Event) {
             <header v-else class="cv-head cv-head--no-photo">
               <div>
                 <div class="cv-name">{{ fullName || "Нэр оруулаагүй" }}</div>
-                <div v-if="currentJobTitle" class="cv-role">{{ currentJobTitle }}</div>
+                <div v-if="currentJobTitle" class="cv-role">
+                  {{ currentJobTitle }}
+                </div>
               </div>
               <div class="cv-contact">
-                <div v-if="cv.email" class="cv-contact-row"><span class="cv-lbl">Имэйл</span><span>{{ cv.email }}</span></div>
-                <div v-if="cv.phone" class="cv-contact-row"><span class="cv-lbl">Утас</span><span>{{ cv.phone }}</span></div>
-                <div v-if="cv.address" class="cv-contact-row"><span class="cv-lbl">Хаяг</span><span>{{ cv.address }}</span></div>
-                <div v-if="cv.date_of_birth" class="cv-contact-row"><span class="cv-lbl">Төрсөн</span><span>{{ cv.date_of_birth }}</span></div>
-                <div v-if="cv.national_id" class="cv-contact-row"><span class="cv-lbl">Рег</span><span>{{ cv.national_id }}</span></div>
-                <div v-if="cv.driver_licenses.length" class="cv-contact-row"><span class="cv-lbl">Жолоо</span><span>{{ cv.driver_licenses.join(", ") }}</span></div>
+                <div v-if="printEmail" class="cv-contact-row">
+                  <span class="cv-lbl">Имэйл</span><span>{{ printEmail }}</span>
+                </div>
+                <div v-if="printPhone" class="cv-contact-row">
+                  <span class="cv-lbl">Утас</span><span>{{ printPhone }}</span>
+                </div>
+                <div v-if="cv.address" class="cv-contact-row">
+                  <span class="cv-lbl">Хаяг</span><span>{{ cv.address }}</span>
+                </div>
+                <div v-if="cv.date_of_birth" class="cv-contact-row">
+                  <span class="cv-lbl">Төрсөн</span
+                  ><span>{{ cv.date_of_birth }}</span>
+                </div>
+                <div v-if="cv.gender" class="cv-contact-row">
+                  <span class="cv-lbl">Хүйс</span><span>{{ cv.gender }}</span>
+                </div>
+                <div v-if="cv.marital_status" class="cv-contact-row">
+                  <span class="cv-lbl">Гэрлэлт</span
+                  ><span>{{ cv.marital_status }}</span>
+                </div>
+                <div v-if="cv.national_id" class="cv-contact-row">
+                  <span class="cv-lbl">Рег</span
+                  ><span>{{ cv.national_id }}</span>
+                </div>
+                <div v-if="cv.driver_licenses.length" class="cv-contact-row">
+                  <span class="cv-lbl">Жолоо</span
+                  ><span>{{ cv.driver_licenses.join(", ") }}</span>
+                </div>
               </div>
             </header>
 
             <!-- ABOUT -->
             <section v-if="cv.about" class="cv-sec">
-              <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Миний тухай</span><span class="cv-rule"></span></div>
+              <div class="cv-sec-h">
+                <span class="cv-dot"></span
+                ><span class="cv-sec-title">Миний тухай</span
+                ><span class="cv-rule"></span>
+              </div>
               <p class="cv-about">{{ cv.about }}</p>
             </section>
 
             <!-- TWO COLUMNS -->
             <div class="cv-body">
-
               <!-- LEFT -->
               <div class="cv-col">
-
-                <section v-if="cv.professional_skills.length || cv.personal_skills.length || cv.computer_skills.length || cv.art_skills.length || cv.sport_skills.length || cv.languages.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Ур чадвар</span><span class="cv-rule"></span></div>
-                  <div v-if="cv.professional_skills.length" class="cv-skill-group">
+                <section
+                  v-if="
+                    cv.professional_skills.length ||
+                    cv.personal_skills.length ||
+                    cv.computer_skills.length ||
+                    cv.art_skills.length ||
+                    cv.sport_skills.length ||
+                    cv.languages.length
+                  "
+                  class="cv-sec"
+                >
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Ур чадвар</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-if="cv.professional_skills.length"
+                    class="cv-skill-group"
+                  >
                     <div class="cv-skill-label">Мэргэжлийн</div>
-                    <div class="cv-skill-tags"><span v-for="s in cv.professional_skills" :key="s" class="cv-skill-tag">{{ s }}</span></div>
+                    <div class="cv-skill-tags">
+                      <span
+                        v-for="s in cv.professional_skills"
+                        :key="s"
+                        class="cv-skill-tag"
+                        >{{ s }}</span
+                      >
+                    </div>
                   </div>
                   <div v-if="cv.personal_skills.length" class="cv-skill-group">
                     <div class="cv-skill-label">Хувийн</div>
-                    <div class="cv-skill-tags"><span v-for="s in cv.personal_skills" :key="s" class="cv-skill-tag">{{ s }}</span></div>
+                    <div class="cv-skill-tags">
+                      <span
+                        v-for="s in cv.personal_skills"
+                        :key="s"
+                        class="cv-skill-tag"
+                        >{{ s }}</span
+                      >
+                    </div>
                   </div>
                   <div v-if="cv.computer_skills.length" class="cv-skill-group">
                     <div class="cv-skill-label">Компьютер</div>
-                    <div class="cv-skill-tags"><span v-for="s in cv.computer_skills" :key="s" class="cv-skill-tag">{{ s }}</span></div>
+                    <div class="cv-skill-tags">
+                      <span
+                        v-for="s in cv.computer_skills"
+                        :key="s"
+                        class="cv-skill-tag"
+                        >{{ s }}</span
+                      >
+                    </div>
                   </div>
                   <div v-if="cv.languages.length" class="cv-skill-group">
                     <div class="cv-skill-label">Хэл</div>
                     <div class="cv-skill-tags">
-                      <span v-for="l in cv.languages" :key="l.name" class="cv-skill-tag">{{ l.name }}<template v-if="l.level"> ({{ l.level }})</template></span>
+                      <span
+                        v-for="l in cv.languages"
+                        :key="l.name"
+                        class="cv-skill-tag"
+                        >{{ l.name
+                        }}<template v-if="l.level">
+                          ({{ l.level }})</template
+                        ></span
+                      >
                     </div>
                   </div>
                   <div v-if="cv.art_skills.length" class="cv-skill-group">
                     <div class="cv-skill-label">Урлаг</div>
-                    <div class="cv-skill-tags"><span v-for="s in cv.art_skills" :key="s" class="cv-skill-tag">{{ s }}</span></div>
+                    <div class="cv-skill-tags">
+                      <span
+                        v-for="s in cv.art_skills"
+                        :key="s"
+                        class="cv-skill-tag"
+                        >{{ s }}</span
+                      >
+                    </div>
                   </div>
                   <div v-if="cv.sport_skills.length" class="cv-skill-group">
                     <div class="cv-skill-label">Спорт</div>
-                    <div class="cv-skill-tags"><span v-for="s in cv.sport_skills" :key="s" class="cv-skill-tag">{{ s }}</span></div>
+                    <div class="cv-skill-tags">
+                      <span
+                        v-for="s in cv.sport_skills"
+                        :key="s"
+                        class="cv-skill-tag"
+                        >{{ s }}</span
+                      >
+                    </div>
                   </div>
                 </section>
 
                 <section v-if="cv.trainings.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Сургалт</span><span class="cv-rule"></span></div>
-                  <div v-for="tr in cv.trainings" :key="tr.name" class="cv-row-item">
-                    <div class="cv-row-top"><div class="cv-row-title">{{ tr.name }}</div><div class="cv-row-meta">{{ tr.date }}</div></div>
-                    <div class="cv-row-sub">{{ tr.organization }}<template v-if="tr.certificate"> · {{ tr.certificate }}</template></div>
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Сургалт</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-for="tr in cv.trainings"
+                    :key="tr.name"
+                    class="cv-row-item"
+                  >
+                    <div class="cv-row-top">
+                      <div class="cv-row-title">{{ tr.name }}</div>
+                      <div class="cv-row-meta">{{ tr.date }}</div>
+                    </div>
+                    <div class="cv-row-sub">
+                      {{ tr.organization
+                      }}<template v-if="tr.certificate">
+                        · {{ tr.certificate }}</template
+                      >
+                    </div>
                   </div>
                 </section>
 
                 <section v-if="cv.exams.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Шалгалт</span><span class="cv-rule"></span></div>
-                  <div v-for="ex in cv.exams" :key="ex.name" class="cv-row-item">
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Шалгалт</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-for="ex in cv.exams"
+                    :key="ex.name"
+                    class="cv-row-item"
+                  >
                     <div class="cv-row-top">
                       <div class="cv-row-title">{{ ex.name }}</div>
-                      <div class="cv-row-meta">{{ ex.date }}<template v-if="ex.score"> · {{ ex.score }}</template></div>
+                      <div class="cv-row-meta">
+                        {{ ex.date
+                        }}<template v-if="ex.score"> · {{ ex.score }}</template>
+                      </div>
                     </div>
                   </div>
                 </section>
-
               </div>
 
               <!-- RIGHT -->
               <div class="cv-col">
-
                 <section v-if="cv.work_experiences.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Ажлын туршлага</span><span class="cv-rule"></span></div>
-                  <div v-for="exp in cv.work_experiences" :key="exp.company + exp.start_date" class="cv-work-item">
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Ажлын туршлага</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-for="exp in cv.work_experiences"
+                    :key="exp.company + exp.start_date"
+                    class="cv-work-item"
+                  >
                     <div class="cv-work-top">
                       <div class="cv-work-role">{{ exp.position }}</div>
-                      <div class="cv-work-dates">{{ exp.start_date }} — {{ exp.current ? "Одоог хүртэл" : exp.end_date }}</div>
+                      <div class="cv-work-dates">
+                        {{ exp.start_date }} —
+                        {{ exp.current ? "Одоог хүртэл" : exp.end_date }}
+                      </div>
                     </div>
-                    <div class="cv-work-sub"><span class="cv-work-co">{{ exp.company }}</span></div>
+                    <div class="cv-work-sub">
+                      <span class="cv-work-co">{{ exp.company }}</span>
+                    </div>
                     <ul v-if="exp.description" class="cv-work-bullets">
-                      <li v-for="line in exp.description.split('\n').filter((l) => l.trim())" :key="line">{{ line }}</li>
+                      <li
+                        v-for="line in exp.description
+                          .split('\n')
+                          .filter((l) => l.trim())"
+                        :key="line"
+                      >
+                        {{ line }}
+                      </li>
                     </ul>
                   </div>
                 </section>
 
                 <section v-if="cv.internships.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Дадлага</span><span class="cv-rule"></span></div>
-                  <div v-for="int in cv.internships" :key="int.company + int.start_date" class="cv-work-item">
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Дадлага</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-for="int in cv.internships"
+                    :key="int.company + int.start_date"
+                    class="cv-work-item"
+                  >
                     <div class="cv-work-top">
                       <div class="cv-work-role">{{ int.position }}</div>
-                      <div class="cv-work-dates">{{ int.start_date }} — {{ int.end_date }}</div>
+                      <div class="cv-work-dates">
+                        {{ int.start_date }} — {{ int.end_date }}
+                      </div>
                     </div>
-                    <div class="cv-work-sub"><span class="cv-work-co">{{ int.company }}</span></div>
+                    <div class="cv-work-sub">
+                      <span class="cv-work-co">{{ int.company }}</span>
+                    </div>
                     <ul v-if="int.description" class="cv-work-bullets">
-                      <li v-for="line in int.description.split('\n').filter((l) => l.trim())" :key="line">{{ line }}</li>
+                      <li
+                        v-for="line in int.description
+                          .split('\n')
+                          .filter((l) => l.trim())"
+                        :key="line"
+                      >
+                        {{ line }}
+                      </li>
                     </ul>
                   </div>
                 </section>
 
                 <section v-if="cv.education.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Боловсрол</span><span class="cv-rule"></span></div>
-                  <div v-for="edu in cv.education" :key="edu.school" class="cv-row-item">
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Боловсрол</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-for="edu in cv.education"
+                    :key="edu.school"
+                    class="cv-row-item"
+                  >
                     <div class="cv-row-top">
-                      <div class="cv-row-title">{{ edu.degree }}<template v-if="edu.field"> {{ edu.field }}</template></div>
-                      <div class="cv-row-meta">{{ edu.start_date }} — {{ edu.current ? "Одоог хүртэл" : edu.end_date }}</div>
+                      <div class="cv-row-title">
+                        {{ edu.degree
+                        }}<template v-if="edu.field"> {{ edu.field }}</template>
+                      </div>
+                      <div class="cv-row-meta">
+                        {{ edu.start_date }} —
+                        {{ edu.current ? "Одоог хүртэл" : edu.end_date }}
+                      </div>
                     </div>
-                    <div class="cv-row-sub">{{ edu.school }}<template v-if="edu.gpa"> · GPA: {{ edu.gpa }}</template></div>
+                    <div class="cv-row-sub">
+                      {{ edu.school
+                      }}<template v-if="edu.gpa">
+                        · GPA: {{ edu.gpa }}</template
+                      >
+                    </div>
                   </div>
                 </section>
 
                 <section v-if="cv.awards.length" class="cv-sec">
-                  <div class="cv-sec-h"><span class="cv-dot"></span><span class="cv-sec-title">Шагнал</span><span class="cv-rule"></span></div>
-                  <div v-for="aw in cv.awards" :key="aw.name" class="cv-row-item">
-                    <div class="cv-row-top"><div class="cv-row-title">{{ aw.name }}</div><div class="cv-row-meta">{{ aw.date }}</div></div>
+                  <div class="cv-sec-h">
+                    <span class="cv-dot"></span
+                    ><span class="cv-sec-title">Шагнал</span
+                    ><span class="cv-rule"></span>
+                  </div>
+                  <div
+                    v-for="aw in cv.awards"
+                    :key="aw.name"
+                    class="cv-row-item"
+                  >
+                    <div class="cv-row-top">
+                      <div class="cv-row-title">{{ aw.name }}</div>
+                      <div class="cv-row-meta">{{ aw.date }}</div>
+                    </div>
                     <div class="cv-row-sub">{{ aw.organization }}</div>
-                    <div v-if="aw.description" class="cv-row-desc">{{ aw.description }}</div>
+                    <div v-if="aw.description" class="cv-row-desc">
+                      {{ aw.description }}
+                    </div>
                   </div>
                 </section>
-
               </div>
             </div>
-
           </div>
 
           <!-- PAGE FOOTER -->
           <footer class="cv-page-foot">
-            <div class="cv-foot-left"><span class="cv-foot-mark"></span><span>{{ fullName }} · CV · {{ printDate }}</span></div>
+            <div class="cv-foot-left">
+              <span class="cv-foot-mark"></span
+              ><span>{{ fullName }} · CV · {{ printDate }}</span>
+            </div>
             <div>Page 1 / 1</div>
           </footer>
         </div>
@@ -1274,7 +1507,13 @@ function onPhotoChange(event: Event) {
   background: #fff;
   position: relative;
   overflow: hidden;
-  font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  font-family:
+    "DM Sans",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    system-ui,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   color: #1c1a23;
   font-size: 11px;
@@ -1300,25 +1539,43 @@ function onPhotoChange(event: Event) {
   padding-bottom: 14px;
   border-bottom: 1px solid #e6e3ea;
 }
-.cv-head--photo { grid-template-columns: auto 1fr auto; }
-.cv-head--no-photo { grid-template-columns: 1fr auto; }
+.cv-head--photo {
+  grid-template-columns: auto 1fr auto;
+}
+.cv-head--no-photo {
+  grid-template-columns: 1fr auto;
+}
 
 .cv-photo {
-  width: 88px; height: 88px;
+  width: 88px;
+  height: 88px;
   border-radius: 999px;
   overflow: hidden;
-  box-shadow: 0 0 0 1px #e6e3ea, 0 2px 6px rgba(28,26,35,.06);
+  box-shadow:
+    0 0 0 1px #e6e3ea,
+    0 2px 6px rgba(28, 26, 35, 0.06);
   flex-shrink: 0;
 }
-.cv-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cv-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 
 .cv-name {
-  font-size: 30px; font-weight: 700; letter-spacing: -1px;
-  line-height: 1; color: #1c1a23;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: #1c1a23;
 }
 .cv-role {
-  font-size: 13px; font-weight: 500; color: #6b5191;
-  margin-top: 6px; letter-spacing: -0.2px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b5191;
+  margin-top: 6px;
+  letter-spacing: -0.2px;
 }
 
 .cv-contact {
@@ -1328,8 +1585,18 @@ function onPhotoChange(event: Event) {
   line-height: 1.9;
   text-align: right;
 }
-.cv-contact-row { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
-.cv-lbl { color: #9a98a4; font-size: 9px; text-transform: uppercase; letter-spacing: 0.6px; }
+.cv-contact-row {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  align-items: center;
+}
+.cv-lbl {
+  color: #9a98a4;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
 
 /* Two-column body */
 .cv-body {
@@ -1338,85 +1605,179 @@ function onPhotoChange(event: Event) {
   gap: 24px;
   flex: 1;
 }
-.cv-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.cv-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
 
 /* Section header */
-.cv-sec { break-inside: avoid; }
+.cv-sec {
+  break-inside: avoid;
+}
 .cv-sec-h {
-  display: flex; align-items: center; gap: 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
   margin-bottom: 9px;
 }
 .cv-dot {
-  width: 5px; height: 5px; border-radius: 999px;
-  background: #6b5191; flex-shrink: 0;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #6b5191;
+  flex-shrink: 0;
 }
 .cv-sec-title {
-  font-size: 9.5px; font-weight: 700;
-  letter-spacing: 1.4px; text-transform: uppercase;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
   color: #6b5191;
   font-family: "JetBrains Mono", monospace;
   white-space: nowrap;
 }
-.cv-rule { flex: 1; height: 1px; background: #e6e3ea; }
+.cv-rule {
+  flex: 1;
+  height: 1px;
+  background: #e6e3ea;
+}
 
 /* About */
-.cv-about { font-size: 12px; line-height: 1.6; color: #3c3a44; }
+.cv-about {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #3c3a44;
+}
 
 /* Work entries */
-.cv-work-item { margin-bottom: 12px; break-inside: avoid; }
-.cv-work-item:last-child { margin-bottom: 0; }
+.cv-work-item {
+  margin-bottom: 12px;
+  break-inside: avoid;
+}
+.cv-work-item:last-child {
+  margin-bottom: 0;
+}
 .cv-work-top {
-  display: flex; justify-content: space-between; gap: 10px;
-  align-items: baseline; margin-bottom: 2px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: baseline;
+  margin-bottom: 2px;
 }
-.cv-work-role { font-size: 12.5px; font-weight: 600; color: #1c1a23; letter-spacing: -0.2px; }
+.cv-work-role {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c1a23;
+  letter-spacing: -0.2px;
+}
 .cv-work-dates {
-  font-size: 10px; font-family: "JetBrains Mono", monospace;
-  color: #6b6976; white-space: nowrap; letter-spacing: 0.2px;
+  font-size: 10px;
+  font-family: "JetBrains Mono", monospace;
+  color: #6b6976;
+  white-space: nowrap;
+  letter-spacing: 0.2px;
 }
-.cv-work-sub { font-size: 11px; color: #6b6976; margin-bottom: 5px; }
-.cv-work-co { color: #6b5191; font-weight: 600; }
+.cv-work-sub {
+  font-size: 11px;
+  color: #6b6976;
+  margin-bottom: 5px;
+}
+.cv-work-co {
+  color: #6b5191;
+  font-weight: 600;
+}
 .cv-work-bullets {
-  margin: 0; padding: 0; list-style: none;
-  display: flex; flex-direction: column; gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 .cv-work-bullets li {
-  font-size: 11px; line-height: 1.5; color: #3c3a44;
-  padding-left: 13px; position: relative;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #3c3a44;
+  padding-left: 13px;
+  position: relative;
 }
 .cv-work-bullets li::before {
-  content: ""; position: absolute; left: 2px; top: 7px;
-  width: 4px; height: 4px; border-radius: 999px;
-  background: #6b5191; opacity: 0.55;
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 7px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: #6b5191;
+  opacity: 0.55;
 }
 
 /* Row items (education, training, exam, award) */
-.cv-row-item { margin-bottom: 9px; break-inside: avoid; }
-.cv-row-item:last-child { margin-bottom: 0; }
+.cv-row-item {
+  margin-bottom: 9px;
+  break-inside: avoid;
+}
+.cv-row-item:last-child {
+  margin-bottom: 0;
+}
 .cv-row-top {
-  display: flex; justify-content: space-between; gap: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
   align-items: baseline;
 }
-.cv-row-title { font-size: 11.5px; font-weight: 600; color: #1c1a23; letter-spacing: -0.1px; }
-.cv-row-meta {
-  font-size: 10px; font-family: "JetBrains Mono", monospace;
-  color: #6b6976; white-space: nowrap;
+.cv-row-title {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1c1a23;
+  letter-spacing: -0.1px;
 }
-.cv-row-sub { font-size: 10.5px; color: #6b6976; margin-top: 1px; }
-.cv-row-desc { font-size: 10.5px; color: #3c3a44; margin-top: 3px; padding-left: 2px; }
+.cv-row-meta {
+  font-size: 10px;
+  font-family: "JetBrains Mono", monospace;
+  color: #6b6976;
+  white-space: nowrap;
+}
+.cv-row-sub {
+  font-size: 10.5px;
+  color: #6b6976;
+  margin-top: 1px;
+}
+.cv-row-desc {
+  font-size: 10.5px;
+  color: #3c3a44;
+  margin-top: 3px;
+  padding-left: 2px;
+}
 
 /* Skills */
-.cv-skill-group { margin-bottom: 9px; break-inside: avoid; }
-.cv-skill-group:last-child { margin-bottom: 0; }
+.cv-skill-group {
+  margin-bottom: 9px;
+  break-inside: avoid;
+}
+.cv-skill-group:last-child {
+  margin-bottom: 0;
+}
 .cv-skill-label {
-  font-size: 9px; font-weight: 600; color: #6b6976;
-  text-transform: uppercase; letter-spacing: 0.8px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #6b6976;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
   margin-bottom: 4px;
   font-family: "JetBrains Mono", monospace;
 }
-.cv-skill-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+.cv-skill-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
 .cv-skill-tag {
-  font-size: 10.5px; padding: 2px 7px;
+  font-size: 10.5px;
+  padding: 2px 7px;
   border-radius: 4px;
   background: rgba(107, 81, 145, 0.08);
   color: #574077;
@@ -1427,14 +1788,27 @@ function onPhotoChange(event: Event) {
 /* Page footer */
 .cv-page-foot {
   position: absolute;
-  bottom: 12mm; left: 20mm; right: 20mm;
-  display: flex; justify-content: space-between;
-  font-size: 8.5px; font-family: "JetBrains Mono", monospace;
-  color: #9a98a4; letter-spacing: 0.4px; text-transform: uppercase;
+  bottom: 12mm;
+  left: 20mm;
+  right: 20mm;
+  display: flex;
+  justify-content: space-between;
+  font-size: 8.5px;
+  font-family: "JetBrains Mono", monospace;
+  color: #9a98a4;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
-.cv-foot-left { display: flex; gap: 6px; align-items: center; }
+.cv-foot-left {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
 .cv-foot-mark {
-  width: 5px; height: 5px; border-radius: 999px;
-  background: #6b5191; opacity: 0.35;
+  width: 5px;
+  height: 5px;
+  border-radius: 999px;
+  background: #6b5191;
+  opacity: 0.35;
 }
 </style>

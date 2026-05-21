@@ -61,7 +61,7 @@ function onKeydown(e: KeyboardEvent) {
 
 <template>
   <div
-    class="flex h-[calc(100vh-8rem)] flex-col gap-0 overflow-hidden rounded-3xl border border-border bg-card"
+    class="flex h-[calc(100vh-3rem)] flex-col gap-0 overflow-hidden rounded-3xl border border-border bg-card"
   >
     <!-- Header -->
     <div class="flex items-center gap-3 border-b border-border px-6 py-4">

@@ -7,6 +7,7 @@ export interface SaveJobPayload {
   contact_info: string;
   type: string;
   level: string;
+  department: string;
   city?: string;
   district?: string;
   location_x?: number;

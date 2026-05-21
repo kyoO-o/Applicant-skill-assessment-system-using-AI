@@ -169,6 +169,9 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	socket.NotifyUser(int(job.PostedBy), "Шинэ анкет ирлээ",
+		fmt.Sprintf("'%s' ажлын байранд шинэ анкет ирлээ", job.Title), "new_application")
+
 	// Run AI assessment asynchronously
 	jobRequirements := make([]string, 0, len(job.Requirements))
 	for _, r := range job.Requirements {

@@ -3,6 +3,7 @@ package appman
 import (
 	"errors"
 	"log"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -90,6 +91,14 @@ func (s *Service) Delete(id int) error {
 
 func (s *Service) UpdateStatus(id int, status string) error {
 	return s.db.Model(&Application{}).Where("id = ?", id).Update("status", status).Error
+}
+
+func (s *Service) FindUpcomingInterviews(from, to time.Time) ([]*Application, error) {
+	var apps []*Application
+	if err := s.db.Where("interview_at BETWEEN ? AND ?", from, to).Find(&apps).Error; err != nil {
+		return nil, err
+	}
+	return apps, nil
 }
 
 func (s *Service) ListScheduledForCompany(companyID uint) ([]*Application, error) {
