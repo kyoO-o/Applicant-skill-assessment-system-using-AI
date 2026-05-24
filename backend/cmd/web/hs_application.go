@@ -435,10 +435,31 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 
 	locationToStore := req.InterviewLocation
 	gcalDone := false
+	isReschedule := a.GCalEventID != ""
 
-	// When Google Meet is requested, create the Calendar event synchronously
-	// so we can capture and store the Meet link before responding.
-	if req.GenerateMeet && recruiter.GoogleRefreshToken != "" {
+	// If already has a calendar event, just update its time.
+	if isReschedule && recruiter.GoogleRefreshToken != "" {
+		patchErr := patchGCalEventTime(r.Context(), recruiter, a.GCalEventID, t)
+		if patchErr == nil {
+			gcalDone = true
+			locationToStore = a.InterviewLocation // keep existing location (Meet link)
+			if req.InterviewLocation != "" {
+				locationToStore = req.InterviewLocation
+			}
+		} else if errors.Is(patchErr, errGCalEventNotFound) {
+			// Event was deleted externally — clear the stale ID and fall through to recreate.
+			app.InfoLog.Printf("gcal event %s not found, will recreate", a.GCalEventID)
+			a.GCalEventID = ""
+			isReschedule = false
+		} else {
+			app.ErrorLog.Printf("gcal event reschedule failed: %v", patchErr)
+			gcalDone = true
+		}
+	}
+
+	// When Google Meet is requested on a new interview (or after stale-event fallback),
+	// create the Calendar event synchronously so we can store the Meet link.
+	if !isReschedule && req.GenerateMeet && recruiter.GoogleRefreshToken != "" {
 		desc := ""
 		if applicant != nil {
 			desc = fmt.Sprintf("Горилогч: %s", applicant.FullName)
@@ -450,11 +471,14 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 		if applicant != nil {
 			applicantEmail = applicant.Email
 		}
-		meetLink, gcalErr := createGCalEvent(r.Context(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, "", applicantEmail, t, true)
+		meetLink, eventID, gcalErr := createGCalEvent(r.Context(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, "", applicantEmail, t, true)
 		if gcalErr != nil {
 			app.ErrorLog.Printf("gcal meet creation failed: %v", gcalErr)
-		} else if meetLink != "" {
-			locationToStore = meetLink
+		} else {
+			if meetLink != "" {
+				locationToStore = meetLink
+			}
+			a.GCalEventID = eventID
 		}
 		gcalDone = true
 	}
@@ -504,15 +528,24 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create Google Calendar event in background (onsite case, not already done above)
-	if !gcalDone && recruiter.GoogleRefreshToken != "" {
+	if !gcalDone && !isReschedule && recruiter.GoogleRefreshToken != "" {
 		applicantEmailCopy := resp.ApplicantEmail
+		savedID := saved.ID
 		go func() {
 			desc := fmt.Sprintf("Горилогч: %s", resp.ApplicantName)
 			if req.InterviewNote != "" {
 				desc += "\n" + req.InterviewNote
 			}
-			if _, err := createGCalEvent(context.Background(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, req.InterviewLocation, applicantEmailCopy, t, false); err != nil {
+			_, eventID, err := createGCalEvent(context.Background(), recruiter, fmt.Sprintf("Ярилцлага: %s", jobTitle), desc, req.InterviewLocation, applicantEmailCopy, t, false)
+			if err != nil {
 				app.ErrorLog.Printf("gcal event creation failed: %v", err)
+				return
+			}
+			if eventID != "" {
+				if bg, bgErr := app.Applications.Get(int(savedID)); bgErr == nil {
+					bg.GCalEventID = eventID
+					app.Applications.Save(bg)
+				}
 			}
 		}()
 	}

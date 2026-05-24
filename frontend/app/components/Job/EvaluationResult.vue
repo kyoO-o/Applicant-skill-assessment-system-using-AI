@@ -387,4 +387,24 @@ const showApplyBtn = computed(() => props.mode === "preview" && isPass.value);
       </div>
     </div>
   </div>
+  <!-- Recommendations -->
+  <div
+    v-if="result?.recommendations?.length"
+    class="rounded-2xl border p-5 ai-surface w-full"
+  >
+    <div class="mb-3 flex items-center gap-2">
+      <Sparkles class="h-4 w-4 text-primary" />
+      <p class="text-[15px] font-semibold">Сайжруулах зөвлөмж</p>
+    </div>
+    <ul class="space-y-2">
+      <li
+        v-for="rec in result.recommendations"
+        :key="rec"
+        class="flex items-start gap-2 text-[13.5px] text-muted-foreground"
+      >
+        <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+        {{ rec }}
+      </li>
+    </ul>
+  </div>
 </template>

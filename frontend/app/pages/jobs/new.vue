@@ -66,8 +66,8 @@ async function handleSubmit(payload: any) {
       </p>
     </section>
 
-    <Card class="rounded-3xl border-border">
-      <CardContent class="pt-6">
+    <Card class="rounded-3xl border-border shadow-none">
+      <CardContent class="pt-1">
         <JobForm
           :company="company"
           :is-submitting="isSubmitting"

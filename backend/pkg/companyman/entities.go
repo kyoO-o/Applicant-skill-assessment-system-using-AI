@@ -10,8 +10,9 @@ type Company struct {
 	ContactInfo string           `json:"contact_info"`
 	City        string           `json:"city"`
 	District    string           `json:"district"`
-	LocationX   float64          `json:"location_x"`
-	LocationY   float64          `json:"location_y"`
+	LocationX           float64          `json:"location_x"`
+	LocationY           float64          `json:"location_y"`
+	LocationDescription string           `json:"location_description"`
 	Logo        string           `json:"logo_url" gorm:"column:logo"`
 	ProfileURL  string           `json:"profile_url"`
 	Benefits    []CompanyBenefit `json:"benefits" gorm:"foreignKey:CompanyID"`

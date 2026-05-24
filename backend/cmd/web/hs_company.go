@@ -25,9 +25,10 @@ type companyRequest struct {
 	ProfileURL  string   `json:"profile_url"`
 	City        string   `json:"city"`
 	District    string   `json:"district"`
-	LocationX   *float64 `json:"location_x"`
-	LocationY   *float64 `json:"location_y"`
-	Benefits    []string `json:"benefits"`
+	LocationX           *float64 `json:"location_x"`
+	LocationY           *float64 `json:"location_y"`
+	LocationDescription string   `json:"location_description"`
+	Benefits            []string `json:"benefits"`
 }
 
 func chosenCompany(r *http.Request) (*companyman.Company, bool) {
@@ -101,6 +102,7 @@ func SaveCompany(w http.ResponseWriter, r *http.Request) {
 	company.ProfileURL = req.ProfileURL
 	company.City = req.City
 	company.District = req.District
+	company.LocationDescription = strings.TrimSpace(req.LocationDescription)
 	if req.LocationX != nil {
 		company.LocationX = *req.LocationX
 	}

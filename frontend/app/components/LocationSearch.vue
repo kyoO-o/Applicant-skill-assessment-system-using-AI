@@ -4,12 +4,14 @@ import { Search, MapPin, X } from "lucide-vue-next";
 const props = defineProps<{
   modelX: string;
   modelY: string;
+  modelLocation?: string;
   disabled?: boolean;
 }>();
 
 const emit = defineEmits<{
   "update:modelX": [value: string];
   "update:modelY": [value: string];
+  "update:modelLocation": [value: string];
 }>();
 
 type NominatimResult = {
@@ -19,7 +21,7 @@ type NominatimResult = {
   lon: string;
 };
 
-const query = ref("");
+const query = ref(props.modelLocation ?? "");
 const results = ref<NominatimResult[]>([]);
 const showDropdown = ref(false);
 let debounceTimer: ReturnType<typeof setTimeout>;
@@ -161,8 +163,21 @@ function onInput() {
 function select(r: NominatimResult) {
   emit("update:modelX", r.lat);
   emit("update:modelY", r.lon);
-  query.value = r.display_name.split(",").slice(0, 2).join(",").trim();
+  const label = r.display_name.split(",").slice(0, 2).join(",").trim();
+  query.value = label;
+  emit("update:modelLocation", label);
   showDropdown.value = false;
+}
+
+function onEnterKey(event: KeyboardEvent) {
+  if (showDropdown.value) {
+    // prevent form submission while dropdown is open
+    event.preventDefault();
+  }
+  const text = query.value.trim();
+  if (!text) return;
+  showDropdown.value = false;
+  emit("update:modelLocation", text);
 }
 
 function hideDropdown() {
@@ -174,6 +189,7 @@ function hideDropdown() {
 function clear() {
   emit("update:modelX", "");
   emit("update:modelY", "");
+  emit("update:modelLocation", "");
   query.value = "";
   results.value = [];
   if (marker) {
@@ -192,11 +208,12 @@ function clear() {
       <Input
         v-model="query"
         :disabled="disabled"
-        placeholder="Хаяг хайх... (жишээ: Сүхбаатар дүүрэг)"
+        placeholder="Хаяг хайх..."
         class="pl-9 pr-8"
         @input="onInput"
         @focus="showDropdown = results.length > 0"
         @blur="hideDropdown"
+        @keydown.enter="onEnterKey"
       />
       <button
         v-if="query && !disabled"
@@ -207,9 +224,10 @@ function clear() {
       >
         <X class="h-3.5 w-3.5" />
       </button>
+      <!-- z-[2000] to appear above Leaflet map layers (~z-index 700-800) -->
       <div
         v-if="showDropdown"
-        class="absolute z-50 mt-1 w-full overflow-hidden rounded-2xl border border-border bg-popover"
+        class="absolute z-[2000] mt-1 w-full overflow-hidden rounded-2xl border border-border bg-popover shadow-md"
       >
         <button
           v-for="r in results"

@@ -37,9 +37,10 @@ type Application struct {
 	RequirementAssessments string `json:"requirement_assessments" gorm:"type:text"`
 	Status           string     `json:"status" gorm:"default:pending"`
 	AssessedAt       *time.Time `json:"assessed_at"`
-	InterviewAt      *time.Time `json:"interview_at"`
-	InterviewLocation string    `json:"interview_location" gorm:"type:text"`
-	InterviewNote     string    `json:"interview_note" gorm:"type:text"`
+	InterviewAt       *time.Time `json:"interview_at"`
+	InterviewLocation string     `json:"interview_location" gorm:"type:text"`
+	InterviewNote     string     `json:"interview_note" gorm:"type:text"`
+	GCalEventID       string     `json:"gcal_event_id,omitempty" gorm:"type:text"`
 
 	ApplicantName  string `json:"applicant_name" gorm:"-"`
 	ApplicantEmail string `json:"applicant_email" gorm:"-"`

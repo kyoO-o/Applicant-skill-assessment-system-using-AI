@@ -28,6 +28,7 @@ const props = defineProps<{
   initialDistrict?: string;
   initialLocationX?: string;
   initialLocationY?: string;
+  initialLocationDescription?: string;
   initialMinSalary?: string;
   initialMaxSalary?: string;
   initialAdditionalInfo?: string;
@@ -42,11 +43,11 @@ const emit = defineEmits<{
 }>();
 
 const overrideContact = ref(
-  !!props.initialTitle || (!!props.company && !props.company.contact_info),
+  !props.company?.contact_info || !!props.initialContactInfo,
 );
 const overrideLocation = ref(
-  !!props.initialTitle ||
-    (!!props.company && !props.company.city && !props.company.location_x),
+  (!props.company?.city && !props.company?.location_x && !props.company?.location_description) ||
+    !!(props.initialCity || props.initialLocationX || props.initialLocationDescription),
 );
 
 const { validate, setValues, setFieldValue, errors } = useForm({
@@ -86,6 +87,9 @@ const form = reactive({
   location_y:
     props.initialLocationY ??
     (props.company?.location_y ? String(props.company.location_y) : ""),
+  location_text:
+    props.initialLocationDescription ??
+    (!overrideLocation.value ? (props.company?.location_description ?? "") : ""),
   min_salary: props.initialMinSalary ?? "",
   max_salary: props.initialMaxSalary ?? "",
   additional_info: props.initialAdditionalInfo ?? "",
@@ -134,6 +138,7 @@ watch(overrideLocation, (val) => {
     form.location_y = props.company.location_y
       ? String(props.company.location_y)
       : "";
+    form.location_text = props.company.location_description ?? "";
   }
 });
 
@@ -167,7 +172,8 @@ async function submitForm() {
 
   const city = form.city.trim();
   const district = form.district.trim();
-  const location = [district, city].filter(Boolean).join(", ");
+  const location =
+    form.location_text.trim() || [district, city].filter(Boolean).join(", ");
   const toList = (value: string[]) =>
     value.map((item) => item.trim()).filter(Boolean);
 
@@ -207,35 +213,37 @@ async function submitForm() {
       {{ errorMessage }}
     </div>
 
-    <!-- Title -->
-    <div class="space-y-2">
-      <Label for="job-title">Ажлын байрны нэр</Label>
-      <Input
-        id="job-title"
-        v-model="form.title"
-        placeholder="Frontend Developer"
-      />
-      <p v-if="errors.title" class="text-sm text-destructive">
-        {{ errors.title }}
-      </p>
-    </div>
+    <div class="w-full grid gap-4 sm:grid-cols-2">
+      <!-- Title -->
+      <div class="space-y-2">
+        <Label for="job-title">Ажлын байрны нэр</Label>
+        <Input
+          id="job-title"
+          v-model="form.title"
+          placeholder="Frontend Developer"
+        />
+        <p v-if="errors.title" class="text-sm text-destructive">
+          {{ errors.title }}
+        </p>
+      </div>
 
-    <!-- Department -->
-    <div class="space-y-2">
-      <Label for="job-department">Салбар / Чиглэл</Label>
-      <Select v-model="form.department">
-        <SelectTrigger id="job-department" class="w-full">
-          <SelectValue placeholder="Салбар сонгох" />
-        </SelectTrigger>
-        <SelectContent class="h-80">
-          <SelectItem v-for="d in DEPARTMENT" :key="d" :value="d">{{
-            d
-          }}</SelectItem>
-        </SelectContent>
-      </Select>
-      <p v-if="errors.department" class="text-sm text-destructive">
-        {{ errors.department }}
-      </p>
+      <!-- Department -->
+      <div class="space-y-2">
+        <Label for="job-department">Салбар / Чиглэл</Label>
+        <Select v-model="form.department">
+          <SelectTrigger id="job-department" class="w-full">
+            <SelectValue placeholder="Салбар сонгох" />
+          </SelectTrigger>
+          <SelectContent class="h-80">
+            <SelectItem v-for="d in DEPARTMENT" :key="d" :value="d">{{
+              d
+            }}</SelectItem>
+          </SelectContent>
+        </Select>
+        <p v-if="errors.department" class="text-sm text-destructive">
+          {{ errors.department }}
+        </p>
+      </div>
     </div>
 
     <!-- Type + Level + Status -->
@@ -293,33 +301,39 @@ async function submitForm() {
         <div>
           <p class="text-sm font-medium">Холбоо барих мэдээлэл</p>
           <p
-            v-if="company && !overrideContact"
+            v-if="company?.contact_info && !overrideContact"
             class="mt-0.5 text-xs text-green-600"
           >
             ✓ Компанийн мэдээлэл ашиглагдлаа
           </p>
         </div>
         <div
-          v-if="company"
+          v-if="company?.contact_info"
           class="flex items-center gap-2 text-xs text-muted-foreground"
         >
-          <Checkbox
-            id="override-contact-cb"
-            v-model:checked="overrideContact"
-          />
+          <Checkbox id="override-contact-cb" v-model="overrideContact" />
           <label for="override-contact-cb" class="cursor-pointer select-none"
-            >Өөр мэдээлэл оруулах</label
+            >Гараар оруулах</label
           >
         </div>
       </div>
-      <Input
-        v-model="form.contact_info"
-        placeholder="hr@company.mn | +976 99000000"
-        :disabled="!overrideContact && !!company"
-      />
-      <p v-if="errors.contact_info" class="text-sm text-destructive">
-        {{ errors.contact_info }}
-      </p>
+      <!-- Read-only company display -->
+      <div
+        v-if="!overrideContact && company?.contact_info"
+        class="rounded-xl border border-border bg-background px-3 py-2 text-sm"
+      >
+        {{ company.contact_info }}
+      </div>
+      <!-- Editable input -->
+      <div v-show="overrideContact || !company?.contact_info">
+        <Input
+          v-model="form.contact_info"
+          placeholder="hr@company.mn | +976 99000000"
+        />
+        <p v-if="errors.contact_info" class="mt-1 text-sm text-destructive">
+          {{ errors.contact_info }}
+        </p>
+      </div>
     </div>
 
     <!-- Location -->
@@ -328,68 +342,73 @@ async function submitForm() {
         <div>
           <p class="text-sm font-medium">Байршил</p>
           <p
-            v-if="company && !overrideLocation"
+            v-if="(company?.city || company?.location_x || company?.location_description) && !overrideLocation"
             class="mt-0.5 text-xs text-green-600"
           >
             ✓ Компанийн байршил ашиглагдлаа
           </p>
         </div>
         <div
-          v-if="company"
+          v-if="company?.city || company?.location_x || company?.location_description"
           class="flex items-center gap-2 text-xs text-muted-foreground"
         >
-          <Checkbox
-            id="override-location-cb"
-            v-model:checked="overrideLocation"
-          />
+          <Checkbox id="override-location-cb" v-model="overrideLocation" />
           <label for="override-location-cb" class="cursor-pointer select-none"
-            >Өөр байршил оруулах</label
+            >Гараар оруулах</label
           >
         </div>
       </div>
-
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div class="space-y-2">
-          <Label for="job-city">Хот / Аймаг</Label>
-          <Select
-            v-model="form.city"
-            :disabled="!overrideLocation && !!company"
-          >
-            <SelectTrigger id="job-city" class="w-full">
-              <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="city in cities" :key="city" :value="city">{{
-                city
-              }}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div class="space-y-2">
-          <Label for="job-district">Дүүрэг / Сум</Label>
-          <Select
-            v-model="form.district"
-            :disabled="(!overrideLocation && !!company) || !form.city"
-          >
-            <SelectTrigger id="job-district" class="w-full">
-              <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="d in districtOptions" :key="d" :value="d">{{
-                d
-              }}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+      <!-- Read-only company location display -->
+      <div
+        v-if="!overrideLocation && (company?.city || company?.location_x || company?.location_description)"
+        class="rounded-xl border border-border bg-background px-3 py-2 text-sm space-y-0.5"
+      >
+        <p v-if="company?.location_description" class="text-foreground">{{ company.location_description }}</p>
+        <p class="text-muted-foreground text-xs">
+          {{ [company?.district, company?.city].filter(Boolean).join(", ") }}
+        </p>
       </div>
-
-      <div>
-        <Label class="mb-2 block">Газрын зураг дээр байршил сонгох</Label>
-        <LocationSearch
-          v-model:model-x="form.location_x"
-          v-model:model-y="form.location_y"
-          :disabled="!overrideLocation && !!company"
-        />
+      <!-- Editable location fields -->
+      <div
+        v-show="overrideLocation || (!company?.city && !company?.location_x && !company?.location_description)"
+        class="space-y-4"
+      >
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="space-y-2">
+            <Label for="job-city">Хот / Аймаг</Label>
+            <Select v-model="form.city">
+              <SelectTrigger id="job-city" class="w-full">
+                <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="city in cities" :key="city" :value="city">{{
+                  city
+                }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div class="space-y-2">
+            <Label for="job-district">Дүүрэг / Сум</Label>
+            <Select v-model="form.district" :disabled="!form.city">
+              <SelectTrigger id="job-district" class="w-full">
+                <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="d in districtOptions" :key="d" :value="d">{{
+                  d
+                }}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <div>
+          <Label class="mb-2 block">Газрын зураг дээр байршил сонгох</Label>
+          <LocationSearch
+            v-model:model-x="form.location_x"
+            v-model:model-y="form.location_y"
+            v-model:model-location="form.location_text"
+          />
+        </div>
       </div>
     </div>
 
@@ -549,7 +568,7 @@ async function submitForm() {
 
       <div class="space-y-3">
         <div class="flex items-center justify-between">
-          <Label>Нэмэлт давуу тал / Урамшуулал</Label>
+          <Label>Хөнгөлөлт / Урамшуулал</Label>
           <Button
             type="button"
             variant="outline"

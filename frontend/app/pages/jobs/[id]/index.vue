@@ -568,16 +568,6 @@ function jobStatusLabel(status: string) {
       <!-- ── Body: 2-col layout ─────────────────────────────────────────── -->
       <div class="grid gap-5 lg:grid-cols-3">
         <div class="space-y-5 lg:col-span-2">
-          <!-- Description -->
-          <div class="rounded-2xl border border-border bg-card p-5">
-            <p class="mb-3 text-[15px] font-semibold">Тайлбар</p>
-            <p
-              class="whitespace-pre-line text-[13.5px] leading-[1.7] text-muted-foreground"
-            >
-              {{ job.additional_info || job.description }}
-            </p>
-          </div>
-
           <!-- Duties -->
           <div
             v-if="job.duties?.length"
@@ -687,32 +677,21 @@ function jobStatusLabel(status: string) {
 
         <!-- ── Right column ───────────────────────────────────────────── -->
         <div class="space-y-5">
-          <!-- Recommendations -->
-          <div
-            v-if="displayResult?.recommendations?.length"
-            class="rounded-2xl border p-5 ai-surface"
-          >
-            <div class="mb-3 flex items-center gap-2">
-              <Sparkles class="h-4 w-4 text-primary" />
-              <p class="text-[15px] font-semibold">Сайжруулах зөвлөмж</p>
-            </div>
-            <ul class="space-y-2">
-              <li
-                v-for="rec in displayResult.recommendations"
-                :key="rec"
-                class="flex items-start gap-2 text-[13.5px] text-muted-foreground"
-              >
-                <ChevronRight class="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                {{ rec }}
-              </li>
-            </ul>
+          <!-- Description -->
+          <div class="rounded-2xl border border-border bg-card p-5">
+            <p class="mb-3 text-[15px] font-semibold">Нэмэлт тайлбар</p>
+            <p
+              class="whitespace-pre-line text-[13.5px] leading-[1.7] text-muted-foreground"
+            >
+              {{ job.additional_info || job.description }}
+            </p>
           </div>
           <!-- Bonuses -->
           <div
             v-if="job.bonuses?.length"
             class="rounded-2xl border border-border bg-card p-5"
           >
-            <p class="mb-3 text-[15px] font-semibold">Нэмэлт давуу тал</p>
+            <p class="mb-3 text-[15px] font-semibold">Хөнгөлөлт / Урамшуулал</p>
             <ul class="space-y-1.5">
               <li
                 v-for="bonus in job.bonuses"

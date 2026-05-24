@@ -10,15 +10,20 @@ import {
 } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 
+const router = useRouter();
 const { user, me } = useAuth();
 const authAPI = useAuthAPI();
 const integrationsAPI = useIntegrationsAPI();
 const route = useRoute();
+const { disconnect: disconnectWS } = useNotifications();
 
 // ── Google Calendar ────────────────────────────────────────────
 const gcalConnected = ref(false);
 const gcalLoading = ref(true);
 const gcalWorking = ref(false);
+
+const isLoading = useState<boolean>("auth-loading", () => false);
+const initialized = useState<boolean>("auth-initialized", () => false);
 
 onMounted(async () => {
   try {
@@ -269,6 +274,23 @@ async function changePassword() {
     isChangingPassword.value = false;
   }
 }
+
+async function logout() {
+  isLoading.value = true;
+  try {
+    await authAPI.logout();
+    user.value = null;
+  } finally {
+    initialized.value = true;
+    isLoading.value = false;
+  }
+}
+
+async function handleLogout() {
+  disconnectWS();
+  await logout();
+  await router.push("/login");
+}
 </script>
 
 <template>
@@ -426,6 +448,7 @@ async function changePassword() {
               variant="outline"
               size="sm"
               class="border-destructive/30 text-destructive hover:bg-destructive/5 hover:text-destructive"
+              @click="handleLogout"
               >Гарах</Button
             >
           </div>

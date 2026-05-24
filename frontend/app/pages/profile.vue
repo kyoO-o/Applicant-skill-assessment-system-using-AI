@@ -98,6 +98,7 @@ const companyForm = reactive({
   district: "",
   location_x: "",
   location_y: "",
+  location_description: "",
   benefits: [] as string[],
 });
 
@@ -166,6 +167,7 @@ function fillCompanyForm(value: Company | null) {
     typeof value?.location_x === "number" ? String(value.location_x) : "";
   companyForm.location_y =
     typeof value?.location_y === "number" ? String(value.location_y) : "";
+  companyForm.location_description = value?.location_description || "";
   companyForm.benefits = value?.benefits?.map((b) => b.description) || [];
 }
 
@@ -192,6 +194,7 @@ function buildCompanyPayload(): SaveCompanyPayload {
     location_y: companyForm.location_y.trim()
       ? Number(companyForm.location_y.trim())
       : undefined,
+    location_description: companyForm.location_description.trim() || undefined,
     benefits: companyForm.benefits.map((b) => b.trim()).filter(Boolean),
   };
 }
@@ -754,7 +757,7 @@ fillProfileForm();
                     <SelectTrigger id="company-city" class="w-full">
                       <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent class="z-[9999]">
                       <SelectItem
                         v-for="city in cities"
                         :key="city"
@@ -774,7 +777,7 @@ fillProfileForm();
                     <SelectTrigger id="company-district" class="w-full">
                       <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent class="z-[9999]">
                       <SelectItem
                         v-for="district in districtOptions"
                         :key="district"
@@ -792,6 +795,7 @@ fillProfileForm();
                   <LocationSearch
                     v-model:model-x="companyForm.location_x"
                     v-model:model-y="companyForm.location_y"
+                    v-model:model-location="companyForm.location_description"
                   />
                 </div>
               </div>

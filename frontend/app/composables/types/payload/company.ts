@@ -8,5 +8,6 @@ export interface SaveCompanyPayload {
   district: string;
   location_x?: number;
   location_y?: number;
+  location_description?: string;
   benefits: string[];
 }
