@@ -3,6 +3,8 @@ CC = go run
 MODE = -mode=debug
 FRONTEND_DIR = frontend
 BACKEND_DIR = backend
+SERVER = root@167.172.65.141
+BUILDS_DIR = builds
 
 # Determine the processor type
 PROCESSOR_TYPE := $(shell uname -m)
@@ -17,18 +19,16 @@ endif
 ui: 
 	cd $(FRONTEND_DIR) && pnpm dev --dotenv ./env/.env --host
 
-# dep-web: 
-# 	cd backend && go build  -o ../builds/web ./cmd/web
-# 	scp -P 27322 builds/web git@dc.chimege.com:/home/docscan/__web
-# 	scp -P 27322 ./backend/confs/web.yaml git@dc.chimege.com:/home/docscan/web.yaml
-# 	ssh -p 27322 -tt git@dc.chimege.com "cd /home/docscan && mv __web web"
-# 	ssh -p 27322 -tt git@dc.chimege.com "supervisorctl restart docscan"
-# 	rm -rf builds/web
+dep-web:
+	mkdir -p $(BUILDS_DIR)
+	cd $(BACKEND_DIR) && GOOS=linux GOARCH=amd64 go build -o ../$(BUILDS_DIR)/api ./cmd/web
+	scp $(BUILDS_DIR)/api $(SERVER):/home/deploy/api/__api
+	rm -f $(BUILDS_DIR)/api
+	ssh $(SERVER) "cd /home/deploy/api && mv api _api 2>/dev/null || true && mv __api api"
+	ssh $(SERVER) "systemctl restart web-api"
 
-# dep-ui: 
-# 	cd $(FRONTEND_DIR) && yarn generate
-# 	cd $(FRONTEND_DIR)/dist && zip dist.zip -r *
-# 	mv $(FRONTEND_DIR)/dist/dist.zip .
-# 	scp -P 27322 dist.zip git@dc.chimege.com:/var/www/html
-# 	ssh -p 27322 -tt git@dc.chimege.com "cd /var/www/html && unzip -o dist.zip && rm -rf dist.zip"
-# 	rm dist.zip
+dep-ui:
+# 	cd $(FRONTEND_DIR) && NUXT_PUBLIC_API_BASE=https://skillz.works pnpm generate
+# 	rsync -avz --delete $(FRONTEND_DIR)/.output/public/ $(SERVER):/var/www/html/
+	cd frontend && NUXT_PUBLIC_API_BASE=http://167.172.65.141 pnpm generate
+	rsync -avz --delete frontend/.output/public/ root@167.172.65.141:/var/www/html/
