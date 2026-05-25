@@ -16,6 +16,7 @@ export interface Job extends BaseModel {
   employment_type: string;
   level: string;
   seniority: string;
+  department?: string;
   city?: string;
   district?: string;
   location_x?: number;

@@ -16,7 +16,6 @@ import (
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common/oapi"
-	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/aiman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/taskman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/userman"
 )
@@ -468,71 +467,71 @@ func listAllSubmissions(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /api/tasks/submissions/{id}/ai-grade  — AI grades a submission
-func aiGradeSubmission(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
-	if !ok {
-		oapi.Forbidden(w)
-		return
-	}
+// func aiGradeSubmission(w http.ResponseWriter, r *http.Request) {
+// 	_, ok := recruiterUser(r)
+// 	if !ok {
+// 		oapi.Forbidden(w)
+// 		return
+// 	}
 
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil || id <= 0 {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "ID буруу байна"})
-		return
-	}
+// 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+// 	if err != nil || id <= 0 {
+// 		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "ID буруу байна"})
+// 		return
+// 	}
 
-	sub, err := app.Tasks.GetSubmission(id)
-	if err != nil {
-		if errors.Is(err, taskman.ErrNotFound) {
-			oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Илгээлт олдсонгүй"})
-			return
-		}
-		oapi.ServerError(w, err)
-		return
-	}
+// 	sub, err := app.Tasks.GetSubmission(id)
+// 	if err != nil {
+// 		if errors.Is(err, taskman.ErrNotFound) {
+// 			oapi.CustomError(w, http.StatusNotFound, map[string]string{"message": "Илгээлт олдсонгүй"})
+// 			return
+// 		}
+// 		oapi.ServerError(w, err)
+// 		return
+// 	}
 
-	task, err := app.Tasks.Get(int(sub.TaskID))
-	if err != nil {
-		oapi.ServerError(w, err)
-		return
-	}
+// 	task, err := app.Tasks.Get(int(sub.TaskID))
+// 	if err != nil {
+// 		oapi.ServerError(w, err)
+// 		return
+// 	}
 
-	content := sub.Content
-	if content == "" && sub.FilePath != "" {
-		if pdfBytes, readErr := os.ReadFile(sub.FilePath); readErr == nil {
-			if extracted, _ := aiman.ExtractTextFromPDF(pdfBytes); len(extracted) > 50 {
-				content = extracted
-			}
-		}
-	}
+// 	content := sub.Content
+// 	if content == "" && sub.FilePath != "" {
+// 		if pdfBytes, readErr := os.ReadFile(sub.FilePath); readErr == nil {
+// 			if extracted, _ := aiman.ExtractTextFromPDF(pdfBytes); len(extracted) > 50 {
+// 				content = extracted
+// 			}
+// 		}
+// 	}
 
-	if content == "" {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "AI үнэлэхэд агуулга байхгүй байна"})
-		return
-	}
+// 	if content == "" {
+// 		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "AI үнэлэхэд агуулга байхгүй байна"})
+// 		return
+// 	}
 
-	grade, feedback, err := app.AI.GradeTask(task.Title, task.Description, content)
-	if err != nil {
-		app.ErrorLog.Printf("AI grading error: %v", err)
-		oapi.CustomError(w, http.StatusServiceUnavailable, map[string]string{"message": "AI үйлчилгээ түр ажиллахгүй байна"})
-		return
-	}
+// 	grade, feedback, err := app.AI.GradeTask(task.Title, task.Description, content)
+// 	if err != nil {
+// 		app.ErrorLog.Printf("AI grading error: %v", err)
+// 		oapi.CustomError(w, http.StatusServiceUnavailable, map[string]string{"message": "AI үйлчилгээ түр ажиллахгүй байна"})
+// 		return
+// 	}
 
-	sub.Grade = &grade
-	sub.Feedback = feedback
-	sub.Status = taskman.SubStatusGraded
+// 	sub.Grade = &grade
+// 	sub.Feedback = feedback
+// 	sub.Status = taskman.SubStatusGraded
 
-	saved, err := app.Tasks.SaveSubmission(sub)
-	if err != nil {
-		oapi.ServerError(w, err)
-		return
-	}
+// 	saved, err := app.Tasks.SaveSubmission(sub)
+// 	if err != nil {
+// 		oapi.ServerError(w, err)
+// 		return
+// 	}
 
-	socket.NotifyUser(int(saved.ApplicantID), "Даалгавар үнэлэгдлээ",
-		fmt.Sprintf("Таны даалгавар үнэлэгдлээ. Оноо: %d/100", *saved.Grade), "task_graded")
+// 	socket.NotifyUser(int(saved.ApplicantID), "Даалгавар үнэлэгдлээ",
+// 		fmt.Sprintf("Таны даалгавар үнэлэгдлээ. Оноо: %d/100", *saved.Grade), "task_graded")
 
-	oapi.SendResp(w, saved)
-}
+// 	oapi.SendResp(w, saved)
+// }
 
 // GET /api/tasks/submissions/{id}/file  — serve submission PDF
 func serveSubmissionFile(w http.ResponseWriter, r *http.Request) {

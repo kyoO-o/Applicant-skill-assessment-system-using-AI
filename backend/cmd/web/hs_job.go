@@ -23,6 +23,7 @@ type jobRequest struct {
 	EmploymentType string   `json:"employment_type"`
 	Level          string   `json:"level"`
 	Seniority      string   `json:"seniority"`
+	Department     string   `json:"department"`
 	City           *string  `json:"city"`
 	District       *string  `json:"district"`
 	LocationX      *float64 `json:"location_x"`
@@ -52,6 +53,7 @@ type jobResponse struct {
 	EmploymentType    string    `json:"employment_type"`
 	Level             string    `json:"level"`
 	Seniority         string    `json:"seniority"`
+	Department        string    `json:"department"`
 	City              *string   `json:"city"`
 	District          *string   `json:"district"`
 	LocationX         *float64  `json:"location_x"`
@@ -123,6 +125,7 @@ func mapJobResponse(job *jobman.JobPosting) *jobResponse {
 		EmploymentType:  job.Type,
 		Level:           job.Level,
 		Seniority:       job.Level,
+		Department:      job.Department,
 		City:            job.City,
 		District:        job.District,
 		LocationX:       job.LocationX,
@@ -368,6 +371,7 @@ func saveJob(w http.ResponseWriter, r *http.Request) {
 	job.ContactInfo = req.ContactInfo
 	job.Type = req.Type
 	job.Level = req.Level
+	job.Department = strings.TrimSpace(req.Department)
 	job.City = req.City
 	job.District = req.District
 	job.LocationX = req.LocationX
@@ -496,6 +500,7 @@ func saveCompanyJob(w http.ResponseWriter, r *http.Request) {
 	job.ContactInfo = req.ContactInfo
 	job.Type = req.Type
 	job.Level = req.Level
+	job.Department = strings.TrimSpace(req.Department)
 	job.City = req.City
 	job.District = req.District
 	job.LocationX = req.LocationX

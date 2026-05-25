@@ -21,6 +21,7 @@ type JobPosting struct {
 	PostedAt       time.Time `json:"posted_at"`
 	Level          string    `json:"level"`      // professional, employee, intern
 	Type           string    `json:"type"`       // full-time, part-time, shift, hourly
+	Department     string    `json:"department"`
 	City           *string   `json:"city"`       // optional, default to company
 	District       *string   `json:"district"`   // optional, default to company
 	LocationX      *float64  `json:"location_x"` // optional

@@ -18,18 +18,22 @@ export class ApplicationsAPI {
     return $fetch<T>(`${this.baseURL}${path}`, { ...options, credentials: "include", headers });
   }
 
-  applyToJob(jobID: number, cvFile: File) {
+  applyToJob(jobID: number, cvFile: File, assessment?: AssessmentResult | null) {
     const form = new FormData();
     form.append("cv", cvFile);
+    if (assessment) {
+      form.append("assessment", JSON.stringify(assessment));
+    }
     return this.fetch<{ message: string; id: number }>(`/api/jobs/${jobID}/apply`, {
       method: "POST",
       body: form,
     });
   }
 
-  applyFromProfile(jobID: number) {
+  applyFromProfile(jobID: number, assessment?: AssessmentResult | null) {
     return this.fetch<{ message: string; id: number }>(`/api/jobs/${jobID}/apply-from-profile`, {
       method: "POST",
+      body: assessment ? { assessment } : {},
     });
   }
 

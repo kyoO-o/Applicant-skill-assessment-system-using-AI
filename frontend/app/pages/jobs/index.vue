@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import type { Job } from "../../composables/types";
-import { JobStatus } from "../../composables/types";
+import {
+  JobStatus,
+  JOB_EMPLOYMENT_TYPES,
+  JOB_LEVELS,
+  DEPARTMENT,
+} from "../../composables/types";
 import { toast } from "vue-sonner";
 import {
   BriefcaseBusiness,
@@ -17,7 +22,16 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-vue-next";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+} from "~/components/ui/drawer";
 
 const { user } = useAuth();
 const jobsAPI = useJobsAPI();
@@ -140,6 +154,33 @@ const view = ref<"grid" | "list">("grid");
 const page = ref(1);
 const PAGE_SIZE = 9;
 
+// ── Filter drawer state ────────────────────────────────────
+const filterDrawerOpen = ref(false);
+const filterEmploymentTypes = ref<string[]>([]);
+const filterLevels = ref<string[]>([]);
+const filterDepartments = ref<string[]>([]);
+const filterMinSalary = ref("");
+const filterMaxSalary = ref("");
+
+const activeFilterCount = computed(() => {
+  let n = filter.value === "saved" ? 1 : 0;
+  n += filterEmploymentTypes.value.length;
+  n += filterLevels.value.length;
+  n += filterDepartments.value.length;
+  if (filterMinSalary.value) n++;
+  if (filterMaxSalary.value) n++;
+  return n;
+});
+
+function clearFilters() {
+  filter.value = "all";
+  filterEmploymentTypes.value = [];
+  filterLevels.value = [];
+  filterDepartments.value = [];
+  filterMinSalary.value = "";
+  filterMaxSalary.value = "";
+}
+
 const savedJobIds = ref<Set<number>>(
   new Set(
     import.meta.client
@@ -163,15 +204,28 @@ function toggleSave(job: Job, e: Event) {
 
 const filteredJobs = computed(() => {
   const q = query.value.toLowerCase().trim();
+  const minSal = filterMinSalary.value ? parseInt(filterMinSalary.value) : null;
+  const maxSal = filterMaxSalary.value ? parseInt(filterMaxSalary.value) : null;
+
   return applicantJobs.value.filter((job) => {
     if (filter.value === "saved" && !savedJobIds.value.has(job.id))
       return false;
-    // if (filter.value === "remote") {
-    //   const isRemote =
-    //     job.type?.toLowerCase().includes("remote") ||
-    //     job.employment_type?.toLowerCase().includes("remote");
-    //   if (!isRemote) return false;
-    // }
+    if (
+      filterEmploymentTypes.value.length &&
+      !filterEmploymentTypes.value.includes(job.employment_type)
+    )
+      return false;
+    if (filterLevels.value.length && !filterLevels.value.includes(job.level))
+      return false;
+    if (
+      filterDepartments.value.length &&
+      !filterDepartments.value.includes(job.department || "")
+    )
+      return false;
+    if (minSal !== null && job.max_salary > 0 && job.max_salary < minSal)
+      return false;
+    if (maxSal !== null && job.min_salary > 0 && job.min_salary > maxSal)
+      return false;
     if (!q) return true;
     return (
       job.title.toLowerCase().includes(q) ||
@@ -190,9 +244,21 @@ const paginatedJobs = computed(() => {
   return filteredJobs.value.slice(start, start + PAGE_SIZE);
 });
 
-watch([query, filter], () => {
-  page.value = 1;
-});
+watch(
+  [
+    query,
+    filter,
+    filterEmploymentTypes,
+    filterLevels,
+    filterDepartments,
+    filterMinSalary,
+    filterMaxSalary,
+  ],
+  () => {
+    page.value = 1;
+  },
+  { deep: true },
+);
 
 const GRADIENTS = [
   "linear-gradient(135deg, #fde68a, #fb923c)",
@@ -514,13 +580,11 @@ function formatSalary(job: Job): string {
     <div class="flex items-center justify-between gap-4">
       <div>
         <h1 class="text-[26px] font-semibold tracking-[-0.6px]">
-          Ажлын байрууд
+          Ажлын байр ({{ filteredJobs.length }})
         </h1>
-        <p class="mt-1 text-[13.5px] text-muted-foreground">
-          {{
-            loading ? "Loading…" : `${filteredJobs.length} ажлын зар олдлоо.`
-          }}
-        </p>
+        <!-- <p class="mt-1 text-[13.5px] text-muted-foreground">
+          {{ loading ? "Loading…" : `Ажлын зар (${filteredJobs.length})` }}
+        </p> -->
       </div>
       <!-- Grid / List toggle -->
       <div
@@ -567,26 +631,23 @@ function formatSalary(job: Job): string {
           type="text"
         />
       </div>
-      <!-- Filter pills -->
+      <!-- Filters button -->
       <button
-        v-for="f in FILTER_OPTIONS"
-        :key="f.value"
-        :class="[
-          'rounded-full border px-4 py-2 text-[13px] font-medium capitalize transition',
-          filter === f.value
-            ? 'border-foreground bg-foreground text-background'
-            : 'border-border bg-card text-foreground hover:bg-muted',
-        ]"
-        @click="filter = f.value"
-      >
-        {{ f.name }}
-      </button>
-      <!-- Filters button (cosmetic) -->
-      <button
-        class="flex items-center gap-1.5 rounded-full border border-border bg-card px-4 py-2 text-[13px] font-medium text-foreground transition hover:bg-muted"
+        class="flex items-center gap-1.5 rounded-full border px-4 py-2 text-[13px] font-medium transition hover:bg-muted"
+        :class="
+          activeFilterCount > 0
+            ? 'border-primary bg-primary/5 text-primary'
+            : 'border-border bg-card text-foreground'
+        "
+        @click="filterDrawerOpen = true"
       >
         <SlidersHorizontal class="h-3.5 w-3.5" />
         Шүүлтүүр
+        <span
+          v-if="activeFilterCount > 0"
+          class="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white"
+          >{{ activeFilterCount }}</span
+        >
       </button>
     </div>
 
@@ -807,6 +868,224 @@ function formatSalary(job: Job): string {
       </div>
     </template>
   </div>
+
+  <!-- ── Filter drawer ──────────────────────────────────── -->
+  <Drawer v-model:open="filterDrawerOpen" direction="right">
+    <DrawerContent
+      class="flex h-full w-[380px] max-w-[92vw] flex-col overflow-hidden"
+    >
+      <DrawerHeader
+        class="flex shrink-0 items-center justify-between border-b border-border px-6 py-4"
+      >
+        <DrawerTitle class="text-[16px] font-semibold">Шүүлтүүр</DrawerTitle>
+        <div class="flex items-center gap-2">
+          <button
+            v-if="activeFilterCount > 0"
+            class="text-[13px] text-primary hover:underline"
+            @click="clearFilters"
+          >
+            Арилгах
+          </button>
+          <DrawerClose as-child>
+            <button
+              class="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            >
+              <X class="h-4 w-4" />
+            </button>
+          </DrawerClose>
+        </div>
+      </DrawerHeader>
+
+      <div class="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+        <!-- Хадгалсан -->
+        <div>
+          <p
+            class="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Харагдах байдал
+          </p>
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="f in FILTER_OPTIONS"
+              :key="f.value"
+              :class="[
+                'rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium capitalize transition',
+                filter === f.value
+                  ? 'border-primary bg-primary/10 text-primary'
+                  : 'border-border bg-card text-foreground hover:bg-muted',
+              ]"
+              @click="filter = f.value"
+            >
+              {{ f.name }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Ажлын цаг -->
+        <div>
+          <p
+            class="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Ажлын цаг
+          </p>
+          <div class="space-y-2.5">
+            <label
+              v-for="t in JOB_EMPLOYMENT_TYPES"
+              :key="t"
+              class="flex cursor-pointer items-center gap-3"
+            >
+              <div
+                class="flex h-4 w-4 shrink-0 items-center justify-center rounded border transition"
+                :class="
+                  filterEmploymentTypes.includes(t)
+                    ? 'border-primary bg-primary'
+                    : 'border-border bg-card'
+                "
+                @click="
+                  filterEmploymentTypes.includes(t)
+                    ? filterEmploymentTypes.splice(
+                        filterEmploymentTypes.indexOf(t),
+                        1,
+                      )
+                    : filterEmploymentTypes.push(t)
+                "
+              >
+                <svg
+                  v-if="filterEmploymentTypes.includes(t)"
+                  viewBox="0 0 10 8"
+                  class="h-2.5 w-2.5 fill-none stroke-white stroke-[1.8]"
+                >
+                  <path d="M1 4l3 3 5-6" />
+                </svg>
+              </div>
+              <span class="text-[13.5px] text-foreground">{{ t }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Ажлын түвшин -->
+        <div>
+          <p
+            class="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Ажлын түвшин
+          </p>
+          <div class="space-y-2.5">
+            <label
+              v-for="l in JOB_LEVELS"
+              :key="l"
+              class="flex cursor-pointer items-center gap-3"
+            >
+              <div
+                class="flex h-4 w-4 shrink-0 items-center justify-center rounded border transition"
+                :class="
+                  filterLevels.includes(l)
+                    ? 'border-primary bg-primary'
+                    : 'border-border bg-card'
+                "
+                @click="
+                  filterLevels.includes(l)
+                    ? filterLevels.splice(filterLevels.indexOf(l), 1)
+                    : filterLevels.push(l)
+                "
+              >
+                <svg
+                  v-if="filterLevels.includes(l)"
+                  viewBox="0 0 10 8"
+                  class="h-2.5 w-2.5 fill-none stroke-white stroke-[1.8]"
+                >
+                  <path d="M1 4l3 3 5-6" />
+                </svg>
+              </div>
+              <span class="text-[13.5px] text-foreground">{{ l }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Салбар -->
+        <div>
+          <p
+            class="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Салбар
+          </p>
+          <div class="space-y-2.5">
+            <label
+              v-for="d in DEPARTMENT"
+              :key="d"
+              class="flex cursor-pointer items-center gap-3"
+            >
+              <div
+                class="flex h-4 w-4 shrink-0 items-center justify-center rounded border transition"
+                :class="
+                  filterDepartments.includes(d)
+                    ? 'border-primary bg-primary'
+                    : 'border-border bg-card'
+                "
+                @click="
+                  filterDepartments.includes(d)
+                    ? filterDepartments.splice(filterDepartments.indexOf(d), 1)
+                    : filterDepartments.push(d)
+                "
+              >
+                <svg
+                  v-if="filterDepartments.includes(d)"
+                  viewBox="0 0 10 8"
+                  class="h-2.5 w-2.5 fill-none stroke-white stroke-[1.8]"
+                >
+                  <path d="M1 4l3 3 5-6" />
+                </svg>
+              </div>
+              <span class="text-[13.5px] text-foreground">{{ d }}</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Цалин -->
+        <div>
+          <p
+            class="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground"
+          >
+            Цалин (₮)
+          </p>
+          <div class="flex items-center gap-2">
+            <input
+              v-model="filterMinSalary"
+              type="number"
+              min="0"
+              placeholder="Хамгийн бага"
+              class="h-9 flex-1 rounded-lg border border-border bg-muted px-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+            <span class="text-muted-foreground">–</span>
+            <input
+              v-model="filterMaxSalary"
+              type="number"
+              min="0"
+              placeholder="Хамгийн их"
+              class="h-9 flex-1 rounded-lg border border-border bg-muted px-3 text-[13px] text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+        </div>
+      </div>
+
+      <DrawerFooter class="shrink-0 border-t border-border px-6 py-4">
+        <DrawerClose as-child>
+          <button
+            class="w-full rounded-full py-2.5 text-[14px] font-semibold text-white transition hover:opacity-90"
+            style="
+              background: linear-gradient(
+                135deg,
+                var(--primary),
+                oklch(0.348 0.106 295)
+              );
+            "
+          >
+            Шүүх
+          </button>
+        </DrawerClose>
+      </DrawerFooter>
+    </DrawerContent>
+  </Drawer>
 
   <!-- Delete dialog -->
   <AlertDialog v-model:open="deleteDialogOpen">

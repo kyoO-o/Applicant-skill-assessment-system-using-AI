@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { Plus, X } from "lucide-vue-next";
-
-import { JobStatus } from "../../composables/types";
+import {
+  JobStatus,
+  JOB_EMPLOYMENT_TYPES,
+  JOB_LEVELS,
+  DEPARTMENT,
+} from "../../composables/types";
+import type { SaveJobPayload } from "../../composables/types/payload";
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import { jobSchema } from "~/utils/schemas";
 
 const { cities, districtsFor } = useLocationOptions();
 
@@ -10,29 +18,28 @@ const props = defineProps<{
   isEditing: boolean;
   isSubmitting: boolean;
   errorMessage: string;
-  form: {
-    title: string;
-    contact_info: string;
-    type: string;
-    level: string;
-    status: JobStatus;
-    city: string;
-    district: string;
-    location_x: string;
-    location_y: string;
-    min_salary: string;
-    max_salary: string;
-    additional_info: string;
-    duties: string[];
-    requirements: string[];
-    skills: string[];
-    bonuses: string[];
-  };
+  initialTitle?: string;
+  initialContactInfo?: string;
+  initialType?: string;
+  initialLevel?: string;
+  initialDepartment?: string;
+  initialStatus?: JobStatus;
+  initialCity?: string;
+  initialDistrict?: string;
+  initialLocationX?: string;
+  initialLocationY?: string;
+  initialMinSalary?: string;
+  initialMaxSalary?: string;
+  initialAdditionalInfo?: string;
+  initialDuties?: string[];
+  initialRequirements?: string[];
+  initialSkills?: string[];
+  initialBonuses?: string[];
 }>();
 
 const emit = defineEmits<{
   "update:open": [value: boolean];
-  submit: [];
+  submit: [payload: SaveJobPayload];
 }>();
 
 const dialogOpen = computed({
@@ -44,11 +51,46 @@ function closeDialog() {
   emit("update:open", false);
 }
 
-function submitForm() {
-  emit("submit");
-}
+const { validate, setFieldValue, errors } = useForm({
+  validationSchema: toTypedSchema(jobSchema),
+  initialValues: {
+    title: props.initialTitle ?? "",
+    contact_info: props.initialContactInfo ?? "",
+    type: props.initialType ?? "Бүтэн цагийн",
+    level: props.initialLevel ?? "Мэргэжилтэн",
+    department: props.initialDepartment ?? "",
+  },
+});
 
-const districtOptions = computed(() => districtsFor(props.form.city));
+const form = reactive({
+  title: props.initialTitle ?? "",
+  contact_info: props.initialContactInfo ?? "",
+  type: props.initialType ?? "Бүтэн цагийн",
+  level: props.initialLevel ?? "Мэргэжилтэн",
+  department: props.initialDepartment ?? "",
+  status: props.initialStatus ?? JobStatus.Draft,
+  city: props.initialCity ?? "",
+  district: props.initialDistrict ?? "",
+  location_x: props.initialLocationX ?? "",
+  location_y: props.initialLocationY ?? "",
+  min_salary: props.initialMinSalary ?? "",
+  max_salary: props.initialMaxSalary ?? "",
+  additional_info: props.initialAdditionalInfo ?? "",
+  duties: props.initialDuties?.length ? [...props.initialDuties] : [""],
+  requirements: props.initialRequirements?.length
+    ? [...props.initialRequirements]
+    : [""],
+  skills: props.initialSkills?.length ? [...props.initialSkills] : [""],
+  bonuses: props.initialBonuses?.length ? [...props.initialBonuses] : [""],
+});
+
+watch(() => form.title, (v) => setFieldValue("title", v));
+watch(() => form.contact_info, (v) => setFieldValue("contact_info", v));
+watch(() => form.type, (v) => setFieldValue("type", v));
+watch(() => form.level, (v) => setFieldValue("level", v));
+watch(() => form.department, (v) => setFieldValue("department", v));
+
+const districtOptions = computed(() => districtsFor(form.city));
 
 function addItem(list: string[]) {
   list.push("");
@@ -59,8 +101,43 @@ function removeItem(list: string[], index: number) {
     list[0] = "";
     return;
   }
-
   list.splice(index, 1);
+}
+
+async function submitForm() {
+  console.log("[SaveDialog] submitForm called", { form: { ...form } });
+  const { valid, errors: validationErrors } = await validate();
+  console.log("[SaveDialog] validation result", { valid, errors: validationErrors });
+  if (!valid) return;
+
+  const city = form.city.trim();
+  const district = form.district.trim();
+  const location = [district, city].filter(Boolean).join(", ");
+  const toList = (value: string[]) =>
+    value.map((item) => item.trim()).filter(Boolean);
+
+  const payload: SaveJobPayload = {
+    title: form.title.trim(),
+    location,
+    additional_info: form.additional_info.trim(),
+    contact_info: form.contact_info.trim(),
+    type: form.type.trim(),
+    level: form.level.trim(),
+    department: form.department,
+    city: city || undefined,
+    district: district || undefined,
+    location_x: form.location_x.trim() ? Number(form.location_x.trim()) : undefined,
+    location_y: form.location_y.trim() ? Number(form.location_y.trim()) : undefined,
+    min_salary: form.min_salary ? Number(form.min_salary) : 0,
+    max_salary: form.max_salary ? Number(form.max_salary) : 0,
+    status: form.status,
+    duties: toList(form.duties),
+    requirements: toList(form.requirements),
+    skills: toList(form.skills),
+    bonuses: toList(form.bonuses),
+  };
+  console.log("[SaveDialog] emitting submit with payload", payload);
+  emit("submit", payload);
 }
 </script>
 
@@ -79,7 +156,10 @@ function removeItem(list: string[], index: number) {
           </DialogDescription>
         </DialogHeader>
 
-        <form class="flex min-h-0 flex-1 flex-col" @submit.prevent="submitForm">
+        <form
+          class="flex min-h-0 flex-1 flex-col"
+          @submit.prevent="submitForm"
+        >
           <div class="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div class="grid gap-4">
               <div
@@ -89,6 +169,7 @@ function removeItem(list: string[], index: number) {
                 {{ errorMessage }}
               </div>
 
+              <!-- Title + Department -->
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-2">
                   <Label for="job-title">Ажлын байрны нэр</Label>
@@ -97,33 +178,82 @@ function removeItem(list: string[], index: number) {
                     v-model="form.title"
                     placeholder="Frontend Developer"
                   />
+                  <p v-if="errors.title" class="text-sm text-destructive">
+                    {{ errors.title }}
+                  </p>
                 </div>
                 <div class="space-y-2">
-                  <Label for="job-contact">Холбоо барих мэдээлэл</Label>
-                  <Input
-                    id="job-contact"
-                    v-model="form.contact_info"
-                    placeholder="hr@company.mn or +976..."
-                  />
+                  <Label for="job-department">Салбар / Чиглэл</Label>
+                  <Select v-model="form.department">
+                    <SelectTrigger id="job-department" class="w-full">
+                      <SelectValue placeholder="Салбар сонгох" />
+                    </SelectTrigger>
+                    <SelectContent class="h-80">
+                      <SelectItem v-for="d in DEPARTMENT" :key="d" :value="d">
+                        {{ d }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p v-if="errors.department" class="text-sm text-destructive">
+                    {{ errors.department }}
+                  </p>
                 </div>
               </div>
 
+              <!-- Contact info -->
+              <div class="space-y-2">
+                <Label for="job-contact">Холбоо барих мэдээлэл</Label>
+                <Input
+                  id="job-contact"
+                  v-model="form.contact_info"
+                  placeholder="hr@company.mn or +976..."
+                />
+                <p v-if="errors.contact_info" class="text-sm text-destructive">
+                  {{ errors.contact_info }}
+                </p>
+              </div>
+
+              <!-- Type + Level + Status -->
               <div class="grid gap-4 sm:grid-cols-3">
                 <div class="space-y-2">
-                  <Label for="job-type">Хөдөлмөрийн гэрээний хэлбэр</Label>
-                  <Input
-                    id="job-type"
-                    v-model="form.type"
-                    placeholder="Full-time"
-                  />
+                  <Label for="job-type">Ажиллах цагийн төрөл</Label>
+                  <Select v-model="form.type">
+                    <SelectTrigger id="job-type" class="w-full">
+                      <SelectValue placeholder="Хэлбэр сонгох" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="t in JOB_EMPLOYMENT_TYPES"
+                        :key="t"
+                        :value="t"
+                      >
+                        {{ t }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p v-if="errors.type" class="text-sm text-destructive">
+                    {{ errors.type }}
+                  </p>
                 </div>
                 <div class="space-y-2">
                   <Label for="job-level">Мэргэжлийн түвшин</Label>
-                  <Input
-                    id="job-level"
-                    v-model="form.level"
-                    placeholder="Mid-level"
-                  />
+                  <Select v-model="form.level">
+                    <SelectTrigger id="job-level" class="w-full">
+                      <SelectValue placeholder="Түвшин сонгох" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem
+                        v-for="l in JOB_LEVELS"
+                        :key="l"
+                        :value="l"
+                      >
+                        {{ l }}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p v-if="errors.level" class="text-sm text-destructive">
+                    {{ errors.level }}
+                  </p>
                 </div>
                 <div class="space-y-2">
                   <Label for="job-status">Төлөв</Label>
@@ -133,17 +263,14 @@ function removeItem(list: string[], index: number) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem :value="JobStatus.Draft">Ноорог</SelectItem>
-                      <SelectItem :value="JobStatus.Posted"
-                        >Нийтлэгдсэн</SelectItem
-                      >
-                      <SelectItem :value="JobStatus.Closed"
-                        >Хаагдсан</SelectItem
-                      >
+                      <SelectItem :value="JobStatus.Posted">Нийтлэгдсэн</SelectItem>
+                      <SelectItem :value="JobStatus.Closed">Хаагдсан</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
+              <!-- City + District -->
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-2">
                   <Label for="job-city">Хот / Аймаг</Label>
@@ -151,7 +278,7 @@ function removeItem(list: string[], index: number) {
                     <SelectTrigger id="job-city" class="w-full">
                       <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent class="h-80">
                       <SelectItem
                         v-for="city in cities"
                         :key="city"
@@ -168,7 +295,7 @@ function removeItem(list: string[], index: number) {
                     <SelectTrigger id="job-district" class="w-full">
                       <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent class="h-80">
                       <SelectItem
                         v-for="district in districtOptions"
                         :key="district"
@@ -181,9 +308,8 @@ function removeItem(list: string[], index: number) {
                 </div>
               </div>
 
-              <div
-                class="rounded-2xl border border-border bg-muted/20 p-4 space-y-2"
-              >
+              <!-- Map -->
+              <div class="rounded-2xl border border-border bg-muted/20 p-4 space-y-2">
                 <Label>Газрын зураг дээр байршил сонгох</Label>
                 <LocationSearch
                   v-model:model-x="form.location_x"
@@ -191,6 +317,7 @@ function removeItem(list: string[], index: number) {
                 />
               </div>
 
+              <!-- Salary -->
               <div class="grid gap-4 sm:grid-cols-2">
                 <div class="space-y-2">
                   <Label for="job-min-salary">Хамгийн бага цалин</Label>
@@ -214,6 +341,7 @@ function removeItem(list: string[], index: number) {
                 </div>
               </div>
 
+              <!-- Additional info -->
               <div class="space-y-2">
                 <Label for="job-description">Нэмэлт мэдээлэл</Label>
                 <Textarea
@@ -224,6 +352,7 @@ function removeItem(list: string[], index: number) {
                 />
               </div>
 
+              <!-- Duties + Requirements -->
               <div class="grid gap-4 lg:grid-cols-2">
                 <div class="space-y-2">
                   <div class="flex items-center justify-between gap-3">
@@ -234,8 +363,7 @@ function removeItem(list: string[], index: number) {
                       size="sm"
                       @click="addItem(form.duties)"
                     >
-                      <Plus class="mr-1 h-4 w-4" />
-                      Нэмэх
+                      <Plus class="mr-1 h-4 w-4" />Нэмэх
                     </Button>
                   </div>
                   <div class="space-y-2">
@@ -269,8 +397,7 @@ function removeItem(list: string[], index: number) {
                       size="sm"
                       @click="addItem(form.requirements)"
                     >
-                      <Plus class="mr-1 h-4 w-4" />
-                      Нэмэх
+                      <Plus class="mr-1 h-4 w-4" />Нэмэх
                     </Button>
                   </div>
                   <div class="space-y-2">
@@ -297,6 +424,7 @@ function removeItem(list: string[], index: number) {
                 </div>
               </div>
 
+              <!-- Skills + Bonuses -->
               <div class="grid gap-4 lg:grid-cols-2">
                 <div class="space-y-2">
                   <div class="flex items-center justify-between gap-3">
@@ -307,8 +435,7 @@ function removeItem(list: string[], index: number) {
                       size="sm"
                       @click="addItem(form.skills)"
                     >
-                      <Plus class="mr-1 h-4 w-4" />
-                      Нэмэх
+                      <Plus class="mr-1 h-4 w-4" />Нэмэх
                     </Button>
                   </div>
                   <div class="space-y-2">
@@ -342,8 +469,7 @@ function removeItem(list: string[], index: number) {
                       size="sm"
                       @click="addItem(form.bonuses)"
                     >
-                      <Plus class="mr-1 h-4 w-4" />
-                      Нэмэх
+                      <Plus class="mr-1 h-4 w-4" />Нэмэх
                     </Button>
                   </div>
                   <div class="space-y-2">
@@ -368,16 +494,6 @@ function removeItem(list: string[], index: number) {
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <div class="space-y-2">
-                <Label>Байршлын тойм</Label>
-                <p class="text-xs text-muted-foreground">
-                  {{
-                    [form.district, form.city].filter(Boolean).join(", ") ||
-                    "Сонгогдоогүй"
-                  }}
-                </p>
               </div>
             </div>
           </div>

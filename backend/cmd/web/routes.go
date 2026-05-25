@@ -106,7 +106,7 @@ func routes() http.Handler {
 			r.Put("/tasks/{id}/send", sendTask)
 			r.Post("/tasks/{id}/submit", submitTask)
 			r.Put("/tasks/submissions/{id}/grade", gradeSubmission)
-			r.Post("/tasks/submissions/{id}/ai-grade", aiGradeSubmission)
+			// r.Post("/tasks/submissions/{id}/ai-grade", aiGradeSubmission)
 			r.Get("/tasks/submissions/{id}/file", serveSubmissionFile)
 		})
 	})

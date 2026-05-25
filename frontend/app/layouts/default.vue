@@ -58,6 +58,7 @@ const { user, logout, isLoading } = useAuth();
 const router = useRouter();
 const route = useRoute();
 const { isDark, toggle: toggleDark, init: initDark } = useDarkMode();
+const sidebarOpen = ref(true);
 const {
   notifications,
   unreadCount,
@@ -210,18 +211,21 @@ const userAvatarURL = computed(() => {
 </script>
 
 <template>
-  <SidebarProvider>
-    <Sidebar collapsible="icon" class="border-r border-border px-2">
+  <SidebarProvider v-model:open="sidebarOpen">
+    <Sidebar
+      collapsible="icon"
+      class="border-r border-border px-2 group-data-[collapsible=icon]:px-0"
+    >
       <!-- ── Header ─────────────────────────────────────────── -->
       <SidebarHeader class="p-0 py-2">
         <div
           class="flex items-center justify-between px-3.5 pb-2 pt-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-2"
         >
           <div
-            class="flex cursor-pointer items-center gap-2 group-data-[collapsible=icon]:hidden"
+            class="flex cursor-pointer items-center gap-2 group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:pointer-events-none"
             @click="router.push('/')"
           >
-            <div
+            <!-- <div
               class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-[10px] text-sm font-bold text-white"
               style="
                 background: linear-gradient(
@@ -232,9 +236,14 @@ const userAvatarURL = computed(() => {
               "
             >
               m
-            </div>
+            </div> -->
+            <img
+              class="block h-8 w-8"
+              src="/icons/logo.svg"
+              alt="Skillz logo"
+            />
             <div class="text-md font-semibold tracking-tight text-foreground">
-              MatchHire
+              Skillz
             </div>
           </div>
           <SidebarTrigger />
@@ -257,7 +266,10 @@ const userAvatarURL = computed(() => {
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger as-child>
-                      <SidebarMenuButton :tooltip="item.title">
+                      <SidebarMenuButton
+                        :tooltip="item.title"
+                        @click="!sidebarOpen && (sidebarOpen = true)"
+                      >
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
                         <ChevronRight
@@ -319,7 +331,7 @@ const userAvatarURL = computed(() => {
           <SidebarGroupContent>
             <SidebarMenu>
               <!-- Notifications -->
-              <SidebarMenuItem>
+              <!-- <SidebarMenuItem>
                 <Popover v-model:open="notifOpen">
                   <PopoverTrigger as-child>
                     <SidebarMenuButton
@@ -397,7 +409,7 @@ const userAvatarURL = computed(() => {
                     </div>
                   </PopoverContent>
                 </Popover>
-              </SidebarMenuItem>
+              </SidebarMenuItem> -->
 
               <!-- Other bottom items -->
               <SidebarMenuItem v-for="item in bottomMenu" :key="item.to">
@@ -481,7 +493,7 @@ const userAvatarURL = computed(() => {
     <SidebarInset>
       <main class="flex-1 overflow-auto bg-background">
         <NuxtPage v-if="useRoute().meta.fullscreen" />
-        <div v-else class="mx-auto max-w-7xl px-7 py-6">
+        <div v-else class="mx-auto w-full px-7 py-6">
           <NuxtPage />
         </div>
       </main>

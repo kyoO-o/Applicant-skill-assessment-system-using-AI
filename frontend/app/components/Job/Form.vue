@@ -46,8 +46,14 @@ const overrideContact = ref(
   !props.company?.contact_info || !!props.initialContactInfo,
 );
 const overrideLocation = ref(
-  (!props.company?.city && !props.company?.location_x && !props.company?.location_description) ||
-    !!(props.initialCity || props.initialLocationX || props.initialLocationDescription),
+  (!props.company?.city &&
+    !props.company?.location_x &&
+    !props.company?.location_description) ||
+    !!(
+      props.initialCity ||
+      props.initialLocationX ||
+      props.initialLocationDescription
+    ),
 );
 
 const { validate, setValues, setFieldValue, errors } = useForm({
@@ -89,7 +95,9 @@ const form = reactive({
     (props.company?.location_y ? String(props.company.location_y) : ""),
   location_text:
     props.initialLocationDescription ??
-    (!overrideLocation.value ? (props.company?.location_description ?? "") : ""),
+    (!overrideLocation.value
+      ? (props.company?.location_description ?? "")
+      : ""),
   min_salary: props.initialMinSalary ?? "",
   max_salary: props.initialMaxSalary ?? "",
   additional_info: props.initialAdditionalInfo ?? "",
@@ -167,7 +175,16 @@ function isBenefitAdded(desc: string) {
 }
 
 async function submitForm() {
-  const { valid } = await validate();
+  console.log("[JobForm] submitForm called", { form: { ...form } });
+
+  // When using company contact info (not overriding), push it into vee-validate
+  // so the required-field check passes. The watch only fires on *change*, not on init.
+  if (!overrideContact.value && props.company?.contact_info) {
+    setFieldValue("contact_info", props.company.contact_info);
+  }
+
+  const { valid, errors: validationErrors } = await validate();
+  console.log("[JobForm] validation result", { valid, errors: validationErrors });
   if (!valid) return;
 
   const city = form.city.trim();
@@ -177,11 +194,16 @@ async function submitForm() {
   const toList = (value: string[]) =>
     value.map((item) => item.trim()).filter(Boolean);
 
+  const effectiveContactInfo = (!overrideContact.value && props.company?.contact_info)
+    ? props.company.contact_info
+    : form.contact_info.trim();
+
+  console.log("[JobForm] validation passed, emitting submit");
   emit("submit", {
     title: form.title.trim(),
     location,
     additional_info: form.additional_info.trim(),
-    contact_info: form.contact_info.trim(),
+    contact_info: effectiveContactInfo,
     type: form.type.trim(),
     level: form.level.trim(),
     department: form.department,
@@ -342,14 +364,23 @@ async function submitForm() {
         <div>
           <p class="text-sm font-medium">Байршил</p>
           <p
-            v-if="(company?.city || company?.location_x || company?.location_description) && !overrideLocation"
+            v-if="
+              (company?.city ||
+                company?.location_x ||
+                company?.location_description) &&
+              !overrideLocation
+            "
             class="mt-0.5 text-xs text-green-600"
           >
             ✓ Компанийн байршил ашиглагдлаа
           </p>
         </div>
         <div
-          v-if="company?.city || company?.location_x || company?.location_description"
+          v-if="
+            company?.city ||
+            company?.location_x ||
+            company?.location_description
+          "
           class="flex items-center gap-2 text-xs text-muted-foreground"
         >
           <Checkbox id="override-location-cb" v-model="overrideLocation" />
@@ -360,17 +391,29 @@ async function submitForm() {
       </div>
       <!-- Read-only company location display -->
       <div
-        v-if="!overrideLocation && (company?.city || company?.location_x || company?.location_description)"
+        v-if="
+          !overrideLocation &&
+          (company?.city ||
+            company?.location_x ||
+            company?.location_description)
+        "
         class="rounded-xl border border-border bg-background px-3 py-2 text-sm space-y-0.5"
       >
-        <p v-if="company?.location_description" class="text-foreground">{{ company.location_description }}</p>
+        <p v-if="company?.location_description" class="text-foreground">
+          {{ company.location_description }}
+        </p>
         <p class="text-muted-foreground text-xs">
           {{ [company?.district, company?.city].filter(Boolean).join(", ") }}
         </p>
       </div>
       <!-- Editable location fields -->
       <div
-        v-show="overrideLocation || (!company?.city && !company?.location_x && !company?.location_description)"
+        v-show="
+          overrideLocation ||
+          (!company?.city &&
+            !company?.location_x &&
+            !company?.location_description)
+        "
         class="space-y-4"
       >
         <div class="grid gap-4 sm:grid-cols-2">
@@ -380,7 +423,7 @@ async function submitForm() {
               <SelectTrigger id="job-city" class="w-full">
                 <SelectValue placeholder="Хот эсвэл аймаг сонгох" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent class="h-80">
                 <SelectItem v-for="city in cities" :key="city" :value="city">{{
                   city
                 }}</SelectItem>
@@ -393,7 +436,7 @@ async function submitForm() {
               <SelectTrigger id="job-district" class="w-full">
                 <SelectValue placeholder="Дүүрэг эсвэл сум сонгох" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent class="h-80">
                 <SelectItem v-for="d in districtOptions" :key="d" :value="d">{{
                   d
                 }}</SelectItem>

@@ -18,11 +18,9 @@ import {
   ChevronLeft,
   Loader2,
   Users,
-  Search,
   Pencil,
   Sparkles,
 } from "lucide-vue-next";
-import { success } from "zod/v4";
 
 definePageMeta({ middleware: "auth" });
 
@@ -51,9 +49,6 @@ const applyOpen = ref(false);
 const applyCvFile = ref<File | null>(null);
 const applyUseProfile = ref(false);
 const isApplying = ref(false);
-const analyzeOpen = ref(false);
-const analyzeCvFile = ref<File | null>(null);
-const analyzeUseProfile = ref(false);
 const isAnalyzing = ref(false);
 const pollTimer = ref<ReturnType<typeof setInterval> | null>(null);
 const showJobMap = ref(false);
@@ -183,10 +178,6 @@ function onApplyFileChange(e: Event) {
   applyCvFile.value = (e.target as HTMLInputElement).files?.[0] ?? null;
 }
 
-function onAnalyzeFileChange(e: Event) {
-  analyzeCvFile.value = (e.target as HTMLInputElement).files?.[0] ?? null;
-}
-
 async function submitApplication() {
   if (!applyUseProfile.value && !applyCvFile.value) {
     toast.error("CV файлаа сонгоно уу эсвэл хадгалагдсан CV ашиглана уу");
@@ -195,9 +186,9 @@ async function submitApplication() {
   isApplying.value = true;
   try {
     if (applyUseProfile.value) {
-      await applicationsAPI.applyFromProfile(jobID.value);
+      await applicationsAPI.applyFromProfile(jobID.value, analyzeResult.value);
     } else {
-      await applicationsAPI.applyToJob(jobID.value, applyCvFile.value!);
+      await applicationsAPI.applyToJob(jobID.value, applyCvFile.value!, analyzeResult.value);
     }
     applyOpen.value = false;
     applyCvFile.value = null;
@@ -216,34 +207,32 @@ async function submitApplication() {
   }
 }
 
-async function runAnalyze() {
-  if (!analyzeUseProfile.value && !analyzeCvFile.value) {
-    toast.error("CV файлаа сонгоно уу эсвэл хадгалагдсан CV ашиглана уу");
-    return;
-  }
+async function runAnalyze(file: File | null, useProfile: boolean) {
   isAnalyzing.value = true;
   try {
     let result: AssessmentResult;
-    if (analyzeUseProfile.value) {
+    if (useProfile) {
       result = await applicationsAPI.analyzeFromProfile(jobID.value);
     } else {
-      result = await applicationsAPI.analyzeJob(
-        jobID.value,
-        analyzeCvFile.value!,
-      );
+      result = await applicationsAPI.analyzeJob(jobID.value, file!);
     }
     analyzeResult.value = result;
     showAnalyzePreview.value = true;
     saveCachedAnalyze(result);
-    if (!analyzeUseProfile.value) applyCvFile.value = analyzeCvFile.value;
-    analyzeOpen.value = false;
-    analyzeUseProfile.value = false;
+    if (!useProfile && file) applyCvFile.value = file;
     toast.success("Үнэлгээ амжилттай хийгдлээ!");
   } catch (e: any) {
     toast.error(e?.data?.message ?? "Үнэлгээ хийхэд алдаа гарлаа");
   } finally {
     isAnalyzing.value = false;
   }
+}
+
+function resetAnalyze() {
+  analyzeResult.value = null;
+  showAnalyzePreview.value = false;
+  applyCvFile.value = null;
+  clearCachedAnalyze();
 }
 
 function startPolling() {
@@ -368,6 +357,7 @@ function jobStatusLabel(status: string) {
           :initial-contact-info="job.contact_info"
           :initial-type="job.type || job.employment_type"
           :initial-level="job.level || job.seniority"
+          :initial-department="job.department"
           :initial-status="job.status"
           :initial-city="job.city"
           :initial-district="job.district"
@@ -513,29 +503,7 @@ function jobStatusLabel(status: string) {
         </div>
 
         <div class="flex flex-col gap-2 sm:flex-row sm:items-start">
-          <template v-if="!application">
-            <Button
-              variant="outline"
-              class="rounded-full"
-              @click="analyzeOpen = true"
-            >
-              <Search class="h-4 w-4" /> Нийцэл шалгах
-            </Button>
-            <Button
-              class="rounded-full text-white hover:opacity-90"
-              style="
-                background: linear-gradient(
-                  135deg,
-                  var(--primary),
-                  oklch(0.348 0.106 295)
-                );
-              "
-              @click="applyOpen = true"
-            >
-              <Upload class="h-4 w-4" /> CV илгээх
-            </Button>
-          </template>
-          <template v-else-if="application.status === 'pending'">
+          <template v-if="application?.status === 'pending'">
             <div
               class="flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] text-muted-foreground"
             >
@@ -543,7 +511,7 @@ function jobStatusLabel(status: string) {
               хийгдэж байна...
             </div>
           </template>
-          <template v-else-if="application?.status == 'assessed'">
+          <template v-else-if="application?.status === 'assessed'">
             <div class="flex mt-1 flex-col gap-1 sm:items-end">
               <span
                 class="inline-flex items-center rounded-full px-3 py-1.5 text-[12.5px] font-semibold badge-success"
@@ -555,6 +523,13 @@ function jobStatusLabel(status: string) {
         </div>
       </div>
 
+      <!-- ── Applicant: inline upload hero ─────────────────────────────── -->
+      <JobApplicantHero
+        v-if="isApplicant && !displayResult && application?.status !== 'pending'"
+        :has-saved-c-v="hasSavedCV"
+        @analyze="(file, profile) => runAnalyze(file, profile)"
+      />
+
       <!-- ── AI Evaluation Result ──────────────────────────────────────── -->
       <JobEvaluationResult
         v-if="displayResult"
@@ -562,7 +537,7 @@ function jobStatusLabel(status: string) {
         :mode="isPreview ? 'preview' : 'submitted'"
         :application-status="application?.status"
         @apply="applyOpen = true"
-        @reload-cv="analyzeOpen = true"
+        @reload-cv="resetAnalyze"
       />
 
       <!-- ── Body: 2-col layout ─────────────────────────────────────────── -->
@@ -896,118 +871,4 @@ function jobStatusLabel(status: string) {
     </DialogContent>
   </Dialog>
 
-  <!-- ── Analyze dialog ──────────────────────────────────────────────────── -->
-  <Dialog v-model:open="analyzeOpen">
-    <DialogContent class="rounded-2xl sm:max-w-md">
-      <DialogHeader>
-        <DialogTitle>Нийцэл шалгах</DialogTitle>
-        <DialogDescription>
-          Ажлын байранд хэр тохирохыг урьдчилан үнэлүүлнэ үү. Анкет илгээхгүй —
-          үр дүн хуудсанд харагдана.
-        </DialogDescription>
-      </DialogHeader>
-      <div class="space-y-4 py-2">
-        <!-- Use saved profile option -->
-        <div v-if="hasSavedCV" class="space-y-3">
-          <Button
-            type="button"
-            variant="ghost"
-            class="h-auto w-full justify-start gap-3 rounded-xl border p-3.5 text-left"
-            :class="
-              analyzeUseProfile
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:bg-muted/40'
-            "
-            @click="
-              analyzeUseProfile = true;
-              analyzeCvFile = null;
-            "
-          >
-            <div
-              class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition"
-              :class="
-                analyzeUseProfile
-                  ? 'border-primary bg-primary'
-                  : 'border-muted-foreground'
-              "
-            >
-              <div
-                v-if="analyzeUseProfile"
-                class="h-1.5 w-1.5 rounded-full bg-white"
-              />
-            </div>
-            <div>
-              <p class="text-[13.5px] font-medium">Хадгалагдсан CV ашиглах</p>
-              <p class="text-[12px] text-muted-foreground">
-                CV бүрдүүлэгч хэсэгт оруулсан мэдээлэл
-              </p>
-            </div>
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            class="h-auto w-full justify-start gap-3 rounded-xl border p-3.5 text-left"
-            :class="
-              !analyzeUseProfile
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:bg-muted/40'
-            "
-            @click="analyzeUseProfile = false"
-          >
-            <div
-              class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition"
-              :class="
-                !analyzeUseProfile
-                  ? 'border-primary bg-primary'
-                  : 'border-muted-foreground'
-              "
-            >
-              <div
-                v-if="!analyzeUseProfile"
-                class="h-1.5 w-1.5 rounded-full bg-white"
-              />
-            </div>
-            <div>
-              <p class="text-[13.5px] font-medium">PDF файл оруулах</p>
-              <p class="text-[12px] text-muted-foreground">
-                Өөрийн PDF CV файлыг upload хийх
-              </p>
-            </div>
-          </Button>
-        </div>
-
-        <!-- PDF upload -->
-        <div v-if="!analyzeUseProfile" class="space-y-2">
-          <Label>CV файл (PDF)</Label>
-          <Input type="file" accept=".pdf" @change="onAnalyzeFileChange" />
-          <p v-if="analyzeCvFile" class="text-[12.5px] text-muted-foreground">
-            Сонгосон: {{ analyzeCvFile.name }}
-          </p>
-        </div>
-
-        <div
-          v-if="isAnalyzing"
-          class="flex items-center gap-3 rounded-xl bg-muted/30 px-4 py-3 text-[13.5px] text-muted-foreground"
-        >
-          <Loader2 class="h-4 w-4 animate-spin text-primary" />
-          AI үнэлгээ хийгдэж байна... Хэдэн секунд хүлээнэ үү.
-        </div>
-      </div>
-      <DialogFooter>
-        <Button
-          variant="outline"
-          :disabled="isAnalyzing"
-          @click="analyzeOpen = false"
-          >Болих</Button
-        >
-        <Button
-          :disabled="isAnalyzing || (!analyzeUseProfile && !analyzeCvFile)"
-          @click="runAnalyze"
-        >
-          <Loader2 v-if="isAnalyzing" class="mr-2 h-4 w-4 animate-spin" />
-          {{ isAnalyzing ? "Үнэлж байна..." : "Үнэлгээ хийх" }}
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
 </template>

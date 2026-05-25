@@ -154,6 +154,15 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		app.ErrorLog.Printf("warning: failed to save CV file: %v", err)
 	}
 
+	// Check for a pre-computed assessment from the analyze step
+	var preAssessment *aiman.AssessmentResult
+	if assessmentJSON := r.FormValue("assessment"); assessmentJSON != "" {
+		var a aiman.AssessmentResult
+		if json.Unmarshal([]byte(assessmentJSON), &a) == nil && a.OverallScore > 0 {
+			preAssessment = &a
+		}
+	}
+
 	// Create application record
 	application := &appman.Application{
 		JobPostingID: uint(jobID),
@@ -172,52 +181,74 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 	socket.NotifyUser(int(job.PostedBy), "Шинэ анкет ирлээ",
 		fmt.Sprintf("'%s' ажлын байранд шинэ анкет ирлээ", job.Title), "new_application")
 
-	// Run AI assessment asynchronously
-	jobRequirements := make([]string, 0, len(job.Requirements))
-	for _, r := range job.Requirements {
-		jobRequirements = append(jobRequirements, r.Description)
-	}
-	jobSkills := make([]string, 0, len(job.Skills))
-	for _, s := range job.Skills {
-		jobSkills = append(jobSkills, s.Name)
-	}
-	jobDuties := make([]string, 0, len(job.Duties))
-	for _, d := range job.Duties {
-		jobDuties = append(jobDuties, d.Description)
-	}
-
-	go func(appID int, cvText, jobTitle string, requirements, skills, duties []string) {
-		result, err := app.AI.AssessCV(cvText, jobTitle, requirements, skills, duties)
-		if err != nil {
-			app.ErrorLog.Printf("AI assessment failed for application %d: %v", appID, err)
-			return
-		}
-
-		matchedJSON, _ := json.Marshal(result.MatchedSkills)
-		missingJSON, _ := json.Marshal(result.MissingSkills)
-		recsJSON, _ := json.Marshal(result.Recommendations)
-		dutyJSON, _ := json.Marshal(result.DutyAssessments)
-		reqJSON, _ := json.Marshal(result.RequirementAssessments)
+	if preAssessment != nil {
+		// Reuse the result from the prior analyze call — no second AI request needed
+		matchedJSON, _ := json.Marshal(preAssessment.MatchedSkills)
+		missingJSON, _ := json.Marshal(preAssessment.MissingSkills)
+		recsJSON, _ := json.Marshal(preAssessment.Recommendations)
+		dutyJSON, _ := json.Marshal(preAssessment.DutyAssessments)
+		reqJSON, _ := json.Marshal(preAssessment.RequirementAssessments)
 		now := time.Now()
-
-		a, _ := app.Applications.Get(appID)
-		if a == nil {
-			return
+		savedApp.OverallScore = preAssessment.OverallScore
+		savedApp.Summary = preAssessment.Summary
+		savedApp.MatchedSkills = string(matchedJSON)
+		savedApp.MissingSkills = string(missingJSON)
+		savedApp.Recommendations = string(recsJSON)
+		savedApp.DutyAssessments = string(dutyJSON)
+		savedApp.RequirementAssessments = string(reqJSON)
+		savedApp.Status = appman.StatusAssessed
+		savedApp.AssessedAt = &now
+		app.Applications.Save(savedApp)
+		socket.NotifyUser(int(savedApp.ApplicantID), "AI үнэлгээ дууслаа",
+			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", job.Title, preAssessment.OverallScore), "assessment_complete")
+	} else {
+		// Run AI assessment asynchronously
+		jobRequirements := make([]string, 0, len(job.Requirements))
+		for _, r := range job.Requirements {
+			jobRequirements = append(jobRequirements, r.Description)
 		}
-		a.OverallScore = result.OverallScore
-		a.Summary = result.Summary
-		a.MatchedSkills = string(matchedJSON)
-		a.MissingSkills = string(missingJSON)
-		a.Recommendations = string(recsJSON)
-		a.DutyAssessments = string(dutyJSON)
-		a.RequirementAssessments = string(reqJSON)
-		a.Status = appman.StatusAssessed
-		a.AssessedAt = &now
-		app.Applications.Save(a)
+		jobSkills := make([]string, 0, len(job.Skills))
+		for _, s := range job.Skills {
+			jobSkills = append(jobSkills, s.Name)
+		}
+		jobDuties := make([]string, 0, len(job.Duties))
+		for _, d := range job.Duties {
+			jobDuties = append(jobDuties, d.Description)
+		}
 
-		socket.NotifyUser(int(a.ApplicantID), "AI үнэлгээ дууслаа",
-			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", jobTitle, result.OverallScore), "assessment_complete")
-	}(savedApp.ID, cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+		go func(appID int, cvText, jobTitle string, requirements, skills, duties []string) {
+			result, err := app.AI.AssessCV(cvText, jobTitle, requirements, skills, duties)
+			if err != nil {
+				app.ErrorLog.Printf("AI assessment failed for application %d: %v", appID, err)
+				return
+			}
+
+			matchedJSON, _ := json.Marshal(result.MatchedSkills)
+			missingJSON, _ := json.Marshal(result.MissingSkills)
+			recsJSON, _ := json.Marshal(result.Recommendations)
+			dutyJSON, _ := json.Marshal(result.DutyAssessments)
+			reqJSON, _ := json.Marshal(result.RequirementAssessments)
+			now := time.Now()
+
+			a, _ := app.Applications.Get(appID)
+			if a == nil {
+				return
+			}
+			a.OverallScore = result.OverallScore
+			a.Summary = result.Summary
+			a.MatchedSkills = string(matchedJSON)
+			a.MissingSkills = string(missingJSON)
+			a.Recommendations = string(recsJSON)
+			a.DutyAssessments = string(dutyJSON)
+			a.RequirementAssessments = string(reqJSON)
+			a.Status = appman.StatusAssessed
+			a.AssessedAt = &now
+			app.Applications.Save(a)
+
+			socket.NotifyUser(int(a.ApplicantID), "AI үнэлгээ дууслаа",
+				fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", jobTitle, result.OverallScore), "assessment_complete")
+		}(savedApp.ID, cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	oapi.SendResp(w, map[string]any{
@@ -694,6 +725,16 @@ func applyFromProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check for a pre-computed assessment from the analyze step
+	var body struct {
+		Assessment *aiman.AssessmentResult `json:"assessment"`
+	}
+	json.NewDecoder(r.Body).Decode(&body)
+	preAssessment := body.Assessment
+	if preAssessment != nil && preAssessment.OverallScore <= 0 {
+		preAssessment = nil
+	}
+
 	// Delete existing application to allow re-apply
 	if existing, err := app.Applications.GetForApplicantAndJob(user.ID, jobID); err == nil {
 		if delErr := app.Applications.Delete(existing.ID); delErr != nil {
@@ -719,51 +760,73 @@ func applyFromProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	jobRequirements := make([]string, 0, len(job.Requirements))
-	for _, r := range job.Requirements {
-		jobRequirements = append(jobRequirements, r.Description)
-	}
-	jobSkills := make([]string, 0, len(job.Skills))
-	for _, s := range job.Skills {
-		jobSkills = append(jobSkills, s.Name)
-	}
-	jobDuties := make([]string, 0, len(job.Duties))
-	for _, d := range job.Duties {
-		jobDuties = append(jobDuties, d.Description)
-	}
-
-	go func(appID int, cvText, jobTitle string, requirements, skills, duties []string) {
-		result, err := app.AI.AssessCV(cvText, jobTitle, requirements, skills, duties)
-		if err != nil {
-			app.ErrorLog.Printf("AI assessment failed for application %d: %v", appID, err)
-			return
-		}
-
-		matchedJSON, _ := json.Marshal(result.MatchedSkills)
-		missingJSON, _ := json.Marshal(result.MissingSkills)
-		recsJSON, _ := json.Marshal(result.Recommendations)
-		dutyJSON, _ := json.Marshal(result.DutyAssessments)
-		reqJSON, _ := json.Marshal(result.RequirementAssessments)
+	if preAssessment != nil {
+		// Reuse the result from the prior analyze call — no second AI request needed
+		matchedJSON, _ := json.Marshal(preAssessment.MatchedSkills)
+		missingJSON, _ := json.Marshal(preAssessment.MissingSkills)
+		recsJSON, _ := json.Marshal(preAssessment.Recommendations)
+		dutyJSON, _ := json.Marshal(preAssessment.DutyAssessments)
+		reqJSON, _ := json.Marshal(preAssessment.RequirementAssessments)
 		now := time.Now()
-
-		a, _ := app.Applications.Get(appID)
-		if a == nil {
-			return
+		savedApp.OverallScore = preAssessment.OverallScore
+		savedApp.Summary = preAssessment.Summary
+		savedApp.MatchedSkills = string(matchedJSON)
+		savedApp.MissingSkills = string(missingJSON)
+		savedApp.Recommendations = string(recsJSON)
+		savedApp.DutyAssessments = string(dutyJSON)
+		savedApp.RequirementAssessments = string(reqJSON)
+		savedApp.Status = appman.StatusAssessed
+		savedApp.AssessedAt = &now
+		app.Applications.Save(savedApp)
+		socket.NotifyUser(int(savedApp.ApplicantID), "AI үнэлгээ дууслаа",
+			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", job.Title, preAssessment.OverallScore), "assessment_complete")
+	} else {
+		jobRequirements := make([]string, 0, len(job.Requirements))
+		for _, r := range job.Requirements {
+			jobRequirements = append(jobRequirements, r.Description)
 		}
-		a.OverallScore = result.OverallScore
-		a.Summary = result.Summary
-		a.MatchedSkills = string(matchedJSON)
-		a.MissingSkills = string(missingJSON)
-		a.Recommendations = string(recsJSON)
-		a.DutyAssessments = string(dutyJSON)
-		a.RequirementAssessments = string(reqJSON)
-		a.Status = appman.StatusAssessed
-		a.AssessedAt = &now
-		app.Applications.Save(a)
+		jobSkills := make([]string, 0, len(job.Skills))
+		for _, s := range job.Skills {
+			jobSkills = append(jobSkills, s.Name)
+		}
+		jobDuties := make([]string, 0, len(job.Duties))
+		for _, d := range job.Duties {
+			jobDuties = append(jobDuties, d.Description)
+		}
 
-		socket.NotifyUser(int(a.ApplicantID), "AI үнэлгээ дууслаа",
-			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", jobTitle, result.OverallScore), "assessment_complete")
-	}(savedApp.ID, cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+		go func(appID int, cvText, jobTitle string, requirements, skills, duties []string) {
+			result, err := app.AI.AssessCV(cvText, jobTitle, requirements, skills, duties)
+			if err != nil {
+				app.ErrorLog.Printf("AI assessment failed for application %d: %v", appID, err)
+				return
+			}
+
+			matchedJSON, _ := json.Marshal(result.MatchedSkills)
+			missingJSON, _ := json.Marshal(result.MissingSkills)
+			recsJSON, _ := json.Marshal(result.Recommendations)
+			dutyJSON, _ := json.Marshal(result.DutyAssessments)
+			reqJSON, _ := json.Marshal(result.RequirementAssessments)
+			now := time.Now()
+
+			a, _ := app.Applications.Get(appID)
+			if a == nil {
+				return
+			}
+			a.OverallScore = result.OverallScore
+			a.Summary = result.Summary
+			a.MatchedSkills = string(matchedJSON)
+			a.MissingSkills = string(missingJSON)
+			a.Recommendations = string(recsJSON)
+			a.DutyAssessments = string(dutyJSON)
+			a.RequirementAssessments = string(reqJSON)
+			a.Status = appman.StatusAssessed
+			a.AssessedAt = &now
+			app.Applications.Save(a)
+
+			socket.NotifyUser(int(a.ApplicantID), "AI үнэлгээ дууслаа",
+				fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", jobTitle, result.OverallScore), "assessment_complete")
+		}(savedApp.ID, cvText, job.Title, jobRequirements, jobSkills, jobDuties)
+	}
 
 	w.WriteHeader(http.StatusCreated)
 	oapi.SendResp(w, map[string]any{

@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	claudeModel  = "claude-haiku-4-5-20251001"
+	claudeModel  = "claude-sonnet-4-6"
 	claudeAPIURL = "https://api.anthropic.com/v1/messages"
 )
 
@@ -160,45 +160,45 @@ func (c *Client) AssessCV(cvText, jobTitle string, requirements, skills, duties 
 }
 
 // GradeTask evaluates an applicant's task submission and returns a grade and feedback.
-func (c *Client) GradeTask(taskTitle, taskDescription, submissionContent string) (int, string, error) {
-	system := `Та даалгаврын хариултыг үнэлэх AI систем. Монгол хэл дээр хариулна уу.
-Хариултыг заавал дараах JSON форматаар өг, өөр ямар ч текст бүү нэм:
-{"grade": <0-100 бүхэл тоо>, "feedback": "<Монгол хэл дээр дэлгэрэнгүй санал хүсэлт>"}`
+// func (c *Client) GradeTask(taskTitle, taskDescription, submissionContent string) (int, string, error) {
+// 	system := `Та даалгаврын хариултыг үнэлэх AI систем. Монгол хэл дээр хариулна уу.
+// Хариултыг заавал дараах JSON форматаар өг, өөр ямар ч текст бүү нэм:
+// {"grade": <0-100 бүхэл тоо>, "feedback": "<Монгол хэл дээр дэлгэрэнгүй санал хүсэлт>"}`
 
-	userMsg := fmt.Sprintf("Даалгавар: %s\n\nДаалгаврын тайлбар:\n%s\n\nГоролигчийн хариулт:\n%s\n\nЭнэ хариултыг 0-100 оноогоор үнэлж, дэлгэрэнгүй санал хүсэлт өг.", taskTitle, taskDescription, submissionContent)
+// 	userMsg := fmt.Sprintf("Даалгавар: %s\n\nДаалгаврын тайлбар:\n%s\n\nГоролигчийн хариулт:\n%s\n\nЭнэ хариултыг 0-100 оноогоор үнэлж, дэлгэрэнгүй санал хүсэлт өг.", taskTitle, taskDescription, submissionContent)
 
-	raw, err := c.call(system, userMsg)
-	if err != nil {
-		return 0, "", err
-	}
+// 	raw, err := c.call(system, userMsg)
+// 	if err != nil {
+// 		return 0, "", err
+// 	}
 
-	raw = strings.TrimSpace(raw)
-	raw = strings.TrimPrefix(raw, "```json")
-	raw = strings.TrimPrefix(raw, "```")
-	raw = strings.TrimSuffix(raw, "```")
-	raw = strings.TrimSpace(raw)
+// 	raw = strings.TrimSpace(raw)
+// 	raw = strings.TrimPrefix(raw, "```json")
+// 	raw = strings.TrimPrefix(raw, "```")
+// 	raw = strings.TrimSuffix(raw, "```")
+// 	raw = strings.TrimSpace(raw)
 
-	start := strings.Index(raw, "{")
-	end := strings.LastIndex(raw, "}") + 1
-	if start >= 0 && end > start {
-		raw = raw[start:end]
-	}
+// 	start := strings.Index(raw, "{")
+// 	end := strings.LastIndex(raw, "}") + 1
+// 	if start >= 0 && end > start {
+// 		raw = raw[start:end]
+// 	}
 
-	var result struct {
-		Grade    int    `json:"grade"`
-		Feedback string `json:"feedback"`
-	}
-	if err := json.Unmarshal([]byte(raw), &result); err != nil {
-		return 0, "", fmt.Errorf("failed to parse grading response: %w", err)
-	}
-	if result.Grade < 0 {
-		result.Grade = 0
-	}
-	if result.Grade > 100 {
-		result.Grade = 100
-	}
-	return result.Grade, result.Feedback, nil
-}
+// 	var result struct {
+// 		Grade    int    `json:"grade"`
+// 		Feedback string `json:"feedback"`
+// 	}
+// 	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+// 		return 0, "", fmt.Errorf("failed to parse grading response: %w", err)
+// 	}
+// 	if result.Grade < 0 {
+// 		result.Grade = 0
+// 	}
+// 	if result.Grade > 100 {
+// 		result.Grade = 100
+// 	}
+// 	return result.Grade, result.Feedback, nil
+// }
 
 // Chat sends a user message along with available jobs context and returns a response.
 func (c *Client) Chat(userMessage string, jobsContext string, history []ChatMessage) (string, error) {

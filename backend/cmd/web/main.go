@@ -64,7 +64,7 @@ func main() {
 			FullName:    "Anujin",
 			PhoneNumber: "99560628",
 			ToduID:      228757,
-			Role:        "superadmin",
+			Role:        "recruiter",
 		}
 
 		if _, err := app.Users.Save(adminUsers); err != nil {
