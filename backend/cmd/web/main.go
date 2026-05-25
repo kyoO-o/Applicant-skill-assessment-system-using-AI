@@ -3,12 +3,14 @@ package main
 import (
 	"errors"
 	"flag"
+	"log"
 	"net/http"
 	"os"
 	"time"
 
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/app"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/cmd/web/socket"
+	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/common"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/appman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/companyman"
 	"github.com/kyoO-o/Applicant-skill-assessment-system-using-AI/backend/pkg/cvman"
@@ -59,12 +61,17 @@ func main() {
 		if !errors.Is(err, userman.ErrNotFound) {
 			app.ErrorLog.Panic(err) // If error is not plan not found, panic
 		}
+		hash, err := common.HashPassword("anujin123")
+		if err != nil {
+			log.Fatal(err)
+		}
 		adminUsers := &userman.User{
-			Email:       "anujinnn.ts@gmail.com",
-			FullName:    "Anujin",
-			PhoneNumber: "99560628",
-			ToduID:      228757,
-			Role:        "recruiter",
+			Email:        "anujinnn.ts@gmail.com",
+			FullName:     "Anujin",
+			PhoneNumber:  "99560628",
+			ToduID:       228757,
+			Role:         "recruiter",
+			PasswordHash: hash,
 		}
 
 		if _, err := app.Users.Save(adminUsers); err != nil {
