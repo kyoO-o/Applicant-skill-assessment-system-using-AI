@@ -101,9 +101,7 @@ const interviewDateSet = computed(() => {
 });
 
 function hasInterview(date: DateValue): boolean {
-  return interviewDateSet.value.has(
-    `${date.year}-${date.month}-${date.day}`,
-  );
+  return interviewDateSet.value.has(`${date.year}-${date.month}-${date.day}`);
 }
 
 const filteredInterviews = computed(() => {
@@ -278,7 +276,9 @@ function formatDateTime(d: string | null | undefined) {
                         :month="month.value"
                         class="size-full rounded-lg"
                       >
-                        <span class="relative flex flex-col items-center pb-1.5">
+                        <span
+                          class="relative flex flex-col items-center pb-1.5"
+                        >
                           {{ weekDate.day }}
                           <span
                             v-if="hasInterview(weekDate)"
@@ -368,7 +368,7 @@ function formatDateTime(d: string | null | undefined) {
           </div>
 
           <!-- Cards -->
-          <div class="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid gap-3.5 sm:grid-cols-2 lg:grid-cols-2">
             <div
               v-for="app in items"
               :key="app.id"

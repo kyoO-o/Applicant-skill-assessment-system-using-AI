@@ -28,7 +28,7 @@ dep-web:
 	ssh $(SERVER) "systemctl restart web-api"
 
 dep-ui:
-# 	cd $(FRONTEND_DIR) && NUXT_PUBLIC_API_BASE=https://skillz.works pnpm generate
-# 	rsync -avz --delete $(FRONTEND_DIR)/.output/public/ $(SERVER):/var/www/html/
-	cd frontend && NUXT_PUBLIC_API_BASE=http://167.172.65.141 pnpm generate
-	rsync -avz --delete frontend/.output/public/ root@167.172.65.141:/var/www/html/
+	cd $(FRONTEND_DIR) && NUXT_PUBLIC_API_BASE=https://skillz.works pnpm generate
+	rsync -avz --delete $(FRONTEND_DIR)/.output/public/ $(SERVER):/var/www/html/
+# 	cd frontend && NUXT_PUBLIC_API_BASE=http://167.172.65.141 pnpm generate
+# 	rsync -avz --delete frontend/.output/public/ root@167.172.65.141:/var/www/html/

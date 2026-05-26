@@ -826,7 +826,7 @@ function jobStatusLabel(status: string) {
             v-if="applyCvFile"
             class="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/30 px-3 py-2"
           >
-            <p class="truncate text-[12.5px] text-muted-foreground">
+            <p class="min-w-0 truncate text-[12.5px] text-muted-foreground">
               <span class="font-medium text-foreground">{{
                 applyCvFile.name
               }}</span>

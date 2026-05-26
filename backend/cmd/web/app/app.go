@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"sync"
@@ -42,7 +43,41 @@ var (
 	Tasks        *taskman.Service
 	CVProfiles   *cvman.Service
 	AI           *aiman.Client
+
+	// AssessCache holds AI results from /analyze so /apply can reuse them
+	// without trusting client-submitted data. Key: "userID_jobID".
+	AssessCache      = map[string]*assessCacheEntry{}
+	AssessCacheMutex = new(sync.Mutex)
 )
+
+type assessCacheEntry struct {
+	Result    *aiman.AssessmentResult
+	ExpiresAt time.Time
+}
+
+// StoreAssessment caches an AI result for 30 minutes under "userID_jobID".
+func StoreAssessment(userID, jobID int, result *aiman.AssessmentResult) {
+	key := fmt.Sprintf("%d_%d", userID, jobID)
+	AssessCacheMutex.Lock()
+	AssessCache[key] = &assessCacheEntry{Result: result, ExpiresAt: time.Now().Add(30 * time.Minute)}
+	AssessCacheMutex.Unlock()
+}
+
+// PopAssessment returns and removes a cached AI result, or nil if absent/expired.
+func PopAssessment(userID, jobID int) *aiman.AssessmentResult {
+	key := fmt.Sprintf("%d_%d", userID, jobID)
+	AssessCacheMutex.Lock()
+	defer AssessCacheMutex.Unlock()
+	entry, ok := AssessCache[key]
+	if !ok {
+		return nil
+	}
+	delete(AssessCache, key)
+	if time.Now().After(entry.ExpiresAt) {
+		return nil
+	}
+	return entry.Result
+}
 
 const (
 	GB = 1 << 30

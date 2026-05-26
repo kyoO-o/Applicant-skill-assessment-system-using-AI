@@ -17,6 +17,7 @@ const (
 // AssessmentResult is the structured JSON returned by Claude for CV scoring.
 type AssessmentResult struct {
 	OverallScore           int                     `json:"overall_score"`
+	ConfidenceScore        int                     `json:"confidence_score"`
 	Summary                string                  `json:"summary"`
 	MatchedSkills          []SkillResult           `json:"matched_skills"`
 	MissingSkills          []SkillResult           `json:"missing_skills"`
@@ -129,6 +130,7 @@ func (c *Client) AssessCV(cvText, jobTitle string, requirements, skills, duties 
 Хариултыг заавал дараах JSON форматаар өг, өөр ямар ч текст бүү нэм:
 {
   "overall_score": <0-100 хооронд бүхэл тоо>,
+  "confidence_score": <0-100 хооронд бүхэл тоо — CV-ийн мэдээллийн бүрэн гүйцэд, тодорхой байдал дээр тулгуурлан үнэлгээний найдвартай байдал>,
   "summary": "<Монгол хэл дээр 2-3 өгүүлбэрийн дүгнэлт>",
   "duty_assessments": [{"duty": "<үүрэг хариуцлагын текст>", "status": "<met|partial|not_met>", "explanation": "<CV-д энэ үүргийг хэрхэн биелүүлсэн тайлбар>"}, ...],
   "requirement_assessments": [{"requirement": "<шаардлагын текст>", "status": "<met|partial|not_met>", "explanation": "<CV-д энэ шаардлагыг хэрхэн хангасан тайлбар>"}, ...],

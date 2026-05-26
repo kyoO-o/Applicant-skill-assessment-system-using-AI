@@ -17,6 +17,7 @@ import {
   PenLine,
   MapPin,
   Video,
+  Search,
 } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth" });
@@ -35,14 +36,24 @@ const tasks = ref<Task[]>([]);
 const loading = ref(true);
 const updatingStatus = ref(false);
 
-// ── Detail dialog ──────────────────────────────────────────────────────────
-const detailOpen = ref(false);
+// ── Selected applicant (inline panel) ─────────────────────────────────────
 const selected = ref<Application | null>(null);
 
-function openDetail(app: Application) {
+function selectApplicant(app: Application) {
   selected.value = app;
-  detailOpen.value = true;
 }
+
+// ── Search & filter ────────────────────────────────────────────────────────
+const searchQuery = ref("");
+type FilterKey = "all" | "new" | "shortlisted" | "interview";
+const activeFilter = ref<FilterKey>("all");
+
+const filterOptions: { key: FilterKey; label: string }[] = [
+  { key: "all", label: "Бүгд" },
+  { key: "new", label: "Шинэ" },
+  { key: "shortlisted", label: "Ажилд авсан" },
+  { key: "interview", label: "Ярилцлага" },
+];
 
 // ── Interview dialog ───────────────────────────────────────────────────────
 const interviewOpen = ref(false);
@@ -147,7 +158,6 @@ const taskDueDate = ref("");
 const isGeneratingTask = ref(false);
 const isSendingTask = ref(false);
 
-// library mode: pick from pre-created tasks
 type TaskMode = "library" | "new";
 const taskMode = ref<TaskMode>("library");
 const libraryTasks = ref<Task[]>([]);
@@ -172,7 +182,7 @@ function pickLibraryTask(task: Task) {
   selectedLibraryTask.value = task;
   taskTitle.value = task.title;
   taskDescription.value = task.description;
-  taskDueDate.value = task.due_date ? task.due_date.split("T")[0] : "";
+  taskDueDate.value = task.due_date ? (task.due_date.split("T")[0] ?? "") : "";
 }
 
 async function generateTask() {
@@ -240,9 +250,6 @@ async function updateStatus(id: number, status: string) {
     }
     const label = status === "shortlisted" ? "Ажилд авсан" : "Тэнцээгүй";
     toast.success(`Горилогчийн төлөв "${label}" болж шинэчлэгдлээ.`);
-    if (status === "shortlisted" || status === "rejected") {
-      detailOpen.value = false;
-    }
   } catch {
     toast.error("Төлөв шинэчлэхэд алдаа гарлаа");
   } finally {
@@ -312,8 +319,43 @@ const statusOrder: Record<DerivedStatus, number> = {
   failed: 5,
 };
 
+// ── Filter logic ───────────────────────────────────────────────────────────
+const filterCounts = computed(() => ({
+  all: applications.value.length,
+  new: applications.value.filter((a) => derivedStatus(a) === "applied").length,
+  shortlisted: applications.value.filter((a) => derivedStatus(a) === "hired")
+    .length,
+  interview: applications.value.filter(
+    (a) => derivedStatus(a) === "interview_scheduled",
+  ).length,
+}));
+
+const filteredApplications = computed(() => {
+  let arr = [...applications.value];
+
+  // status filter
+  if (activeFilter.value === "new")
+    arr = arr.filter((a) => derivedStatus(a) === "applied");
+  else if (activeFilter.value === "shortlisted")
+    arr = arr.filter((a) => derivedStatus(a) === "hired");
+  else if (activeFilter.value === "interview")
+    arr = arr.filter((a) => derivedStatus(a) === "interview_scheduled");
+
+  // search filter
+  const q = searchQuery.value.trim().toLowerCase();
+  if (q)
+    arr = arr.filter(
+      (a) =>
+        (a.applicant_name || "").toLowerCase().includes(q) ||
+        (a.applicant_email || "").toLowerCase().includes(q),
+    );
+
+  return arr;
+});
+
+// ── Pagination ─────────────────────────────────────────────────────────────
 const applicantPage = ref(1);
-const APPLICANT_PAGE_SIZE = 10;
+const APPLICANT_PAGE_SIZE = 15;
 const applicantTotalPages = computed(() =>
   Math.max(1, Math.ceil(sortedApplications.value.length / APPLICANT_PAGE_SIZE)),
 );
@@ -322,12 +364,12 @@ const paginatedApplicants = computed(() => {
   return sortedApplications.value.slice(start, start + APPLICANT_PAGE_SIZE);
 });
 
-watch(sortBy, () => {
+watch([sortBy, searchQuery, activeFilter], () => {
   applicantPage.value = 1;
 });
 
 const sortedApplications = computed(() => {
-  const arr = [...applications.value];
+  const arr = [...filteredApplications.value];
   switch (sortBy.value) {
     case "score_desc":
       return arr.sort((a, b) => b.overall_score - a.overall_score);
@@ -366,6 +408,7 @@ if (!isRecruiter.value) router.replace("/jobs");
 loading.value = true;
 try {
   await reload();
+  if (applications.value.length) selected.value = applications.value[0] ?? null;
 } catch {
   toast.error("Мэдээлэл ачааллаж чадсангүй");
 } finally {
@@ -397,10 +440,16 @@ function assessColor(s: string) {
   return "text-destructive";
 }
 
-function assessRowBg(s: string) {
-  if (s === "met") return "bg-success-bg border-success/20";
-  if (s === "partial") return "bg-warning-bg border-warning/20";
-  return "bg-destructive/5 border-destructive/15";
+function dutyBarWidth(s: string): number {
+  if (s === "met") return 90;
+  if (s === "partial") return 55;
+  return 20;
+}
+
+function dutyBarColor(s: string) {
+  if (s === "met") return "bg-success";
+  if (s === "partial") return "bg-warning";
+  return "bg-destructive/70";
 }
 
 function formatDate(d: string | null | undefined) {
@@ -417,284 +466,423 @@ function formatDateTime(d: string | null | undefined) {
     timeStyle: "short",
   }).format(new Date(d));
 }
+
+function initials(name: string | null | undefined): string {
+  if (!name) return "?";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2)
+    return ((parts[0]![0] ?? "") + (parts[1]![0] ?? "")).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
+
+function avatarGradient(id: number): string {
+  const gradients = [
+    "from-violet-500 to-purple-600",
+    "from-blue-500 to-cyan-500",
+    "from-emerald-500 to-teal-600",
+    "from-orange-500 to-amber-500",
+    "from-pink-500 to-rose-500",
+    "from-indigo-500 to-blue-600",
+  ];
+  return gradients[id % gradients.length]!;
+}
 </script>
 
 <template>
-  <div class="space-y-5">
-    <!-- Page header -->
-    <div class="flex items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
+  <!-- Split-panel layout -->
+  <div class="flex gap-4 min-h-0" style="height: calc(100vh - 48px)">
+    <!-- ── Left panel: list ──────────────────────────────────────────────── -->
+    <div
+      :class="[
+        'flex flex-col gap-3 lg:w-[340px] lg:shrink-0 min-h-0',
+        selected ? 'hidden lg:flex' : 'flex w-full',
+      ]"
+    >
+      <!-- Header row -->
+      <div class="flex items-center justify-between gap-2 shrink-0">
         <div>
           <p
-            class="text-[12px] font-semibold uppercase tracking-[0.8px] text-muted-foreground"
+            class="text-[11px] font-semibold uppercase tracking-[0.8px] text-muted-foreground"
           >
             Горилогчид
           </p>
-          <h1 class="text-[22px] font-semibold tracking-[-0.5px]">
+          <h1 class="text-[20px] font-semibold tracking-[-0.5px]">
             {{ loading ? "…" : `${applications.length} горилогч` }}
           </h1>
         </div>
+        <div class="flex items-center gap-1.5">
+          <ArrowUpDown class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          <Select v-model="sortBy">
+            <SelectTrigger class="w-40 rounded-xl h-8 text-[12px]">
+              <SelectValue placeholder="Эрэмбэлэх" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem
+                v-for="opt in sortOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <!-- Sort -->
-      <div class="flex items-center gap-2">
-        <ArrowUpDown class="h-4 w-4 shrink-0 text-muted-foreground" />
-        <Select v-model="sortBy">
-          <SelectTrigger class="w-48 rounded-xl">
-            <SelectValue placeholder="Эрэмбэлэх" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem
-              v-for="opt in sortOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </SelectItem>
-          </SelectContent>
-        </Select>
+      <!-- Search -->
+      <div class="relative shrink-0">
+        <Search
+          class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+        />
+        <Input
+          v-model="searchQuery"
+          placeholder="Горилогч хайх…"
+          class="pl-8 rounded-xl h-9 text-[13px]"
+        />
       </div>
-    </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-16">
-      <Loader2 class="h-7 w-7 animate-spin text-primary" />
-    </div>
-
-    <!-- Empty -->
-    <div
-      v-else-if="!applications.length"
-      class="flex flex-col items-center py-20 text-center"
-    >
-      <div
-        class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
-      >
-        <Users class="h-7 w-7 text-muted-foreground" />
-      </div>
-      <p class="text-[16px] font-semibold">Горилогч байхгүй байна</p>
-      <p class="mt-2 text-[13.5px] text-muted-foreground">
-        Горилогчид анкет илгээх үед энд харагдана.
-      </p>
-    </div>
-
-    <!-- Applicant cards -->
-    <div v-else class="space-y-3">
-      <div
-        v-for="app in paginatedApplicants"
-        :key="app.id"
-        class="group cursor-pointer rounded-2xl border border-border bg-card p-5 transition-all hover:border-primary/30 hover:shadow-sm"
-        @click="openDetail(app)"
-      >
-        <div class="flex items-center gap-4">
-          <!-- Score circle -->
-          <div
-            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-[3px]"
-            :class="scoreBorderBg(app.overall_score)"
+      <!-- Filter pills -->
+      <div class="flex flex-wrap gap-1.5 shrink-0">
+        <button
+          v-for="f in filterOptions"
+          :key="f.key"
+          class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-[12px] font-medium transition"
+          :class="
+            activeFilter === f.key
+              ? 'bg-primary text-primary-foreground'
+              : 'border border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+          "
+          @click="activeFilter = f.key"
+        >
+          {{ f.label }}
+          <span
+            class="text-[10.5px] font-semibold"
+            :class="activeFilter === f.key ? 'opacity-80' : 'opacity-60'"
           >
-            <span
-              class="text-[13px] font-bold leading-none"
-              :class="scoreColor(app.overall_score)"
-            >
-              {{ app.overall_score }}<span class="text-[9px]">%</span>
-            </span>
-          </div>
+            {{ filterCounts[f.key] }}
+          </span>
+        </button>
+      </div>
 
-          <!-- Applicant info -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <p class="text-[15px] font-semibold">
+      <!-- Loading state -->
+      <div v-if="loading" class="flex justify-center py-12">
+        <Loader2 class="h-6 w-6 animate-spin text-primary" />
+      </div>
+
+      <!-- Empty list -->
+      <div
+        v-else-if="!paginatedApplicants.length"
+        class="flex flex-col items-center py-12 text-center"
+      >
+        <div
+          class="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted"
+        >
+          <Users class="h-5 w-5 text-muted-foreground" />
+        </div>
+        <p class="text-[14px] font-semibold">Горилогч байхгүй</p>
+        <p class="mt-1 text-[12.5px] text-muted-foreground">
+          {{
+            searchQuery || activeFilter !== "all"
+              ? "Шүүлтийг өөрчилнө үү"
+              : "Горилогчид анкет илгээх үед энд харагдана."
+          }}
+        </p>
+      </div>
+
+      <!-- Applicant list -->
+      <div v-else class="flex flex-col gap-2 overflow-y-auto min-h-0 flex-1">
+        <div
+          v-for="app in paginatedApplicants"
+          :key="app.id"
+          class="group cursor-pointer rounded-2xl border p-3 transition-all"
+          :class="
+            selected?.id === app.id
+              ? 'border-primary/40 bg-primary/5'
+              : 'border-border bg-card hover:border-primary/20 hover:bg-muted/30'
+          "
+          @click="selectApplicant(app)"
+        >
+          <div class="flex items-center gap-3">
+            <!-- Avatar -->
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white text-[12px] font-bold"
+              :class="avatarGradient(app.applicant_id)"
+            >
+              {{ initials(app.applicant_name) }}
+            </div>
+
+            <!-- Info -->
+            <div class="flex-1 min-w-0">
+              <p class="text-[13.5px] font-semibold truncate">
                 {{ app.applicant_name || "Хэрэглэгч" }}
               </p>
-              <span
-                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold"
-                :class="statusConfig[derivedStatus(app)].cls"
-              >
-                {{ statusConfig[derivedStatus(app)].label }}
-              </span>
-            </div>
-            <p class="mt-0.5 text-[12.5px] text-muted-foreground">
-              {{ app.applicant_email }}
-            </p>
-
-            <!-- Skill chips preview -->
-            <!-- <div
-              v-if="app.matched_skills?.length"
-              class="mt-2 flex flex-wrap gap-1"
-            >
-              <span
-                v-for="s in app.matched_skills.slice(0, 4)"
-                :key="s.skill"
-                class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium badge-success"
-              >
-                ✓ {{ s.skill }}
-              </span>
-              <span
-                v-for="s in app.missing_skills?.slice(0, 2)"
-                :key="'m-' + s.skill"
-                class="inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-[11px] font-medium bg-destructive/10 text-destructive"
-              >
-                ✗ {{ s.skill }}
-              </span>
-            </div> -->
-          </div>
-
-          <!-- Date + actions -->
-          <div class="shrink-0 flex flex-col items-end gap-2" @click.stop>
-            <p class="text-[12px] text-muted-foreground">
-              {{ formatDate(app.created_at) }}
-            </p>
-            <div class="flex items-center gap-1.5">
-              <button
-                class="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                :title="
-                  app.interview_at ? 'Ярилцлага товлогдсон' : 'Ярилцлага товлох'
-                "
-                @click="openInterviewDialog(app)"
-              >
-                <CalendarDays class="h-3.5 w-3.5" />
-                <span class="hidden sm:inline">Ярилцлага</span>
-              </button>
-              <button
-                class="flex h-8 items-center gap-1.5 rounded-lg border border-border px-2.5 text-[12px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
-                :disabled="!!taskForApp(app.id)"
-                :title="
-                  taskForApp(app.id)
-                    ? 'Даалгавар илгээгдсэн'
-                    : 'Даалгавар илгээх'
-                "
-                @click="openTaskDialog(app)"
-              >
-                <ClipboardList class="h-3.5 w-3.5" />
-                <span class="hidden sm:inline">Даалгавар</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Applicants pagination -->
-      <div class="flex items-center justify-center gap-1 pt-2">
-        <button
-          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
-          :disabled="applicantPage === 1"
-          @click="applicantPage--"
-        >
-          <ChevronLeft class="h-4 w-4" />
-        </button>
-        <button
-          v-for="p in applicantTotalPages"
-          :key="p"
-          :class="[
-            'h-8 w-8 rounded-full text-[13px] font-medium transition',
-            p === applicantPage
-              ? 'bg-primary text-background'
-              : 'text-muted-foreground hover:bg-muted',
-          ]"
-          @click="applicantPage = p"
-        >
-          {{ p }}
-        </button>
-        <button
-          class="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
-          :disabled="applicantPage === applicantTotalPages"
-          @click="applicantPage++"
-        >
-          <ChevronRight class="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ── Detail dialog ──────────────────────────────────────────────────── -->
-  <Dialog v-model:open="detailOpen">
-    <DialogContent
-      class="rounded-2xl sm:max-w-2xl max-h-[90vh] overflow-y-auto"
-    >
-      <DialogHeader>
-        <DialogTitle class="text-[18px]">{{
-          selected?.applicant_name || "Горилогч"
-        }}</DialogTitle>
-        <DialogDescription>{{ selected?.applicant_email }}</DialogDescription>
-      </DialogHeader>
-
-      <div v-if="selected" class="space-y-5 py-2">
-        <!-- Score + summary -->
-        <div
-          class="flex items-start gap-4 rounded-xl border p-4"
-          :class="
-            selected.overall_score >= 75
-              ? 'bg-success-bg border-success/20'
-              : selected.overall_score >= 50
-                ? 'bg-warning-bg border-warning/20'
-                : 'bg-destructive/5 border-destructive/15'
-          "
-        >
-          <div
-            class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border-[3px]"
-            :class="scoreBorderBg(selected.overall_score)"
-          >
-            <div class="text-center">
-              <p
-                class="text-[18px] font-bold leading-none"
-                :class="scoreColor(selected.overall_score)"
-              >
-                {{ selected.overall_score }}
-              </p>
-              <p
-                class="text-[10px]"
-                :class="scoreColor(selected.overall_score)"
-              >
-                /100
+              <p class="text-[11.5px] text-muted-foreground">
+                {{ formatDate(app.created_at) }}
               </p>
             </div>
-          </div>
-          <div class="flex-1">
-            <div class="mb-1.5 flex items-center gap-2">
-              <Sparkles class="h-3.5 w-3.5 text-primary" />
-              <p class="text-[13px] font-semibold">AI үнэлгээний дүгнэлт</p>
-            </div>
-            <p class="text-[13px] leading-[1.6] text-muted-foreground">
-              {{ selected.summary }}
-            </p>
-          </div>
-        </div>
 
-        <!-- Status + interview -->
-        <div class="grid gap-2.5 sm:grid-cols-2">
-          <div class="rounded-xl border border-border bg-muted/20 px-4 py-3">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5"
+            <!-- Score -->
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-[2.5px] text-[12px] font-bold"
+              :class="scoreBorderBg(app.overall_score)"
             >
-              Одоогийн төлөв
-            </p>
+              <span :class="scoreColor(app.overall_score)">
+                {{ app.overall_score }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Status badge -->
+          <div class="mt-2 flex">
             <span
-              class="inline-flex items-center rounded-full px-3 py-1 text-[12px] font-semibold"
-              :class="statusConfig[derivedStatus(selected)].cls"
+              class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold"
+              :class="statusConfig[derivedStatus(app)].cls"
             >
-              {{ statusConfig[derivedStatus(selected)].label }}
+              {{ statusConfig[derivedStatus(app)].label }}
             </span>
           </div>
-          <div class="rounded-xl border border-border bg-muted/20 px-4 py-3">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-[0.5px] text-muted-foreground mb-1.5"
+        </div>
+
+        <!-- Pagination -->
+        <div
+          v-if="applicantTotalPages > 1"
+          class="flex items-center justify-center gap-1 pt-1 pb-2 shrink-0"
+        >
+          <button
+            class="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+            :disabled="applicantPage === 1"
+            @click="applicantPage--"
+          >
+            <ChevronLeft class="h-3.5 w-3.5" />
+          </button>
+          <button
+            v-for="p in applicantTotalPages"
+            :key="p"
+            :class="[
+              'h-7 w-7 rounded-full text-[12px] font-medium transition',
+              p === applicantPage
+                ? 'bg-primary text-background'
+                : 'text-muted-foreground hover:bg-muted',
+            ]"
+            @click="applicantPage = p"
+          >
+            {{ p }}
+          </button>
+          <button
+            class="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition hover:bg-muted disabled:opacity-40"
+            :disabled="applicantPage === applicantTotalPages"
+            @click="applicantPage++"
+          >
+            <ChevronRight class="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Right panel: detail ───────────────────────────────────────────── -->
+    <div
+      :class="[
+        'flex-1 min-w-0 min-h-0',
+        selected
+          ? 'flex flex-col'
+          : 'hidden lg:flex items-center justify-center',
+      ]"
+    >
+      <!-- Mobile back button -->
+      <button
+        class="mb-3 flex items-center gap-1.5 text-[13px] text-muted-foreground transition hover:text-foreground lg:hidden shrink-0"
+        @click="selected = null"
+      >
+        <ChevronLeft class="h-4 w-4" />
+        Буцах
+      </button>
+
+      <!-- Empty state (desktop) -->
+      <div
+        v-if="!selected && !loading"
+        class="flex flex-col items-center text-center"
+      >
+        <div
+          class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-muted"
+        >
+          <Users class="h-7 w-7 text-muted-foreground" />
+        </div>
+        <p class="text-[15px] font-semibold">Горилогч сонгоно уу</p>
+        <p class="mt-1.5 text-[13px] text-muted-foreground">
+          Зүүн талын жагсаалтаас горилогч сонгоно уу.
+        </p>
+      </div>
+
+      <!-- Detail panel -->
+      <div
+        v-else-if="selected"
+        class="rounded-2xl border border-border bg-card overflow-y-auto min-h-0"
+      >
+        <!-- ── Header ── -->
+        <div class="flex items-start gap-4 p-5 border-b border-border shrink-0">
+          <!-- Avatar large -->
+          <div
+            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-gradient-to-br text-white text-[18px] font-bold"
+            :class="avatarGradient(selected.applicant_id)"
+          >
+            {{ initials(selected.applicant_name) }}
+          </div>
+
+          <!-- Name + meta -->
+          <div class="flex-1 min-w-0">
+            <h2
+              class="text-[18px] font-semibold tracking-[-0.4px] leading-tight"
             >
-              Ярилцлагийн тов
+              {{ selected.applicant_name || "Горилогч" }}
+            </h2>
+            <p class="mt-0.5 text-[12.5px] text-muted-foreground">
+              {{ selected.applicant_email }}
             </p>
-            <p class="text-[13.5px] font-medium">
-              {{
-                selected.interview_at
-                  ? formatDateTime(selected.interview_at)
-                  : "Товлоогүй"
-              }}
-            </p>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              <span
+                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold"
+                :class="statusConfig[derivedStatus(selected)].cls"
+              >
+                {{ statusConfig[derivedStatus(selected)].label }}
+              </span>
+              <span
+                class="inline-flex items-center rounded-full border border-border px-2.5 py-0.5 text-[11.5px] text-muted-foreground"
+              >
+                Илгээсэн {{ formatDate(selected.created_at) }}
+              </span>
+              <span
+                v-if="selected.interview_at"
+                class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11.5px] font-medium text-primary"
+              >
+                <CalendarDays class="h-3 w-3" />
+                {{ formatDateTime(selected.interview_at) }}
+              </span>
+              <span
+                v-if="selected.confidence_score"
+                class="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-0.5 text-[11.5px] font-medium text-primary"
+                title="Найдвартай байдал — CV-ийн мэдээллийн бүрэн гүйцэд байдал дээр тулгуурласан"
+              >
+                Confidence : {{ selected.confidence_score }}
+              </span>
+              <!-- <span
+                v-if="selected.confidence_score"
+                class="text-center"
+                title="Найдвартай байдал — CV-ийн мэдээллийн бүрэн гүйцэд байдал дээр тулгуурласан"
+              >
+                <div
+                  class="flex h-12 w-12 items-center justify-center rounded-full border-[2px] border-border bg-muted"
+                >
+                  <p class="text-[14px] font-semibold text-muted-foreground">
+                    {{ selected.confidence_score }}
+                  </p>
+                </div>
+                <p class="mt-1 text-[10px] text-muted-foreground">Confidence</p>
+              </span> -->
+            </div>
+          </div>
+
+          <!-- Score gauges -->
+          <div class="shrink-0 flex flex-col items-center gap-2">
+            <div class="text-center">
+              <div
+                class="flex h-16 w-16 items-center justify-center rounded-full border-[3.5px]"
+                :class="scoreBorderBg(selected.overall_score)"
+              >
+                <div>
+                  <p
+                    class="text-[18px] font-bold leading-none"
+                    :class="scoreColor(selected.overall_score)"
+                  >
+                    {{ selected.overall_score }}
+                  </p>
+                  <p
+                    class="text-[10px]"
+                    :class="scoreColor(selected.overall_score)"
+                  >
+                    /100
+                  </p>
+                </div>
+              </div>
+              <p class="mt-1 text-[10.5px] text-muted-foreground">AI оноо</p>
+            </div>
           </div>
         </div>
 
-        <!-- Actions -->
-        <div class="flex flex-wrap gap-2">
+        <!-- ── Body ── -->
+        <div class="flex flex-col gap-4 p-5">
+          <!-- AI Summary: full width -->
+          <div class="rounded-xl border p-4 bg-primary/5">
+            <div class="mb-2 flex items-center gap-1.5">
+              <Sparkles class="h-3.5 w-3.5 text-primary" />
+              <p
+                class="text-[12px] font-semibold uppercase tracking-[0.5px] text-primary"
+              >
+                AI дүгнэлт
+              </p>
+            </div>
+            <p class="text-[13px] leading-[1.6] text-muted-foreground">
+              {{ selected.summary || "Дүгнэлт байхгүй." }}
+            </p>
+          </div>
+
+          <!-- Strengths + Gaps: 2 columns -->
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Strengths -->
+            <div class="space-y-1.5">
+              <p
+                class="text-[10.5px] font-semibold uppercase tracking-[0.6px] text-success-foreground"
+              >
+                Тохирсон ур чадварууд
+              </p>
+              <div
+                v-if="selected.matched_skills?.length"
+                class="flex flex-wrap gap-1.5"
+              >
+                <span
+                  v-for="s in selected.matched_skills"
+                  :key="s.skill"
+                  class="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium badge-success"
+                >
+                  <CheckCircle2 class="h-3 w-3" />
+                  {{ s.skill }}
+                </span>
+              </div>
+              <p v-else class="text-[12.5px] text-muted-foreground">Байхгүй</p>
+            </div>
+
+            <!-- Gaps -->
+            <div class="space-y-1.5">
+              <p
+                class="text-[10.5px] font-semibold uppercase tracking-[0.6px] text-destructive"
+              >
+                Дутуу ур чадварууд
+              </p>
+              <div
+                v-if="selected.missing_skills?.length"
+                class="flex flex-wrap gap-1.5"
+              >
+                <span
+                  v-for="s in selected.missing_skills"
+                  :key="s.skill"
+                  class="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2.5 py-0.5 text-[11.5px] font-medium text-destructive"
+                >
+                  <XCircle class="h-3 w-3" />
+                  {{ s.skill }}
+                </span>
+              </div>
+              <p v-else class="text-[12.5px] text-muted-foreground">Байхгүй</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Footer: actions ── -->
+        <div
+          class="flex flex-wrap items-center gap-2 border-t border-border px-5 py-4 shrink-0"
+        >
+          <!-- Shortlist -->
           <button
             v-if="selected.status !== 'shortlisted'"
-            class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13.5px] font-semibold text-white transition hover:opacity-90"
+            class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
             style="
               background: linear-gradient(
                 135deg,
@@ -707,147 +895,53 @@ function formatDateTime(d: string | null | undefined) {
           >
             Ажилд авах
           </button>
+
+          <!-- Schedule interview -->
           <button
-            v-if="selected.status !== 'rejected'"
-            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            class="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-[13px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            @click="openInterviewDialog(selected)"
+          >
+            <CalendarDays class="h-4 w-4" />
+            {{
+              selected.interview_at
+                ? "Ярилцлагын тов өөрчлөх"
+                : "Ярилцлага товлох"
+            }}
+          </button>
+
+          <!-- Send task -->
+          <button
+            class="inline-flex items-center gap-1.5 rounded-full border border-border px-4 py-2 text-[13px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
+            :disabled="!!taskForApp(selected.id)"
+            :title="
+              taskForApp(selected.id)
+                ? 'Даалгавар илгээгдсэн'
+                : 'Даалгавар илгээх'
+            "
+            @click="openTaskDialog(selected)"
+          >
+            <ClipboardList class="h-4 w-4" />
+            Даалгавар илгээх
+          </button>
+
+          <div class="flex-1" />
+
+          <!-- Reject -->
+          <button
+            v-if="
+              selected.status !== 'rejected' &&
+              selected.status !== 'shortlisted'
+            "
+            class="inline-flex items-center gap-1.5 rounded-full border border-destructive/30 px-4 py-2 text-[13px] font-medium text-destructive transition hover:bg-destructive/10 disabled:opacity-50"
             :disabled="updatingStatus"
             @click="updateStatus(selected.id, 'rejected')"
           >
             Тэнцээгүй
           </button>
-          <button
-            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-            @click="
-              () => {
-                detailOpen = false;
-                openInterviewDialog(selected!);
-              }
-            "
-          >
-            <CalendarDays class="h-4 w-4" />
-            Ярилцлага товлох
-          </button>
-          <button
-            class="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-[13.5px] font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:opacity-40"
-            :disabled="!!taskForApp(selected.id)"
-            @click="
-              () => {
-                detailOpen = false;
-                openTaskDialog(selected!);
-              }
-            "
-          >
-            <ClipboardList class="h-4 w-4" />
-            Даалгавар илгээх
-          </button>
-        </div>
-
-        <!-- Skills -->
-        <div class="grid gap-4 sm:grid-cols-2">
-          <div class="space-y-2">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-[0.6px] text-success-foreground"
-            >
-              Тохирсон ур чадварууд
-            </p>
-            <div
-              v-for="s in selected.matched_skills"
-              :key="s.skill"
-              class="rounded-xl border border-success/20 bg-success-bg p-3"
-            >
-              <p
-                class="flex items-center gap-1.5 text-[12.5px] font-semibold text-success-foreground"
-              >
-                <CheckCircle2 class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
-              </p>
-              <p class="mt-0.5 text-[12px] text-muted-foreground">
-                {{ s.explanation }}
-              </p>
-            </div>
-            <p
-              v-if="!selected.matched_skills?.length"
-              class="text-[12.5px] text-muted-foreground"
-            >
-              Байхгүй
-            </p>
-          </div>
-          <div class="space-y-2">
-            <p
-              class="text-[11px] font-semibold uppercase tracking-[0.6px] text-destructive"
-            >
-              Дутуу ур чадварууд
-            </p>
-            <div
-              v-for="s in selected.missing_skills"
-              :key="s.skill"
-              class="rounded-xl border border-destructive/15 bg-destructive/5 p-3"
-            >
-              <p
-                class="flex items-center gap-1.5 text-[12.5px] font-semibold text-destructive"
-              >
-                <XCircle class="h-3.5 w-3.5 shrink-0" /> {{ s.skill }}
-              </p>
-              <p class="mt-0.5 text-[12px] text-muted-foreground">
-                {{ s.explanation }}
-              </p>
-            </div>
-            <p
-              v-if="!selected.missing_skills?.length"
-              class="text-[12.5px] text-muted-foreground"
-            >
-              Байхгүй
-            </p>
-          </div>
-        </div>
-
-        <!-- Duty assessments -->
-        <div v-if="selected.duty_assessments?.length" class="space-y-2">
-          <p class="text-[13.5px] font-semibold">Үүрэг хариуцлагын үнэлгээ</p>
-          <div
-            v-for="d in selected.duty_assessments"
-            :key="d.duty"
-            class="flex items-start gap-3 rounded-xl border p-3"
-            :class="assessRowBg(d.status)"
-          >
-            <component
-              :is="assessIcon(d.status)"
-              class="mt-0.5 h-4 w-4 shrink-0"
-              :class="assessColor(d.status)"
-            />
-            <div>
-              <p class="text-[13px] font-medium">{{ d.duty }}</p>
-              <p class="mt-0.5 text-[12px]" :class="assessColor(d.status)">
-                {{ d.explanation }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Requirement assessments -->
-        <div v-if="selected.requirement_assessments?.length" class="space-y-2">
-          <p class="text-[13.5px] font-semibold">Шаардлагын үнэлгээ</p>
-          <div
-            v-for="r in selected.requirement_assessments"
-            :key="r.requirement"
-            class="flex items-start gap-3 rounded-xl border p-3"
-            :class="assessRowBg(r.status)"
-          >
-            <component
-              :is="assessIcon(r.status)"
-              class="mt-0.5 h-4 w-4 shrink-0"
-              :class="assessColor(r.status)"
-            />
-            <div>
-              <p class="text-[13px] font-medium">{{ r.requirement }}</p>
-              <p class="mt-0.5 text-[12px]" :class="assessColor(r.status)">
-                {{ r.explanation }}
-              </p>
-            </div>
-          </div>
         </div>
       </div>
-    </DialogContent>
-  </Dialog>
+    </div>
+  </div>
 
   <!-- ── Interview dialog ───────────────────────────────────────────────── -->
   <Dialog v-model:open="interviewOpen">
@@ -906,7 +1000,7 @@ function formatDateTime(d: string | null | undefined) {
           <Input v-model="interviewLocation" placeholder="Уулзах газар" />
         </div>
 
-        <!-- Google Meet: auto-generate (if gcal connected) or manual link -->
+        <!-- Google Meet -->
         <div v-else class="space-y-2">
           <template v-if="gcalConnected">
             <div
@@ -1060,7 +1154,6 @@ function formatDateTime(d: string | null | undefined) {
             </div>
           </div>
 
-          <!-- Due date override when a task is selected -->
           <div v-if="selectedLibraryTask" class="space-y-1.5 pt-2">
             <Label class="text-[12.5px]">
               Дуусах огноо
@@ -1097,7 +1190,7 @@ function formatDateTime(d: string | null | undefined) {
             />
           </div>
           <div class="space-y-2">
-            <Label> Дуусах огноо </Label>
+            <Label>Дуусах огноо</Label>
             <Input v-model="taskDueDate" type="date" />
           </div>
         </div>

@@ -10,6 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from "~/components/ui/form";
+import { Check } from "lucide-vue-next";
 
 definePageMeta({
   layout: false,
@@ -20,6 +21,42 @@ const selectedRole = ref<UserRole>(UserRole.User);
 const { register, isLoading } = useAuth();
 const router = useRouter();
 const errorMessage = ref("");
+
+const pwValue = ref("");
+watch(selectedRole, () => {
+  pwValue.value = "";
+});
+
+const passwordChecks = computed(() => [
+  { ok: pwValue.value.length >= 8, label: "Багадаа 8 тэмдэгт" },
+  { ok: /[A-Z]/.test(pwValue.value), label: "Том үсэг" },
+  { ok: /[a-z]/.test(pwValue.value), label: "Жижиг үсэг" },
+  { ok: /\d/.test(pwValue.value), label: "Тоо агуулсан" },
+  { ok: /[^A-Za-z0-9]/.test(pwValue.value), label: "Тусгай тэмдэгт" },
+]);
+const passwordScore = computed(
+  () => passwordChecks.value.filter((c) => c.ok).length,
+);
+const passwordStrength = computed(
+  () =>
+    ["Хэт сул", "Сул", "Дунд", "Дунд", "Хүчтэй", "Маш хүчтэй"][
+      passwordScore.value
+    ],
+);
+const passwordStrengthClass = computed(() =>
+  passwordScore.value >= 4
+    ? "text-emerald-600 dark:text-emerald-400"
+    : passwordScore.value >= 3
+      ? "text-yellow-600 dark:text-yellow-400"
+      : "text-red-500",
+);
+const passwordBarClass = computed(() =>
+  passwordScore.value >= 4
+    ? "bg-emerald-500"
+    : passwordScore.value >= 3
+      ? "bg-yellow-500"
+      : "bg-red-500",
+);
 
 const schema = computed(() =>
   toTypedSchema(
@@ -162,51 +199,85 @@ async function onSubmit(values: Record<string, any>) {
           </FormItem>
         </FormField>
 
-        <div class="grid gap-5 sm:grid-cols-2">
-          <FormField
-            v-slot="{ componentField }"
-            name="password"
-            :validate-on-blur="false"
-            :validate-on-change="false"
-            :validate-on-model-update="false"
-          >
-            <FormItem>
-              <FormLabel class="text-xs text-muted-foreground"
-                >Нууц үг*</FormLabel
-              >
-              <FormControl>
-                <PasswordInput
-                  v-bind="componentField"
-                  autocomplete="new-password"
-                  placeholder="Нууц үгээ оруулна уу"
+        <FormField
+          v-slot="{ componentField }"
+          name="password"
+          :validate-on-blur="false"
+          :validate-on-change="false"
+          :validate-on-model-update="false"
+        >
+          <FormItem>
+            <FormLabel class="text-xs text-muted-foreground"
+              >Нууц үг*</FormLabel
+            >
+            <FormControl>
+              <PasswordInput
+                v-bind="componentField"
+                autocomplete="new-password"
+                placeholder="Нууц үгээ оруулна уу"
+                @update:model-value="pwValue = $event as string"
+              />
+            </FormControl>
+            <template v-if="pwValue">
+              <div class="mt-2 flex gap-1">
+                <div
+                  v-for="i in 5"
+                  :key="i"
+                  class="h-1 flex-1 rounded-full transition-colors"
+                  :class="i <= passwordScore ? passwordBarClass : 'bg-border'"
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
+              </div>
+              <p
+                class="mt-1 text-xs font-semibold"
+                :class="passwordStrengthClass"
+              >
+                {{ passwordStrength }}
+              </p>
+              <div class="mt-2 grid grid-cols-2 gap-1">
+                <div
+                  v-for="check in passwordChecks"
+                  :key="check.label"
+                  class="flex items-center gap-1.5 text-xs"
+                  :class="
+                    check.ok
+                      ? 'text-emerald-600 dark:text-emerald-400'
+                      : 'text-muted-foreground'
+                  "
+                >
+                  <Check v-if="check.ok" class="h-3 w-3" />
+                  <span
+                    v-else
+                    class="inline-block h-2 w-2 rounded-full border border-muted-foreground/40"
+                  />
+                  {{ check.label }}
+                </div>
+              </div>
+            </template>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
-          <FormField
-            v-slot="{ componentField }"
-            name="confirmPassword"
-            :validate-on-blur="false"
-            :validate-on-change="false"
-            :validate-on-model-update="false"
-          >
-            <FormItem>
-              <FormLabel class="text-xs text-muted-foreground"
-                >Нууц үг давтах*</FormLabel
-              >
-              <FormControl>
-                <PasswordInput
-                  v-bind="componentField"
-                  autocomplete="new-password"
-                  placeholder="Нууц үгээ дахин оруулна уу"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          </FormField>
-        </div>
+        <FormField
+          v-slot="{ componentField }"
+          name="confirmPassword"
+          :validate-on-blur="false"
+          :validate-on-change="false"
+          :validate-on-model-update="false"
+        >
+          <FormItem>
+            <FormLabel class="text-xs text-muted-foreground"
+              >Нууц үг давтах*</FormLabel
+            >
+            <FormControl>
+              <PasswordInput
+                v-bind="componentField"
+                autocomplete="new-password"
+                placeholder="Нууц үгээ дахин оруулна уу"
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
 
         <div v-if="selectedRole === UserRole.Recruiter" class="space-y-5">
           <FormField

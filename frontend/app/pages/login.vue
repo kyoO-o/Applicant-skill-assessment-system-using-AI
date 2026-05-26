@@ -48,8 +48,8 @@ async function onSubmit(values: { email: string; password: string }) {
   <AuthShell>
     <AuthCard
       title="Тавтай морилно уу"
-      description="Бүртгэлдээ нэвтэрч ажлын хайлтаа үргэлжлүүлнэ үү."
-      footer-text="Бүртгэл үгүй юу?"
+      description="Бүртгэлээрээ нэвтэрч ажлын хайлтаа үргэлжлүүлнэ үү."
+      footer-text="Бүртгэлгүй юу?"
       footer-link-text="Бүртгүүлэх"
       footer-link-to="/register"
     >

@@ -99,7 +99,7 @@ withDefaults(defineProps<Props>(), {
               >
             </div>
             <p class="text-[18px] font-semibold text-white">
-              "Маш сайн тохирол — 87/100"
+              "Маш сайн тохирол — 93/100"
             </p>
             <p class="mt-1 text-[13px] text-white/80">
               Хэдхэн секундэд ажлын байрны шаардлагатай тохирол хийнэ.

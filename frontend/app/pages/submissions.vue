@@ -10,6 +10,9 @@ import {
   ChevronLeft,
   CheckCircle2,
   Clock,
+  Search,
+  X,
+  Briefcase,
 } from "lucide-vue-next";
 
 definePageMeta({ middleware: "auth", fullscreen: true });
@@ -25,14 +28,45 @@ const submissions = ref<TaskSubmission[]>([]);
 const loading = ref(true);
 const selected = ref<TaskSubmission | null>(null);
 
+const searchQuery = ref("");
+const statusFilter = ref<"all" | "submitted" | "graded">("all");
+const jobFilter = ref<string>("all");
+
+const jobOptions = computed(() => {
+  const seen = new Map<string, string>();
+  for (const s of submissions.value) {
+    if (s.job_title) seen.set(s.job_title, s.job_title);
+  }
+  return [{ value: "all", label: "Бүх ажил" }, ...Array.from(seen.values()).map((t) => ({ value: t, label: t }))];
+});
+
+const filteredSubmissions = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  return submissions.value.filter((s) => {
+    const matchesSearch =
+      !q ||
+      s.applicant_name?.toLowerCase().includes(q) ||
+      s.task_title?.toLowerCase().includes(q);
+    const matchesStatus =
+      statusFilter.value === "all" || s.status === statusFilter.value;
+    const matchesJob =
+      jobFilter.value === "all" || s.job_title === jobFilter.value;
+    return matchesSearch && matchesStatus && matchesJob;
+  });
+});
+
+watch([searchQuery, statusFilter, jobFilter], () => {
+  subPage.value = 1;
+});
+
 const subPage = ref(1);
 const SUB_PAGE_SIZE = 10;
 const subTotalPages = computed(() =>
-  Math.max(1, Math.ceil(submissions.value.length / SUB_PAGE_SIZE)),
+  Math.max(1, Math.ceil(filteredSubmissions.value.length / SUB_PAGE_SIZE)),
 );
 const paginatedSubmissions = computed(() => {
   const start = (subPage.value - 1) * SUB_PAGE_SIZE;
-  return submissions.value.slice(start, start + SUB_PAGE_SIZE);
+  return filteredSubmissions.value.slice(start, start + SUB_PAGE_SIZE);
 });
 const pdfBlobUrl = ref<string | null>(null);
 const pdfLoading = ref(false);
@@ -151,22 +185,74 @@ function formatDate(d: string) {
     <div
       class="flex w-[300px] shrink-0 flex-col border-r border-border bg-card"
     >
-      <!-- <div class="border-b border-border px-4 py-4">
-        <p class="mt-0.5 text-[12px] text-muted-foreground">
-          {{ submissions.length }} илгээлт
+      <!-- Filters -->
+      <div class="border-b border-border px-3 py-3 space-y-2">
+        <!-- Search -->
+        <div class="relative">
+          <Search class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Нэр эсвэл даалгавраар хайх..."
+            class="w-full rounded-lg border border-input bg-background pl-8 pr-7 py-1.5 text-[12.5px] placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <button
+            v-if="searchQuery"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            @click="searchQuery = ''"
+          >
+            <X class="h-3 w-3" />
+          </button>
+        </div>
+        <!-- Status tabs -->
+        <div class="flex gap-1">
+          <button
+            v-for="opt in [
+              { value: 'all', label: 'Бүгд' },
+              { value: 'submitted', label: 'Хүлээгдэж байна' },
+              { value: 'graded', label: 'Үнэлэгдсэн' },
+            ]"
+            :key="opt.value"
+            class="flex-1 rounded-md px-2 py-1 text-[11px] font-medium transition"
+            :class="
+              statusFilter === opt.value
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            "
+            @click="statusFilter = opt.value as any"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+        <!-- Job filter -->
+        <div v-if="jobOptions.length > 1" class="relative">
+          <Briefcase class="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <select
+            v-model="jobFilter"
+            class="w-full appearance-none rounded-lg border border-input bg-background pl-8 pr-3 py-1.5 text-[12.5px] text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option v-for="opt in jobOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
+        <p class="text-[11px] text-muted-foreground">
+          {{ filteredSubmissions.length }} / {{ submissions.length }} илгээлт
         </p>
-      </div> -->
+      </div>
 
       <div v-if="loading" class="flex flex-1 items-center justify-center">
         <Loader2 class="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
 
       <div
-        v-else-if="!submissions.length"
+        v-else-if="!filteredSubmissions.length"
         class="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center"
       >
         <ClipboardCheck class="h-8 w-8 text-muted-foreground/40" />
-        <p class="text-[12.5px] text-muted-foreground">Илгээлт байхгүй</p>
+        <p class="text-[12.5px] text-muted-foreground">
+          {{ submissions.length ? "Тохирох илгээлт байхгүй" : "Илгээлт байхгүй" }}
+        </p>
       </div>
 
       <div v-else class="flex flex-col flex-1 overflow-hidden">

@@ -7,11 +7,9 @@ export const emailSchema = z
 
 export const passwordSchema = z
   .string()
-  .min(8, "Нууц үг наад зах нь 8 тэмдэгттэй байна");
+  .min(8, "Нууц үг багадаа 8 тэмдэгттэй байна");
 
-export const requiredPasswordSchema = z
-  .string()
-  .min(1, "Нууц үг шаардлагатай");
+export const requiredPasswordSchema = z.string().min(1, "Нууц үг шаардлагатай");
 
 export const verificationCodeSchema = z
   .string()
@@ -41,13 +39,12 @@ export const registerBaseSchema = z
     }
   });
 
-export const registerRecruiterSchema = registerBaseSchema
-  .and(
-    z.object({
-      companyName: z.string().optional(),
-      recruiterPosition: z.string().min(1, "Албан тушаал шаардлагатай"),
-    }),
-  );
+export const registerRecruiterSchema = registerBaseSchema.and(
+  z.object({
+    companyName: z.string().optional(),
+    recruiterPosition: z.string().min(1, "Албан тушаал шаардлагатай"),
+  }),
+);
 
 export const forgotPasswordEmailSchema = z.object({
   email: emailSchema,

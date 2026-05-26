@@ -14,17 +14,18 @@ func routes() http.Handler {
 	r.Use(middleware.RealIP, middleware.Recoverer)
 	r.Use(CORS, SecureHeaders, app.Session.Enable, Authenticate)
 
-	// Serve uploaded images (avatars, logos)
-	if app.Config.StoragePath != "" {
-		storagePath := filepath.Clean(app.Config.StoragePath)
-		r.Handle("/storage/*", http.StripPrefix("/storage", http.FileServer(http.Dir(storagePath))))
-	}
-
 	// WebSocket is outside the Logger group: after the WS upgrade the connection
 	// is hijacked and chi's basicWriter would error trying to write a status code.
 	r.With(RequireAuth).Get("/api/ws", app.FrontendWS.Handler)
 
-	// All standard HTTP routes use chi's Logger middleware.
+	// Static files must also stay outside the Logger group: chi's Logger wraps the
+	// ResponseWriter with httpFancyWriter, whose ReadFrom does an unchecked io.ReaderFrom
+	// type assertion that panics when the underlying writer is sessions' bufferedResponseWriter.
+	if app.Config.StoragePath != "" {
+		storagePath := filepath.Clean(app.Config.StoragePath)
+		r.With(RequireAuth).Handle("/storage/*", http.StripPrefix("/storage", http.FileServer(http.Dir(storagePath))))
+	}
+
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Logger)
 

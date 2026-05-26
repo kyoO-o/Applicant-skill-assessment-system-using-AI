@@ -225,7 +225,7 @@ async function resendCode() {
             <FormControl>
               <PasswordInput
                 v-bind="componentField"
-                placeholder="Наад зах нь 8 тэмдэгт"
+                placeholder="Багадаа 8 тэмдэгт"
                 autocomplete="new-password"
               />
             </FormControl>

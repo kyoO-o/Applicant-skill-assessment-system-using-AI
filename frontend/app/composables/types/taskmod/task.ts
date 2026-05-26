@@ -12,6 +12,8 @@ export interface TaskSubmission extends BaseModel {
   task_title?: string;
   task_description?: string;
   applicant_name?: string;
+  job_posting_id?: number | null;
+  job_title?: string;
 }
 
 export interface Task extends BaseModel {

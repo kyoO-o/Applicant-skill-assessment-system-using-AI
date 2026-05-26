@@ -19,6 +19,7 @@ export interface RequirementAssessment {
 
 export interface AssessmentResult {
   overall_score: number;
+  confidence_score: number;
   summary: string;
   matched_skills: SkillResult[];
   missing_skills: SkillResult[];
@@ -35,6 +36,7 @@ export interface Application extends BaseModel {
   applicant_email: string;
   applicant_profile_url?: string;
   overall_score: number;
+  confidence_score: number;
   summary: string;
   matched_skills: SkillResult[];
   missing_skills: SkillResult[];

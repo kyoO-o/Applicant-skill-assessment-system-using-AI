@@ -133,7 +133,7 @@ func generateTask(w http.ResponseWriter, r *http.Request) {
 
 // PUT /api/tasks/{id}  — recruiter updates task title/description/due_date
 func updateTask(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
 		return
@@ -152,6 +152,11 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		oapi.ServerError(w, err)
+		return
+	}
+
+	if !taskBelongsToRecruiterCompany(task, recruiter) {
+		oapi.Forbidden(w)
 		return
 	}
 
@@ -195,7 +200,7 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 
 // DELETE /api/tasks/{id}  — recruiter deletes a draft task
 func deleteTask(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
 		return
@@ -214,6 +219,11 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		oapi.ServerError(w, err)
+		return
+	}
+
+	if !taskBelongsToRecruiterCompany(task, recruiter) {
+		oapi.Forbidden(w)
 		return
 	}
 
@@ -232,7 +242,7 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 
 // PUT /api/tasks/{id}/send  — recruiter sends a task to applicant
 func sendTask(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
 		return
@@ -251,6 +261,11 @@ func sendTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		oapi.ServerError(w, err)
+		return
+	}
+
+	if !taskBelongsToRecruiterCompany(task, recruiter) {
+		oapi.Forbidden(w)
 		return
 	}
 
@@ -432,6 +447,34 @@ func submitTask(w http.ResponseWriter, r *http.Request) {
 	oapi.SendResp(w, saved)
 }
 
+// taskBelongsToRecruiterCompany returns true if the task's job belongs to the recruiter's company.
+// It checks JobPostingID first; falls back to ApplicationID if the task has no direct job link.
+func taskBelongsToRecruiterCompany(task *taskman.Task, recruiter *userman.User) bool {
+	if recruiter.CompanyID == nil {
+		return false
+	}
+	if task.JobPostingID != nil {
+		job, err := app.Jobs.Get(int(*task.JobPostingID))
+		if err != nil {
+			return false
+		}
+		return job.CompanyID == *recruiter.CompanyID
+	}
+	if task.ApplicationID != nil {
+		a, err := app.Applications.Get(int(*task.ApplicationID))
+		if err != nil {
+			return false
+		}
+		job, err := app.Jobs.Get(int(a.JobPostingID))
+		if err != nil {
+			return false
+		}
+		return job.CompanyID == *recruiter.CompanyID
+	}
+	// Task with no job or application link — only the platform admin should manage these
+	return false
+}
+
 // recruiterIDForTask resolves the recruiter (job owner) for a given task.
 func recruiterIDForTask(task *taskman.Task) int {
 	if task.JobPostingID != nil {
@@ -449,11 +492,16 @@ func recruiterIDForTask(task *taskman.Task) int {
 	return 0
 }
 
-// GET /api/tasks/submissions  — recruiter lists all submissions across all tasks
+// GET /api/tasks/submissions  — recruiter lists all submissions for their company's tasks
 func listAllSubmissions(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
+		return
+	}
+
+	if recruiter.CompanyID == nil {
+		oapi.SendResp(w, []any{})
 		return
 	}
 
@@ -463,7 +511,18 @@ func listAllSubmissions(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	oapi.SendResp(w, subs)
+	// Filter to only submissions for tasks belonging to this recruiter's company
+	filtered := make([]*taskman.SubmissionView, 0, len(subs))
+	for _, sub := range subs {
+		if sub.JobPostingID == nil {
+			continue
+		}
+		if job, jobErr := app.Jobs.Get(int(*sub.JobPostingID)); jobErr == nil && job.CompanyID == *recruiter.CompanyID {
+			filtered = append(filtered, sub)
+		}
+	}
+
+	oapi.SendResp(w, filtered)
 }
 
 // POST /api/tasks/submissions/{id}/ai-grade  — AI grades a submission
@@ -591,7 +650,7 @@ func serveSubmissionFile(w http.ResponseWriter, r *http.Request) {
 
 // PUT /api/tasks/submissions/{id}/grade  — recruiter grades a submission
 func gradeSubmission(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
 		return
@@ -620,6 +679,14 @@ func gradeSubmission(w http.ResponseWriter, r *http.Request) {
 		}
 		oapi.ServerError(w, err)
 		return
+	}
+
+	// Verify the submission's task belongs to this recruiter's company
+	if task, taskErr := app.Tasks.Get(int(sub.TaskID)); taskErr == nil && task.JobPostingID != nil {
+		if job, jobErr := app.Jobs.Get(int(*task.JobPostingID)); jobErr != nil || recruiter.CompanyID == nil || job.CompanyID != *recruiter.CompanyID {
+			oapi.Forbidden(w)
+			return
+		}
 	}
 
 	sub.Grade = &req.Grade

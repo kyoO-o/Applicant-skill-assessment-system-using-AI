@@ -199,12 +199,10 @@ const passwordDone = ref(false);
 const passwordError = ref("");
 
 const passwordChecks = computed(() => [
-  { ok: passwordForm.newPwd.length >= 8, label: "Наад зах нь 8 тэмдэгт" },
-  {
-    ok: /[A-Z]/.test(passwordForm.newPwd) && /[a-z]/.test(passwordForm.newPwd),
-    label: "Том, жижиг үсэг",
-  },
+  { ok: passwordForm.newPwd.length >= 8, label: "Багадаа 8 тэмдэгт" },
+  { ok: /[A-Z]/.test(passwordForm.newPwd), label: "Том үсэг" },
   { ok: /\d/.test(passwordForm.newPwd), label: "Тоо агуулсан" },
+  { ok: /[a-z]/.test(passwordForm.newPwd), label: "Жижиг үсэг" },
   { ok: /[^A-Za-z0-9]/.test(passwordForm.newPwd), label: "Тусгай тэмдэгт" },
 ]);
 
@@ -212,19 +210,22 @@ const passwordScore = computed(
   () => passwordChecks.value.filter((c) => c.ok).length,
 );
 const passwordStrength = computed(
-  () => ["Хэт сул", "Сул", "Дунд", "Хүчтэй", "Маш хүчтэй"][passwordScore.value],
+  () =>
+    ["Хэт сул", "Сул", "Дунд", "Дунд", "Хүчтэй", "Маш хүчтэй"][
+      passwordScore.value
+    ],
 );
 const passwordStrengthClass = computed(() =>
-  passwordScore.value >= 3
+  passwordScore.value >= 4
     ? "text-emerald-600 dark:text-emerald-400"
-    : passwordScore.value === 2
+    : passwordScore.value >= 3
       ? "text-yellow-600 dark:text-yellow-400"
       : "text-red-500",
 );
 const passwordBarClass = computed(() =>
-  passwordScore.value >= 3
+  passwordScore.value >= 4
     ? "bg-emerald-500"
-    : passwordScore.value === 2
+    : passwordScore.value >= 3
       ? "bg-yellow-500"
       : "bg-red-500",
 );
@@ -237,7 +238,7 @@ const passwordMatch = computed(
 const canSubmitPassword = computed(
   () =>
     passwordForm.current &&
-    passwordScore.value >= 3 &&
+    passwordScore.value >= 4 &&
     passwordMatch.value &&
     !isChangingPassword.value,
 );
@@ -710,13 +711,13 @@ async function handleLogout() {
                 id="pw-new"
                 :type="showPasswords ? 'text' : 'password'"
                 v-model="passwordForm.newPwd"
-                placeholder="Наад зах нь 8 тэмдэгт"
+                placeholder="Багадаа 8 тэмдэгт"
                 autocomplete="new-password"
               />
               <template v-if="passwordForm.newPwd">
                 <div class="mt-2 flex gap-1">
                   <div
-                    v-for="i in 4"
+                    v-for="i in 5"
                     :key="i"
                     class="h-1 flex-1 rounded-full transition-colors"
                     :class="i <= passwordScore ? passwordBarClass : 'bg-border'"

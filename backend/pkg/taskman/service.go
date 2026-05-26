@@ -3,6 +3,7 @@ package taskman
 import (
 	"errors"
 	"log"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -178,16 +179,20 @@ func (s *Service) ListAllSubmissions() ([]*SubmissionView, error) {
 		Grade           *int
 		Feedback        string
 		Status          string
+		CreatedAt       time.Time
 		TaskTitle       string
 		TaskDescription string
 		ApplicantName   string
+		JobPostingID    *uint
+		JobTitle        string
 	}
 	var rows []row
 	if err := s.db.
 		Table("task_submissions").
-		Select("task_submissions.id, task_submissions.task_id, task_submissions.applicant_id, task_submissions.content, task_submissions.file_path, task_submissions.grade, task_submissions.feedback, task_submissions.status, tasks.title as task_title, tasks.description as task_description, users.full_name as applicant_name").
+		Select("task_submissions.id, task_submissions.task_id, task_submissions.applicant_id, task_submissions.content, task_submissions.file_path, task_submissions.grade, task_submissions.feedback, task_submissions.status, task_submissions.created_at, tasks.title as task_title, tasks.description as task_description, tasks.job_posting_id, users.full_name as applicant_name, COALESCE(job_postings.title, '') as job_title").
 		Joins("JOIN tasks ON tasks.id = task_submissions.task_id AND tasks.deleted_at IS NULL").
 		Joins("JOIN users ON users.id = task_submissions.applicant_id AND users.deleted_at IS NULL").
+		Joins("LEFT JOIN job_postings ON job_postings.id = tasks.job_posting_id AND job_postings.deleted_at IS NULL").
 		Where("task_submissions.deleted_at IS NULL").
 		Order("task_submissions.created_at DESC").
 		Scan(&rows).Error; err != nil {
@@ -206,12 +211,15 @@ func (s *Service) ListAllSubmissions() ([]*SubmissionView, error) {
 			Status:      r.Status,
 		}
 		sub.ID = r.ID
+		sub.CreatedAt = r.CreatedAt
 		result[i] = &SubmissionView{
 			TaskSubmission:  sub,
 			TaskTitle:       r.TaskTitle,
 			TaskDescription: r.TaskDescription,
 			ApplicantName:   r.ApplicantName,
 			HasFile:         r.FilePath != "",
+			JobPostingID:    r.JobPostingID,
+			JobTitle:        r.JobTitle,
 		}
 	}
 	return result, nil

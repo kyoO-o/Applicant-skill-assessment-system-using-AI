@@ -30,6 +30,7 @@ type applicationResponse struct {
 	ApplicantEmail         string                    `json:"applicant_email"`
 	ApplicantProfileURL    string                    `json:"applicant_profile_url"`
 	OverallScore           int                       `json:"overall_score"`
+	ConfidenceScore        int                       `json:"confidence_score"`
 	Summary                string                    `json:"summary"`
 	MatchedSkills          []aiman.SkillResult       `json:"matched_skills"`
 	MissingSkills          []aiman.SkillResult       `json:"missing_skills"`
@@ -65,6 +66,7 @@ func mapApplicationResponse(a *appman.Application, jobTitle string) *application
 		ApplicantName:          a.ApplicantName,
 		ApplicantEmail:         a.ApplicantEmail,
 		OverallScore:           a.OverallScore,
+		ConfidenceScore:        a.ConfidenceScore,
 		Summary:                a.Summary,
 		MatchedSkills:          matched,
 		MissingSkills:          missing,
@@ -154,15 +156,6 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		app.ErrorLog.Printf("warning: failed to save CV file: %v", err)
 	}
 
-	// Check for a pre-computed assessment from the analyze step
-	var preAssessment *aiman.AssessmentResult
-	if assessmentJSON := r.FormValue("assessment"); assessmentJSON != "" {
-		var a aiman.AssessmentResult
-		if json.Unmarshal([]byte(assessmentJSON), &a) == nil && a.OverallScore > 0 {
-			preAssessment = &a
-		}
-	}
-
 	// Create application record
 	application := &appman.Application{
 		JobPostingID: uint(jobID),
@@ -181,16 +174,17 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 	socket.NotifyUser(int(job.PostedBy), "Шинэ анкет ирлээ",
 		fmt.Sprintf("'%s' ажлын байранд шинэ анкет ирлээ", job.Title), "new_application")
 
-	if preAssessment != nil {
-		// Reuse the result from the prior analyze call — no second AI request needed
-		matchedJSON, _ := json.Marshal(preAssessment.MatchedSkills)
-		missingJSON, _ := json.Marshal(preAssessment.MissingSkills)
-		recsJSON, _ := json.Marshal(preAssessment.Recommendations)
-		dutyJSON, _ := json.Marshal(preAssessment.DutyAssessments)
-		reqJSON, _ := json.Marshal(preAssessment.RequirementAssessments)
+	// Reuse a cached result from a prior /analyze call (stored server-side, not trusted from client)
+	if cached := app.PopAssessment(user.ID, jobID); cached != nil {
+		matchedJSON, _ := json.Marshal(cached.MatchedSkills)
+		missingJSON, _ := json.Marshal(cached.MissingSkills)
+		recsJSON, _ := json.Marshal(cached.Recommendations)
+		dutyJSON, _ := json.Marshal(cached.DutyAssessments)
+		reqJSON, _ := json.Marshal(cached.RequirementAssessments)
 		now := time.Now()
-		savedApp.OverallScore = preAssessment.OverallScore
-		savedApp.Summary = preAssessment.Summary
+		savedApp.OverallScore = cached.OverallScore
+		savedApp.ConfidenceScore = cached.ConfidenceScore
+		savedApp.Summary = cached.Summary
 		savedApp.MatchedSkills = string(matchedJSON)
 		savedApp.MissingSkills = string(missingJSON)
 		savedApp.Recommendations = string(recsJSON)
@@ -200,9 +194,9 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 		savedApp.AssessedAt = &now
 		app.Applications.Save(savedApp)
 		socket.NotifyUser(int(savedApp.ApplicantID), "AI үнэлгээ дууслаа",
-			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", job.Title, preAssessment.OverallScore), "assessment_complete")
+			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", job.Title, cached.OverallScore), "assessment_complete")
 	} else {
-		// Run AI assessment asynchronously
+		// No cached result — run AI assessment asynchronously
 		jobRequirements := make([]string, 0, len(job.Requirements))
 		for _, r := range job.Requirements {
 			jobRequirements = append(jobRequirements, r.Description)
@@ -235,6 +229,7 @@ func applyToJob(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			a.OverallScore = result.OverallScore
+			a.ConfidenceScore = result.ConfidenceScore
 			a.Summary = result.Summary
 			a.MatchedSkills = string(matchedJSON)
 			a.MissingSkills = string(missingJSON)
@@ -304,13 +299,18 @@ func getApplication(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Applicant can only see own; recruiter can see for their jobs
-	if user.Role != userman.RoleRecruiter && int(a.ApplicantID) != user.ID {
+	job, _ := app.Jobs.Get(int(a.JobPostingID))
+
+	// Applicant can only see own; recruiter can only see applications for their company's jobs
+	if user.Role == userman.RoleRecruiter {
+		if job == nil || user.CompanyID == nil || job.CompanyID != *user.CompanyID {
+			oapi.Forbidden(w)
+			return
+		}
+	} else if int(a.ApplicantID) != user.ID {
 		oapi.Forbidden(w)
 		return
 	}
-
-	job, _ := app.Jobs.Get(int(a.JobPostingID))
 	jobTitle := ""
 	if job != nil {
 		jobTitle = job.Title
@@ -369,7 +369,7 @@ func listJobApplications(w http.ResponseWriter, r *http.Request) {
 
 // PUT /api/applications/{id}/status  — recruiter updates application status
 func updateApplicationStatus(w http.ResponseWriter, r *http.Request) {
-	_, ok := recruiterUser(r)
+	recruiter, ok := recruiterUser(r)
 	if !ok {
 		oapi.Forbidden(w)
 		return
@@ -400,6 +400,13 @@ func updateApplicationStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	existing, _ := app.Applications.Get(id)
+	if existing != nil {
+		job, _ := app.Jobs.Get(int(existing.JobPostingID))
+		if job == nil || recruiter.CompanyID == nil || job.CompanyID != *recruiter.CompanyID {
+			oapi.Forbidden(w)
+			return
+		}
+	}
 
 	if err := app.Applications.UpdateStatus(id, req.Status); err != nil {
 		oapi.ServerError(w, err)
@@ -458,10 +465,12 @@ func scheduleInterview(w http.ResponseWriter, r *http.Request) {
 	}
 
 	job, _ := app.Jobs.Get(int(a.JobPostingID))
-	jobTitle := ""
-	if job != nil {
-		jobTitle = job.Title
+	if job == nil || recruiter.CompanyID == nil || job.CompanyID != *recruiter.CompanyID {
+		oapi.Forbidden(w)
+		return
 	}
+
+	jobTitle := job.Title
 	applicant, _ := app.Users.Get(int(a.ApplicantID))
 
 	locationToStore := req.InterviewLocation
@@ -690,6 +699,9 @@ func analyzeCV(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Cache server-side so the subsequent /apply call can reuse without trusting client data
+	app.StoreAssessment(user.ID, jobID, result)
+
 	oapi.SendResp(w, result)
 }
 
@@ -725,16 +737,6 @@ func applyFromProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for a pre-computed assessment from the analyze step
-	var body struct {
-		Assessment *aiman.AssessmentResult `json:"assessment"`
-	}
-	json.NewDecoder(r.Body).Decode(&body)
-	preAssessment := body.Assessment
-	if preAssessment != nil && preAssessment.OverallScore <= 0 {
-		preAssessment = nil
-	}
-
 	// Delete existing application to allow re-apply
 	if existing, err := app.Applications.GetForApplicantAndJob(user.ID, jobID); err == nil {
 		if delErr := app.Applications.Delete(existing.ID); delErr != nil {
@@ -760,16 +762,17 @@ func applyFromProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if preAssessment != nil {
-		// Reuse the result from the prior analyze call — no second AI request needed
-		matchedJSON, _ := json.Marshal(preAssessment.MatchedSkills)
-		missingJSON, _ := json.Marshal(preAssessment.MissingSkills)
-		recsJSON, _ := json.Marshal(preAssessment.Recommendations)
-		dutyJSON, _ := json.Marshal(preAssessment.DutyAssessments)
-		reqJSON, _ := json.Marshal(preAssessment.RequirementAssessments)
+	// Reuse a cached result from a prior /analyze-from-profile call (stored server-side)
+	if cached := app.PopAssessment(user.ID, jobID); cached != nil {
+		matchedJSON, _ := json.Marshal(cached.MatchedSkills)
+		missingJSON, _ := json.Marshal(cached.MissingSkills)
+		recsJSON, _ := json.Marshal(cached.Recommendations)
+		dutyJSON, _ := json.Marshal(cached.DutyAssessments)
+		reqJSON, _ := json.Marshal(cached.RequirementAssessments)
 		now := time.Now()
-		savedApp.OverallScore = preAssessment.OverallScore
-		savedApp.Summary = preAssessment.Summary
+		savedApp.OverallScore = cached.OverallScore
+		savedApp.ConfidenceScore = cached.ConfidenceScore
+		savedApp.Summary = cached.Summary
 		savedApp.MatchedSkills = string(matchedJSON)
 		savedApp.MissingSkills = string(missingJSON)
 		savedApp.Recommendations = string(recsJSON)
@@ -779,8 +782,9 @@ func applyFromProfile(w http.ResponseWriter, r *http.Request) {
 		savedApp.AssessedAt = &now
 		app.Applications.Save(savedApp)
 		socket.NotifyUser(int(savedApp.ApplicantID), "AI үнэлгээ дууслаа",
-			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", job.Title, preAssessment.OverallScore), "assessment_complete")
+			fmt.Sprintf("'%s' ажлын байранд таны анкет %d оноо авлаа", job.Title, cached.OverallScore), "assessment_complete")
 	} else {
+		// No cached result — run AI assessment asynchronously
 		jobRequirements := make([]string, 0, len(job.Requirements))
 		for _, r := range job.Requirements {
 			jobRequirements = append(jobRequirements, r.Description)
@@ -813,6 +817,7 @@ func applyFromProfile(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			a.OverallScore = result.OverallScore
+			a.ConfidenceScore = result.ConfidenceScore
 			a.Summary = result.Summary
 			a.MatchedSkills = string(matchedJSON)
 			a.MissingSkills = string(missingJSON)
@@ -885,6 +890,9 @@ func analyzeFromProfile(w http.ResponseWriter, r *http.Request) {
 		oapi.ServerError(w, err)
 		return
 	}
+
+	// Cache server-side so the subsequent /apply-from-profile call can reuse without trusting client data
+	app.StoreAssessment(user.ID, jobID, result)
 
 	oapi.SendResp(w, result)
 }

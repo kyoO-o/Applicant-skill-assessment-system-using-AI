@@ -53,4 +53,6 @@ type SubmissionView struct {
 	TaskDescription string `json:"task_description"`
 	ApplicantName   string `json:"applicant_name"`
 	HasFile         bool   `json:"has_file"`
+	JobPostingID    *uint  `json:"job_posting_id"`
+	JobTitle        string `json:"job_title"`
 }

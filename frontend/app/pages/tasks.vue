@@ -244,7 +244,7 @@ function formatDate(d: string | null | undefined) {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-5 min-w-0 overflow-x-hidden">
     <!-- Page header -->
     <div class="flex items-start justify-between gap-4">
       <div>
@@ -326,7 +326,7 @@ function formatDate(d: string | null | undefined) {
     </div>
 
     <!-- Task cards -->
-    <div v-else class="space-y-3.5">
+    <div v-else class="w-full space-y-3.5">
       <div
         v-for="task in paginatedTasks"
         :key="task.id"
@@ -370,7 +370,7 @@ function formatDate(d: string | null | undefined) {
                 }}
               </span>
             </div>
-            <p class="text-[13.5px] text-muted-foreground line-clamp-2">
+            <p class="text-[13.5px] text-muted-foreground line-clamp-2 w-200">
               {{ task.description }}
             </p>
             <div class="flex flex-wrap items-center gap-3">

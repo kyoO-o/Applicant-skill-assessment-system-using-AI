@@ -29,6 +29,7 @@ type Application struct {
 	CVFilePath      string    `json:"cv_file_path"`
 	CVText          string    `json:"-" gorm:"type:text"`
 	OverallScore    int       `json:"overall_score"`
+	ConfidenceScore int       `json:"confidence_score"`
 	Summary         string    `json:"summary" gorm:"type:text"`
 	MatchedSkills          string `json:"matched_skills" gorm:"type:text"`
 	MissingSkills          string `json:"missing_skills" gorm:"type:text"`

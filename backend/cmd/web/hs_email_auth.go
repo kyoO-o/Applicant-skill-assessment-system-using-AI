@@ -148,7 +148,7 @@ func resetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(req.Password) < 8 {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Нууц үг наад зах нь 8 тэмдэгттэй байна"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Нууц үг багадаа 8 тэмдэгттэй байна"})
 		return
 	}
 
@@ -275,7 +275,7 @@ func changePasswordHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(req.NewPassword) < 8 {
-		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Нууц үг наад зах нь 8 тэмдэгттэй байна"})
+		oapi.CustomError(w, http.StatusBadRequest, map[string]string{"message": "Нууц үг багадаа 8 тэмдэгттэй байна"})
 		return
 	}
 

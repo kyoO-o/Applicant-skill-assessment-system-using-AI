@@ -491,7 +491,7 @@ const userAvatarURL = computed(() => {
 
     <!-- ── Main column ──────────────────────────────────────── -->
     <SidebarInset>
-      <main class="flex-1 overflow-auto bg-background">
+      <main class="flex-1 bg-background">
         <NuxtPage v-if="useRoute().meta.fullscreen" />
         <div v-else class="mx-auto w-full px-7 py-6">
           <NuxtPage />
